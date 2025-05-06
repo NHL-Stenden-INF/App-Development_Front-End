@@ -43,4 +43,21 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Retrofit & Gson for Networking
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // Force specific versions compatible with compileSdk 33
+    constraints {
+        implementation("androidx.activity:activity:1.6.1") {
+            because("compileSdk 33 requirement")
+        }
+        implementation("androidx.core:core:1.10.1") {
+            because("compileSdk 33 requirement")
+        }
+        implementation("androidx.annotation:annotation-experimental:1.3.0") {
+            because("compileSdk 33 requirement")
+        }
+    }
 }
