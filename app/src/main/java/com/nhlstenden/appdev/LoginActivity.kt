@@ -42,7 +42,7 @@ class LoginActivity : AppCompatActivity() {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         // Call the login endpoint with the auth header
-                        val response = apiService.loginUser(basicAuthHeader)
+                        val response = apiService.login(basicAuthHeader)
 
                         withContext(Dispatchers.Main) {
                             if (response.isSuccessful) {
@@ -50,7 +50,7 @@ class LoginActivity : AppCompatActivity() {
                                 // You might want to store user info/token if the backend returns it
                                 // For now, just navigate to MainActivity
                                 Toast.makeText(this@LoginActivity, "Login Successful!", Toast.LENGTH_SHORT).show()
-                                navigateToMain()
+                                navigateToMain(response.body())
                             } else {
                                 // Handle unsuccessful response (e.g., 401 Unauthorized)
                                 val errorMsg = if (response.code() == 401) {
@@ -100,8 +100,9 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun navigateToMain() {
+    private fun navigateToMain(loggedInUser: UserResponse?) {
         val intent = Intent(this, MainActivity::class.java)
+        intent.putExtra("USER_DATA", loggedInUser)
         startActivity(intent)
         finish() // Close LoginActivity so user can't go back to it
     }
