@@ -9,7 +9,7 @@ import retrofit2.http.PATCH
 import retrofit2.http.POST
 
 interface ApiService {
-    @GET("user/")
+    @GET("auth/")
     suspend fun login(@Header("Authorization") authHeader: String): Response<UserResponse>
 
     @POST("user/")
