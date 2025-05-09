@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="24dp"
+    android:background="@android:color/white"
+    tools:context=".RegisterActivity">
+
+    <ImageView
+        android:id="@+id/imageViewLogoRegister"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="@string/app_name"
+        app:srcCompat="@drawable/logo" 
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardViewRegisterInputs"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="4dp"
+        app:layout_constraintTop_toBottomOf="@+id/imageViewLogoRegister"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <EditText
+                android:id="@+id/editTextUsername"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Username"
+                android:inputType="textPersonName"
+                android:background="@drawable/rounded_background"
+                android:padding="12dp"
+                android:textColor="@color/black"
+                android:textColorHint="#FF888888"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/editTextEmailAddressRegister"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Email"
+                android:inputType="textEmailAddress"
+                android:background="@drawable/rounded_background"
+                android:padding="12dp"
+                android:textColor="@color/black"
+                android:textColorHint="#FF888888"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/editTextPasswordRegister"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Password"
+                android:inputType="textPassword"
+                android:background="@drawable/rounded_background"
+                android:textColor="@color/black"
+                android:textColorHint="#FF888888"
+                android:padding="12dp" />
+
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <Button
+        android:id="@+id/buttonRegister"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Create Account"
+        android:textColor="@android:color/white"
+        android:backgroundTint="@color/colorPrimaryBlue"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:background="@drawable/rounded_background"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/cardViewRegisterInputs" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="32dp"
+        android:gravity="center"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Swipe right to login"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginEnd="8dp" />
+
+        <ImageView
+            android:id="@+id/imageViewArrowLogin"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/animated_arrow"
+            android:contentDescription="Swipe indicator" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout> 

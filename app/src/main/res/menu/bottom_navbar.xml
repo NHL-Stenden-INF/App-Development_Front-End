@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:title="Home"
+        android:id="@+id/nav_home"
+        android:icon="@drawable/home_icon_24"/>
+
+    <item android:title="Tasks"
+        android:id="@+id/nav_tasks"
+        android:icon="@drawable/task_icon_24"/>
+
+    <item android:title="Rewards"
+        android:id="@+id/nav_rewards"
+        android:icon="@drawable/reward_icon_24"/>
+
+    <item android:title="Friends"
+        android:id="@+id/nav_friends"
+        android:icon="@drawable/friends_icon_24"/>
+
+    <item android:title="Progress"
+        android:id="@+id/nav_progress"
+        android:icon="@drawable/progress_icon_24"/>
+</menu>
