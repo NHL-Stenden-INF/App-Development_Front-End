@@ -139,10 +139,10 @@ class LoginActivity : AppCompatActivity() {
             }
         }
 
-        binding.buttonRegister.setOnClickListener {
-            startActivity(Intent(this, RegisterActivity::class.java))
-            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
-        }
+        // binding.buttonRegister.setOnClickListener {
+        //     startActivity(Intent(this, RegisterActivity::class.java))
+        //     overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+        // }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
