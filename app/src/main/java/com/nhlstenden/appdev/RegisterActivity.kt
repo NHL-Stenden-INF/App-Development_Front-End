@@ -1,12 +1,16 @@
 package com.nhlstenden.appdev
 
-import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
-import android.widget.Button
-import android.widget.EditText
-import android.widget.Toast
+import android.animation.AnimatorInflater
 import android.content.Intent
-import android.util.Log // For logging errors
+import android.os.Bundle
+import android.util.Log
+import android.view.GestureDetector
+import android.view.MotionEvent
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GestureDetectorCompat
+import com.nhlstenden.appdev.databinding.ActivityRegisterBinding
+import com.nhlstenden.appdev.RegisterRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -16,66 +20,91 @@ import java.io.IOException
 
 class RegisterActivity : AppCompatActivity() {
 
-    private val apiService = RetrofitClient.instance // Get API service instance
+    private lateinit var binding: ActivityRegisterBinding
+    private lateinit var gestureDetector: GestureDetectorCompat
+    private val apiService = RetrofitClient.instance
+
+    private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
+        override fun onFling(e1: MotionEvent, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+            val diffX = e2.x - e1.x
+            val diffY = e2.y - e1.y
+
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (Math.abs(diffX) > 100 && Math.abs(velocityX) > 100) {
+                    if (diffX > 0) { // Positive diffX for right swipe
+                        // Swipe right - go to LoginActivity
+                        val intent = Intent(this@RegisterActivity, LoginActivity::class.java)
+                        startActivity(intent)
+                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
+        override fun onDown(e: MotionEvent): Boolean {
+            return true
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_register)
+        binding = ActivityRegisterBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        val usernameEditText = findViewById<EditText>(R.id.editTextUsername)
-        val emailEditText = findViewById<EditText>(R.id.editTextEmailAddressRegister)
-        val passwordEditText = findViewById<EditText>(R.id.editTextPasswordRegister)
-        val registerButton = findViewById<Button>(R.id.buttonRegister)
-        val backToLoginButton = findViewById<Button>(R.id.buttonBackToLogin) // Get the new button
+        gestureDetector = GestureDetectorCompat(this, SwipeGestureListener())
 
-        registerButton.setOnClickListener {
-            val username = usernameEditText.text.toString().trim()
-            val email = emailEditText.text.toString().trim()
-            val password = passwordEditText.text.toString() // No trim for password
+        binding.imageViewArrowLogin.let { arrow ->
+            val animator = AnimatorInflater.loadAnimator(this, R.animator.arrow_animation_right)
+            animator.setTarget(arrow)
+            animator.start()
+        }
+
+        binding.buttonRegister.setOnClickListener {
+            val username = binding.editTextUsername.text.toString().trim()
+            val email = binding.editTextEmailAddressRegister.text.toString().trim()
+            val password = binding.editTextPasswordRegister.text.toString()
 
             if (username.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
-                registerButton.isEnabled = false // Disable button during request
-                // Launch a coroutine in the IO dispatcher for network call
+                binding.buttonRegister.isEnabled = false
+
+                val registerRequest = RegisterRequest(username = username, email = email, password = password)
+
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        val registerRequest = RegisterRequest(username, email, password)
                         val response = apiService.registerUser(registerRequest)
-
-                        // Switch back to the Main thread to update UI
                         withContext(Dispatchers.Main) {
                             if (response.isSuccessful) {
-                                val successMessage = response.body() ?: "Registration successful!"
-                                Toast.makeText(this@RegisterActivity, successMessage, Toast.LENGTH_LONG).show()
-                                navigateToLogin()
+                                Toast.makeText(this@RegisterActivity, "Registration successful!", Toast.LENGTH_SHORT).show()
+                                val intent = Intent(this@RegisterActivity, LoginActivity::class.java)
+                                startActivity(intent)
+                                overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                                finish()
                             } else {
-                                // Handle unsuccessful response (e.g., 4xx, 5xx)
-                                val errorBody = response.errorBody()?.string() ?: "Unknown registration error"
-                                Log.e("RegisterActivity", "Registration failed: ${response.code()} - $errorBody")
-                                Toast.makeText(this@RegisterActivity, "Registration failed: $errorBody", Toast.LENGTH_LONG).show()
+                                val errorMsg = response.errorBody()?.string() ?: "Registration failed"
+                                Log.e("RegisterActivity", "Registration failed: ${response.code()} - $errorMsg")
+                                Toast.makeText(this@RegisterActivity, errorMsg, Toast.LENGTH_LONG).show()
                             }
                         }
                     } catch (e: IOException) {
-                        // Handle network errors (e.g., no internet)
                         Log.e("RegisterActivity", "Network error during registration", e)
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(this@RegisterActivity, "Network error. Please check connection.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@RegisterActivity, "Network error. Check connection.", Toast.LENGTH_LONG).show()
                         }
                     } catch (e: HttpException) {
-                        // Handle HTTP errors (non-2xx responses)
                         Log.e("RegisterActivity", "HTTP error during registration", e)
                         withContext(Dispatchers.Main) {
                             Toast.makeText(this@RegisterActivity, "Server error: ${e.message()}", Toast.LENGTH_LONG).show()
                         }
                     } catch (e: Exception) {
-                        // Handle other unexpected errors
                         Log.e("RegisterActivity", "Unexpected error during registration", e)
                         withContext(Dispatchers.Main) {
                             Toast.makeText(this@RegisterActivity, "An unexpected error occurred.", Toast.LENGTH_LONG).show()
                         }
                     } finally {
-                        // Ensure button is re-enabled on the Main thread
                         withContext(Dispatchers.Main) {
-                            registerButton.isEnabled = true
+                            binding.buttonRegister.isEnabled = true
                         }
                     }
                 }
@@ -84,15 +113,15 @@ class RegisterActivity : AppCompatActivity() {
             }
         }
 
-        backToLoginButton.setOnClickListener { // Add listener for the back button
-            finish() // Simply close this activity to go back to LoginActivity
+        binding.buttonBackToLogin.setOnClickListener {
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivity(intent)
+            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+            finish()
         }
     }
 
-    private fun navigateToLogin() {
-        val intent = Intent(this, LoginActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP // Clear activity stack above LoginActivity
-        startActivity(intent)
-        finish() // Close RegisterActivity
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        return gestureDetector.onTouchEvent(event) || super.onTouchEvent(event)
     }
 } 

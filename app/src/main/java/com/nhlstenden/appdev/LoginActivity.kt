@@ -1,11 +1,21 @@
 package com.nhlstenden.appdev
 
-import androidx.appcompat.app.AppCompatActivity
+import android.animation.AnimatorInflater
+import android.content.Intent
 import android.os.Bundle
+import android.view.GestureDetector
+import android.view.MotionEvent
+import android.view.View
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GestureDetectorCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import com.nhlstenden.appdev.databinding.ActivityLoginBinding
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
-import android.content.Intent
 import android.util.Base64 
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
@@ -16,24 +26,60 @@ import retrofit2.HttpException
 import java.io.IOException
 
 class LoginActivity : AppCompatActivity() {
-
+    private lateinit var binding: ActivityLoginBinding
+    private lateinit var gestureDetector: GestureDetectorCompat
     private val apiService = RetrofitClient.instance
+
+    private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
+        override fun onFling(
+            e1: MotionEvent,
+            e2: MotionEvent,
+            velocityX: Float,
+            velocityY: Float
+        ): Boolean {
+            val diffX = e2.x - e1.x
+            val diffY = e2.y - e1.y
+            
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (Math.abs(diffX) > 100 && Math.abs(velocityX) > 100) {
+                    if (diffX < 0) {
+                        // Swipe left - go to register
+                        startActivity(Intent(this@LoginActivity, RegisterActivity::class.java))
+                        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
+        override fun onDown(e: MotionEvent): Boolean {
+            return true
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
+        binding = ActivityLoginBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        val emailEditText = findViewById<EditText>(R.id.editTextEmailAddress)
-        val passwordEditText = findViewById<EditText>(R.id.editTextPassword)
-        val loginButton = findViewById<Button>(R.id.buttonLogin)
-        val registerButton = findViewById<Button>(R.id.buttonRegister)
+        // Set up gesture detector
+        gestureDetector = GestureDetectorCompat(this, SwipeGestureListener())
 
-        loginButton.setOnClickListener {
-            val email = emailEditText.text.toString().trim()
-            val password = passwordEditText.text.toString()
+        // Start arrow animation
+        binding.imageViewArrow.let { arrow ->
+            val animator = AnimatorInflater.loadAnimator(this, R.animator.arrow_animation)
+            animator.setTarget(arrow)
+            animator.start()
+        }
+
+        // Set up click listeners
+        binding.buttonLogin.setOnClickListener {
+            val email = binding.editTextEmailAddress.text.toString().trim()
+            val password = binding.editTextPassword.text.toString()
 
             if (email.isNotEmpty() && password.isNotEmpty()) {
-                loginButton.isEnabled = false // Disable button
+                binding.buttonLogin.isEnabled = false // Disable button
 
                 // Create Basic Auth header
                 val credentials = "$email:$password"
@@ -84,20 +130,23 @@ class LoginActivity : AppCompatActivity() {
                         }
                     } finally {
                         withContext(Dispatchers.Main) {
-                            loginButton.isEnabled = true // Re-enable button
+                            binding.buttonLogin.isEnabled = true // Re-enable button
                         }
                     }
                 }
-
             } else {
                 Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show()
             }
         }
 
-        registerButton.setOnClickListener {
-            val intent = Intent(this, RegisterActivity::class.java)
-            startActivity(intent)
+        binding.buttonRegister.setOnClickListener {
+            startActivity(Intent(this, RegisterActivity::class.java))
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
         }
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        return gestureDetector.onTouchEvent(event) || super.onTouchEvent(event)
     }
 
     private fun navigateToMain(loggedInUser: UserResponse?) {
