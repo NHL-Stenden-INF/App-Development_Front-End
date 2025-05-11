@@ -14,6 +14,8 @@ class MainActivity : AppCompatActivity() {
     private val friendsFragment = FriendsFragment()
     private val progressFragment = ProgressFragment()
 
+    private val profileFragment = ProfileFragment()
+
     private val PREFS_NAME = "bottom_nav_prefs"
     private val SELECTED_ITEM_KEY = "selected_item_id"
 
@@ -30,7 +32,7 @@ class MainActivity : AppCompatActivity() {
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
 
         val fragmentMap  = mapOf(
-            R.id.nav_home to homeFragment,
+            R.id.nav_home to profileFragment,
             R.id.nav_tasks to tasksFragment,
             R.id.nav_rewards to rewardsFragment,
             R.id.nav_friends to friendsFragment,
@@ -54,11 +56,10 @@ class MainActivity : AppCompatActivity() {
 
         val user: UserResponse? = intent.getParcelableExtra("USER_DATA", UserResponse::class.java)
 
-        user?.let {
-            findViewById<TextView>(R.id.Usernameview).text = """username: ${it.username}"""
-            findViewById<TextView>(R.id.Emailview).text = """email: ${it.email}"""
-            findViewById<TextView>(R.id.Pointsview).text = """points: ${it.points.toString()}"""
-            findViewById<TextView>(R.id.Useridview).text = """User ID: ${it.id.toString()}"""
+        val bundle = Bundle().apply {
+            putParcelable("user", user)
         }
+        profileFragment.arguments = bundle
+
     }
 }
