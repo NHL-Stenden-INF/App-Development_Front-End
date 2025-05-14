@@ -1,5 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Appdev NHL</string>
+    <string name="app_name">App Development</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="overall_progress_title">Overall Progress</string>
+    <string name="overall_progress_percentage">%d%%</string>
+    
+    <!-- Course Progress Item Strings -->
+    <string name="course_image_description">Course icon</string>
+    <string name="course_title_placeholder">Course Title</string>
+    <string name="completion_status_placeholder">5/10 steps completed</string>
+    <string name="progress_percentage_placeholder">50%%</string>
 </resources>

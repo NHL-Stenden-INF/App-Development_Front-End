@@ -67,4 +67,6 @@ dependencies {
             because("compileSdk 33 requirement")
         }
     }
+
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 }
