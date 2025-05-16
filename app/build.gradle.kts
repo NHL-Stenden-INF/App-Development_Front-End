@@ -48,8 +48,13 @@ dependencies {
     implementation(libs.material)
     implementation("androidx.cardview:cardview:1.0.0")
     testImplementation(libs.junit)
+    testImplementation(libs.junit.jupiter)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Supabase
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation("org.json:json:20231013")
 
     // Retrofit & Gson for Networking
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
