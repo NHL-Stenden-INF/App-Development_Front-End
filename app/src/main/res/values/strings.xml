@@ -11,4 +11,8 @@
     <string name="course_title_placeholder">Course Title</string>
     <string name="completion_status_placeholder">5/10 steps completed</string>
     <string name="progress_percentage_placeholder">50%%</string>
+
+    <!-- Task Item Strings -->
+    <string name="difficulty_placeholder">Beginner</string>
+    <string name="course_description_placeholder">Learn the fundamentals of web development with this comprehensive course.</string>
 </resources>
