@@ -96,7 +96,7 @@ class LoginActivity : AppCompatActivity() {
                     } catch (e: RuntimeException) {
                         Log.e("LoginActivity", "HTTP error during login: ", e)
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(this@LoginActivity, JSONObject(e.toString()).getString("msg"), Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@LoginActivity, JSONObject(e.message.toString()).getString("msg"), Toast.LENGTH_LONG).show()
                         }
                     } catch (e: JSONException) {
                         Log.e("LoginActivity", "JSON error during login: ", e)
