@@ -87,8 +87,10 @@ class RegisterActivity : AppCompatActivity() {
                             Toast.makeText(this@RegisterActivity, JSONObject(e.message.toString()).getString("msg"), Toast.LENGTH_LONG).show()
                         }
                     }  catch (e: JSONException) {
-                            Log.e("LoginActivity", "JSON error during login: ", e)
+                        Log.e("LoginActivity", "JSON error during login: ", e)
+                        withContext(Dispatchers.Main) {
                             Toast.makeText(this@RegisterActivity, "Faulty response, unable to login", Toast.LENGTH_LONG).show()
+                        }
                     } finally {
                         withContext(Dispatchers.Main) {
                             binding.buttonRegister.isEnabled = true
