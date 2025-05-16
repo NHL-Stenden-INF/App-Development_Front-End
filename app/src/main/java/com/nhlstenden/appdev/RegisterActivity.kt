@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONException
+import org.json.JSONObject
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -74,45 +75,20 @@ class RegisterActivity : AppCompatActivity() {
                     try {
                         supabaseClient.createNewUser(email, password, username)
                         withContext(Dispatchers.Main) {
-                                Toast.makeText(this@RegisterActivity, "Registration successful!", Toast.LENGTH_SHORT).show()
-                                val intent = Intent(this@RegisterActivity, LoginActivity::class.java)
-                                startActivity(intent)
-                                overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
-                                finish()
+                            Toast.makeText(this@RegisterActivity, "Registration successful!", Toast.LENGTH_SHORT).show()
+                            val intent = Intent(this@RegisterActivity, LoginActivity::class.java)
+                            startActivity(intent)
+                            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                            finish()
                         }
                     } catch (e: RuntimeException) {
-                        Log.e("RegisterActivity", "HTTP error during registration", e)
-                        val statusCode = e.toString().takeLast(e.toString().length - 3).toInt()
+                        Log.e("RegisterActivity", "HTTP error during login: ", e)
                         withContext(Dispatchers.Main) {
-                            when (statusCode) {
-                                401 -> Toast.makeText(
-                                    this@RegisterActivity,
-                                    "Invalid credentials, please try again",
-                                    Toast.LENGTH_LONG
-                                ).show()
-
-                                404 -> Toast.makeText(
-                                    this@RegisterActivity,
-                                    "Page not found, contact administrator",
-                                    Toast.LENGTH_LONG
-                                ).show()
-
-                                500 -> Toast.makeText(
-                                    this@RegisterActivity,
-                                    "Internal server error, contact administrator",
-                                    Toast.LENGTH_LONG
-                                ).show()
-
-                                else -> Toast.makeText(
-                                    this@RegisterActivity,
-                                    "Unknown error, please try again",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
+                            Toast.makeText(this@RegisterActivity, JSONObject(e.message.toString()).getString("msg"), Toast.LENGTH_LONG).show()
                         }
                     }  catch (e: JSONException) {
-                        Log.e("LoginActivity", "JSON error during login: ", e)
-                        Toast.makeText(this@RegisterActivity, "Faulty response, unable to login", Toast.LENGTH_LONG).show()
+                            Log.e("LoginActivity", "JSON error during login: ", e)
+                            Toast.makeText(this@RegisterActivity, "Faulty response, unable to login", Toast.LENGTH_LONG).show()
                     } finally {
                         withContext(Dispatchers.Main) {
                             binding.buttonRegister.isEnabled = true

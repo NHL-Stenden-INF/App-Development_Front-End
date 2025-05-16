@@ -20,12 +20,12 @@ class SupabaseClient() {
     fun createNewUser(email: String, password: String, username: String) {
         val signupRequest = this.signup(email, password, username)
         if (signupRequest.code != 200) {
-            throw RuntimeException("Unable to create a new user: " + signupRequest.body?.string() + "\nStatus code: " + signupRequest.code)
+            throw RuntimeException(signupRequest.body?.string())
         }
         val authToken = JSONObject(signupRequest.body?.string()).getString("access_token")
         val createUserRequest = this.createUserAttributes(authToken)
         if (createUserRequest.code != 201) {
-            throw RuntimeException("Unable to create new user properties: " + createUserRequest.body?.string() + "\nStatus code: " + createUserRequest.code)
+            throw RuntimeException(createUserRequest.body?.string())
         }
     }
 
