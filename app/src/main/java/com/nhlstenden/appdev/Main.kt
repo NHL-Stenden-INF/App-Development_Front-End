@@ -52,7 +52,7 @@ class MainActivity : AppCompatActivity() {
         val savedItemId = prefs.getInt(SELECTED_ITEM_KEY, R.id.nav_home)
         bottomNav.selectedItemId = savedItemId
 
-        val user: UserResponse? = intent.getParcelableExtra("USER_DATA", UserResponse::class.java)
+        val user: User? = intent.getParcelableExtra("USER_DATA", User::class.java)
 
         user?.let {
             findViewById<TextView>(R.id.Usernameview).text = """username: ${it.username}"""
