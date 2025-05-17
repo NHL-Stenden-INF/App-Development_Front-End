@@ -1,11 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".HomeFragment">
 
-    <!-- TODO: Update blank fragment layout -->
+    <!-- Greeting text with profile picture -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp">
+
+        <!-- Picture of last learned Language -->
+        <ImageView
+            android:id="@+id/languageIcon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/html_course"
+            android:contentDescription="Last Learned Language Icon"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toBottomOf="parent"/>
+
+        <!-- Greeting message -->
+        <TextView
+            android:id="@+id/greetingText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Hey, John!"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            app:layout_constraintStart_toEndOf="@id/languageIcon"
+            app:layout_constraintTop_toTopOf="@id/languageIcon"
+            app:layout_constraintEnd_toStartOf="@id/profileImage"
+            app:layout_constraintHorizontal_bias="0"
+            android:layout_marginStart="12dp"/>
+
+        <!-- Subtitle -->
+        <TextView
+            android:id="@+id/subText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Let's continue learning"
+            android:textSize="14sp"
+            android:textColor="#888888"
+            app:layout_constraintStart_toStartOf="@id/greetingText"
+            app:layout_constraintTop_toBottomOf="@id/greetingText"
+            app:layout_constraintEnd_toEndOf="@id/greetingText" />
+
+        <!-- Profile picture -->
+        <ImageView
+            android:id="@+id/profileImage"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/zorotlpf"
+            android:contentDescription="Profile picture"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/languageIcon"
+            app:layout_constraintBottom_toBottomOf="@id/languageIcon"
+            android:background="@drawable/round_mask"
+            android:clipToOutline="true"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
