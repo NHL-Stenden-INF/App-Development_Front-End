@@ -1,6 +1,7 @@
 package com.nhlstenden.appdev
 
 import android.os.Parcelable
+import android.util.Log
 import kotlinx.android.parcel.Parcelize
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -35,7 +36,7 @@ class SupabaseClient() {
             throw RuntimeException(loginRequest.body?.string())
         }
         val authResponse = JSONObject(loginRequest.body?.string())
-        val userRequest = this.getUserAttributes(authResponse.getString("access_token"))
+        val userRequest = this.getUserAttributes(authResponse.getJSONObject("user").getString("id"))
         if (userRequest.code != 200) {
             throw RuntimeException(userRequest.body?.string())
         }
@@ -61,7 +62,7 @@ class SupabaseClient() {
             userResponse.getJSONObject(0).getInt("points"),
             friends,
             achievements,
-            userResponse.getJSONObject(0).getString("profile_picture").toByteArray(),
+            userResponse.getJSONObject(0).getString("profile_picture"),
         )
     }
 
@@ -93,12 +94,11 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
-    fun getUserAttributes(authToken: String): Response {
+    fun getUserAttributes(userId: String): Response {
         val request = Request.Builder()
-            .url("$supabaseUrl/rest/v1/user_attributes?select=*")
+            .url("$supabaseUrl/rest/v1/user_attributes?select=*&user_id=eq.$userId")
             .get()
             .addHeader("apikey", supabaseKey)
-            .addHeader("Authorization", "Bearer $authToken")
             .build()
 
         return client.newCall(request).execute()
@@ -130,5 +130,5 @@ data class User(
     val points: Int,
     val friends: ArrayList<UUID>,
     val achievements: ArrayList<String>,
-    val profilePicture: ByteArray
+    val profilePicture: String
 ) : Parcelable
