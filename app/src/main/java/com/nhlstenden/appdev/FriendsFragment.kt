@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import qrcode.QRCodeBuilder
 import qrcode.QRCodeShapesEnum
 import qrcode.color.Colors
+import qrcode.raw.ErrorCorrectionLevel
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -52,13 +53,13 @@ class FriendsFragment : Fragment() {
         }
 
         val shareButton: Button = view.findViewById(R.id.shareCodeButton)
+        val uuid = "38a42566-e1c3-43b4-9f9a-a05094770596" // TODO: Make it use the User UUID instead of this hardcoded one
 
         shareButton.setOnClickListener {
             val qrCode = QRCodeBuilder(QRCodeShapesEnum.SQUARE)
-                .withInformationDensity(0)
-                .withColor(Colors.BLUE_VIOLET)
-                .build("38a42566-e1c3-43b4-9f9a-a05094770596")
-                .renderToBytes()// TODO: Make it use the User UUID instead of this hardcoded one
+                .withErrorCorrectionLevel(ErrorCorrectionLevel.LOW)
+                .build("UID:${uuid}")
+                .renderToBytes()
             val qrCodeImage: ImageView = view.findViewById(R.id.qrImage)
 
             qrCodeImage.setImageBitmap(
