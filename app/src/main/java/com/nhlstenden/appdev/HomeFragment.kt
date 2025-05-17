@@ -5,6 +5,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -20,6 +21,7 @@ class HomeFragment : Fragment() {
     // TODO: Rename and change types of parameters
     private var param1: String? = null
     private var param2: String? = null
+    private var user: User? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,12 +31,28 @@ class HomeFragment : Fragment() {
         }
     }
 
+    fun setUserData(user: User) {
+        this.user = user
+        // Update views if they are already created
+        view?.let { updateUserInfo(it) }
+    }
+
+    private fun updateUserInfo(view: View) {
+        user?.let {
+            view.findViewById<TextView>(R.id.Usernameview).text = """username: ${it.username}"""
+            view.findViewById<TextView>(R.id.Emailview).text = """email: ${it.email}"""
+            view.findViewById<TextView>(R.id.Pointsview).text = """points: ${it.points.toString()}"""
+            view.findViewById<TextView>(R.id.Useridview).text = """User ID: ${it.id.toString()}"""
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_home, container, false)
+        val view = inflater.inflate(R.layout.fragment_home, container, false)
+        updateUserInfo(view)
+        return view
     }
 
     companion object {
