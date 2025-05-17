@@ -15,4 +15,11 @@
     <!-- Task Item Strings -->
     <string name="difficulty_placeholder">Beginner</string>
     <string name="course_description_placeholder">Learn the fundamentals of web development with this comprehensive course.</string>
+
+    <string name="friend_name_placeholder">Friend name</string>
+    <string name="friend_score_placeholder">1234</string>
+    <string name="your_friend_placeholder">Your friends</string>
+    <string name="scan_button_placeholder">Scan</string>
+    <string name="share_button_placeholder">Share</string>
+    <string name="share_code_placeholder">Add friends with your QR Code</string>
 </resources>
