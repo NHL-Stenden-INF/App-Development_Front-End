@@ -4,9 +4,15 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import androidx.fragment.app.FragmentActivity
+import androidx.viewpager2.adapter.FragmentStateAdapter
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var viewPager: ViewPager2
+    private lateinit var bottomNav: BottomNavigationView
 
     private val homeFragment = HomeFragment()
     private val tasksFragment = TasksFragment()
@@ -14,43 +20,60 @@ class MainActivity : AppCompatActivity() {
     private val friendsFragment = FriendsFragment()
     private val progressFragment = ProgressFragment()
 
+    private val fragments = listOf(
+        homeFragment,
+        tasksFragment,
+        rewardsFragment,
+        friendsFragment,
+        progressFragment
+    )
+
     private val PREFS_NAME = "bottom_nav_prefs"
     private val SELECTED_ITEM_KEY = "selected_item_id"
-
-    private fun replaceFragment(fragment: Fragment) {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.nav_host_fragment, fragment)
-            .commit()
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
+        viewPager = findViewById(R.id.viewPager)
+        bottomNav = findViewById(R.id.bottom_navigation)
 
-        val fragmentMap  = mapOf(
-            R.id.nav_home to homeFragment,
-            R.id.nav_tasks to tasksFragment,
-            R.id.nav_rewards to rewardsFragment,
-            R.id.nav_friends to friendsFragment,
-            R.id.nav_progress to progressFragment
-        )
-
-        bottomNav.setOnItemSelectedListener { item ->
-            fragmentMap[item.itemId]?.let {
-                replaceFragment(it)
-
-                val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                prefs.edit().putInt(SELECTED_ITEM_KEY, item.itemId).apply()
-
-                true
-            } ?: false
+        // Set up ViewPager2 adapter
+        viewPager.adapter = object : FragmentStateAdapter(this) {
+            override fun getItemCount(): Int = fragments.size
+            override fun createFragment(position: Int): Fragment = fragments[position]
         }
 
+        // Disable ViewPager2 swipe when in nested scrollable views
+        viewPager.isUserInputEnabled = true
+
+        // Set up bottom navigation listener
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_home -> viewPager.setCurrentItem(0, true)
+                R.id.nav_tasks -> viewPager.setCurrentItem(1, true)
+                R.id.nav_rewards -> viewPager.setCurrentItem(2, true)
+                R.id.nav_friends -> viewPager.setCurrentItem(3, true)
+                R.id.nav_progress -> viewPager.setCurrentItem(4, true)
+            }
+            true
+        }
+
+        // Set up ViewPager2 page change callback
+        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                bottomNav.menu.getItem(position).isChecked = true
+                
+                // Save the selected position
+                val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                prefs.edit().putInt(SELECTED_ITEM_KEY, position).apply()
+            }
+        })
+
+        // Restore the last selected position
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        val savedItemId = prefs.getInt(SELECTED_ITEM_KEY, R.id.nav_home)
-        bottomNav.selectedItemId = savedItemId
+        val savedPosition = prefs.getInt(SELECTED_ITEM_KEY, 0)
+        viewPager.setCurrentItem(savedPosition, false)
 
         val user: User? = intent.getParcelableExtra("USER_DATA", User::class.java)
 
