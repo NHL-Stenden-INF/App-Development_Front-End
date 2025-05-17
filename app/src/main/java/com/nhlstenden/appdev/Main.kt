@@ -75,13 +75,10 @@ class MainActivity : AppCompatActivity() {
         val savedPosition = prefs.getInt(SELECTED_ITEM_KEY, 0)
         viewPager.setCurrentItem(savedPosition, false)
 
+        // Pass user data to HomeFragment
         val user: User? = intent.getParcelableExtra("USER_DATA", User::class.java)
-
         user?.let {
-            findViewById<TextView>(R.id.Usernameview).text = """username: ${it.username}"""
-            findViewById<TextView>(R.id.Emailview).text = """email: ${it.email}"""
-            findViewById<TextView>(R.id.Pointsview).text = """points: ${it.points.toString()}"""
-            findViewById<TextView>(R.id.Useridview).text = """User ID: ${it.id.toString()}"""
+            homeFragment.setUserData(it)
         }
     }
 }
