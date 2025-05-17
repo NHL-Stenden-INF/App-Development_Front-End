@@ -81,4 +81,5 @@ dependencies {
     }
 
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    implementation("io.github.g0dkar:qrcode-kotlin:4.4.1")
 }
