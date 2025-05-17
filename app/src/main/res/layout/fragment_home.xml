@@ -6,6 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".HomeFragment">
 
+    <!-- TODO: TEMPORARY - Move user information to a dedicated profile section -->
     <TextView
         android:id="@+id/Usernameview"
         android:layout_width="wrap_content"
