@@ -10,6 +10,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import android.util.Base64
+import android.util.Log
 import android.widget.Button
 import androidx.recyclerview.widget.LinearLayoutManager
 import qrcode.QRCodeBuilder
@@ -67,6 +68,13 @@ class FriendsFragment : Fragment() {
                     qrCode.size
                 )
             )
+        }
+
+        val scanButton: Button = view.findViewById(R.id.scanCodeButton)
+
+        scanButton.setOnClickListener {
+            Log.i("FriendsFragment", "Clicked the scan button")
+//            TODO: Open a scanner page to scan a QR code
         }
 
         return view
