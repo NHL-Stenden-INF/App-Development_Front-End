@@ -119,6 +119,22 @@ class SupabaseClient() {
 
         return client.newCall(request).execute()
     }
+
+    fun updateUserPoints(userId: String, newPoints: Int, authToken: String): Response {
+        // Use RPC (Remote Procedure Call) instead of PATCH
+        // This calls a database function directly, bypassing any REST API issues
+        val json = """{"input_user_id": "$userId", "new_points": $newPoints}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/update_user_points")
+            .post(requestBody) // RPC uses POST, not PATCH
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+        return client.newCall(request).execute()
+    }
 }
 
 @Parcelize
