@@ -27,14 +27,15 @@
 
         <TextView
             android:id="@+id/rewardTitle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_width="184dp"
+            android:layout_height="23dp"
             android:layout_marginStart="12dp"
             android:text="Reward Title"
             android:textSize="18sp"
             android:textStyle="bold"
-            app:layout_constraintStart_toEndOf="@id/rewardIcon"
             app:layout_constraintEnd_toStartOf="@id/pointsCost"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toEndOf="@id/rewardIcon"
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
@@ -42,14 +43,18 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="29dp"
+            android:layout_marginEnd="12dp"
+            android:ellipsize="end"
+            android:maxLines="2"
             android:text="Reward description"
             android:textSize="14sp"
-            android:maxLines="2"
-            android:ellipsize="end"
+            app:layout_constraintBottom_toTopOf="@id/unlockButton"
+            app:layout_constraintEnd_toStartOf="@id/unlockButton"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toEndOf="@id/rewardIcon"
-            app:layout_constraintEnd_toStartOf="@id/pointsCost"
-            app:layout_constraintTop_toBottomOf="@id/rewardTitle" />
+            app:layout_constraintTop_toTopOf="@+id/rewardTitle"
+            app:layout_constraintVertical_bias="0.0" />
 
         <TextView
             android:id="@+id/pointsCost"
@@ -68,6 +73,7 @@
             android:layout_height="wrap_content"
             android:text="Unlock"
             android:layout_marginTop="8dp"
+            android:layout_marginStart="12dp"
             app:cornerRadius="20dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/pointsCost" />

@@ -185,7 +185,7 @@ class RewardsFragment : Fragment() {
             Reward("Practice Mode", "Unlimited practice exercises", 1500, R.drawable.ic_achievement, false)
         )
 
-        rewardShopAdapter = RewardShopAdapter(rewards, { reward ->
+        rewardShopAdapter = RewardShopAdapter(rewards.toMutableList(), { reward ->
             if (canAffordReward(reward.pointsCost)) {
                 currentPoints -= reward.pointsCost
                 updatePointsDisplay()
@@ -245,7 +245,7 @@ data class Reward(
 )
 
 class RewardShopAdapter(
-    private val rewards: List<Reward>,
+    private val rewards: MutableList<Reward>,
     private val onUnlockClick: (Reward) -> Boolean,
     private var currentPoints: Int
 ) : RecyclerView.Adapter<RewardShopAdapter.ViewHolder>() {
@@ -284,6 +284,8 @@ class RewardShopAdapter(
             if (reward.isUnlocked) {
                 unlockButton.text = "Unlocked"
                 unlockButton.isEnabled = false
+                unlockButton.alpha = 0.5f
+                unlockButton.setBackgroundColor(ContextCompat.getColor(unlockButton.context, R.color.gray))
                 rewardIcon.alpha = 0.5f
                 rewardTitle.alpha = 0.5f
                 rewardDescription.alpha = 0.5f
@@ -291,6 +293,11 @@ class RewardShopAdapter(
             } else {
                 unlockButton.text = "Unlock"
                 unlockButton.isEnabled = true
+                unlockButton.alpha = 1.0f
+                rewardIcon.alpha = 1.0f
+                rewardTitle.alpha = 1.0f
+                rewardDescription.alpha = 1.0f
+                pointsCost.alpha = 1.0f
                 if (!canAffordReward(reward.pointsCost)) {
                     unlockButton.setBackgroundColor(ContextCompat.getColor(unlockButton.context, R.color.error))
                 } else {
@@ -298,12 +305,9 @@ class RewardShopAdapter(
                 }
                 unlockButton.setOnClickListener {
                     if (onUnlockClick(reward)) {
-                        unlockButton.text = "Unlocked"
-                        unlockButton.isEnabled = false
-                        rewardIcon.alpha = 0.5f
-                        rewardTitle.alpha = 0.5f
-                        rewardDescription.alpha = 0.5f
-                        pointsCost.alpha = 0.5f
+                        // Update the reward's unlocked state in the list
+                        rewards[position] = reward.copy(isUnlocked = true)
+                        notifyItemChanged(position)
                     }
                 }
             }

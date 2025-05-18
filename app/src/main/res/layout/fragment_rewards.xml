@@ -4,8 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
-    android:padding="16dp">
+    android:background="@color/white">
 
     <androidx.constraintlayout.motion.widget.MotionLayout
         android:id="@+id/constraintLayout"
@@ -18,12 +17,13 @@
             android:id="@+id/pointsCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="5dp"
-            android:layout_marginTop="4dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="16dp"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp"
             app:layout_constraintTop_toTopOf="parent"
-            tools:layout_editor_absoluteX="5dp">
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -69,11 +69,13 @@
             android:id="@+id/dailyRewardCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="5dp"
+            android:layout_marginHorizontal="16dp"
             android:layout_marginTop="16dp"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp"
-            app:layout_constraintTop_toBottomOf="@id/pointsCard">
+            app:layout_constraintTop_toBottomOf="@id/pointsCard"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -131,6 +133,7 @@
             android:id="@+id/achievementsTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
             android:layout_marginTop="24dp"
             android:text="Achievements"
             android:textSize="20sp"
@@ -140,16 +143,19 @@
 
         <HorizontalScrollView
             android:id="@+id/achievementsScrollView"
-            android:layout_width="396dp"
+            android:layout_width="match_parent"
             android:layout_height="121dp"
             android:layout_marginTop="16dp"
             android:scrollbars="none"
-            app:layout_constraintTop_toBottomOf="@id/achievementsTitle">
+            app:layout_constraintTop_toBottomOf="@id/achievementsTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:paddingStart="16dp">
 
                 <include
                     android:id="@+id/achievement1"
@@ -242,6 +248,7 @@
             android:id="@+id/rewardShopTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
             android:layout_marginTop="24dp"
             android:text="Reward Shop"
             android:textSize="20sp"
@@ -255,8 +262,11 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:clipToPadding="false"
+            android:paddingHorizontal="16dp"
             android:paddingBottom="16dp"
-            app:layout_constraintTop_toBottomOf="@id/rewardShopTitle" />
+            app:layout_constraintTop_toBottomOf="@id/rewardShopTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
     </androidx.constraintlayout.motion.widget.MotionLayout>
 </androidx.core.widget.NestedScrollView>
