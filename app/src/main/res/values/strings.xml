@@ -5,6 +5,7 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="overall_progress_title">Overall Progress</string>
     <string name="overall_progress_percentage">%d%%</string>
+    <string name="greeting_format">Hey, %s!</string>
     
     <!-- Course Progress Item Strings -->
     <string name="course_image_description">Course icon</string>
@@ -22,4 +23,9 @@
     <string name="scan_button_placeholder">Scan</string>
     <string name="share_button_placeholder">Share</string>
     <string name="share_code_placeholder">Add friends with your QR Code</string>
+    
+    <!-- Motivational Area Strings -->
+    <string name="motivational_title">Friend Challenge</string>
+    <string name="motivational_message">%1$s leads by %2$d tasks</string>
+    <string name="motivational_subtitle">Keep pushing to catch up!</string>
 </resources>

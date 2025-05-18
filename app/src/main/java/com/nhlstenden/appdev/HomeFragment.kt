@@ -64,10 +64,8 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>) : RecyclerView.Ad
  * create an instance of this fragment.
  */
 class HomeFragment : Fragment() {
-    private lateinit var usernameView: TextView
-    private lateinit var emailView: TextView
-    private lateinit var pointsView: TextView
-    private lateinit var userIdView: TextView
+    private lateinit var greetingText: TextView
+    private lateinit var motivationalMessage: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -79,18 +77,14 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         dayCounter(view)
 
-        usernameView = view.findViewById(R.id.Usernameview)
-        emailView = view.findViewById(R.id.Emailview)
-        pointsView = view.findViewById(R.id.Pointsview)
-        userIdView = view.findViewById(R.id.Useridview)
+        greetingText = view.findViewById(R.id.greetingText)
+        motivationalMessage = view.findViewById(R.id.motivationalMessage)
 
         // Get user data from arguments
         val userData = arguments?.getParcelable<User>("USER_DATA")
         userData?.let { user ->
-            usernameView.text = "Username: ${user.username}"
-            emailView.text = "Email: ${user.email}"
-            pointsView.text = "Points: ${user.points}"
-            userIdView.text = "User ID: ${user.id}"
+            greetingText.text = getString(R.string.greeting_format, user.username)
+            updateMotivationalMessage(user)
         }
 
         // Set up dynamic course cards
@@ -103,6 +97,13 @@ class HomeFragment : Fragment() {
         val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)
         recyclerView.layoutManager = LinearLayoutManager(context)
         recyclerView.adapter = HomeCourseAdapter(courses)
+    }
+
+    private fun updateMotivationalMessage(user: User) {
+        // TODO: Replace with actual friend data from your backend
+        val friendName = "John"
+        val tasksAhead = 5
+        motivationalMessage.text = getString(R.string.motivational_message, friendName, tasksAhead)
     }
 
     private fun dayCounter(view: View) {
