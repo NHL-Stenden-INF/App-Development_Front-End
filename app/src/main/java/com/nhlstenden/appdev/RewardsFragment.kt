@@ -14,6 +14,11 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import java.util.concurrent.TimeUnit
 
 // TODO: Rename parameter arguments, choose names that match
@@ -37,6 +42,9 @@ class RewardsFragment : Fragment() {
     private var countDownTimer: CountDownTimer? = null
     private var currentPoints = 1234 // Mock points value
     private lateinit var rewardShopAdapter: RewardShopAdapter
+    private val supabaseClient = SupabaseClient()
+    private lateinit var userId: String
+    private lateinit var authToken: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,6 +81,25 @@ class RewardsFragment : Fragment() {
         return view
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        val userData = activity?.intent?.getParcelableExtra<User>("USER_DATA")
+        userId = userData?.id.toString()
+        authToken = userData?.authToken ?: ""
+        android.util.Log.d("Supabase", "AuthToken: $authToken")
+        // Fetch points from Supabase
+        CoroutineScope(Dispatchers.IO).launch {
+            val response = supabaseClient.getUserAttributes(userId)
+            if (response.code == 200) {
+                val userResponse = JSONArray(response.body?.string())
+                currentPoints = userResponse.getJSONObject(0).getInt("points")
+                withContext(Dispatchers.Main) {
+                    updatePointsDisplay()
+                }
+            }
+        }
+    }
+
     private fun updatePointsDisplay() {
         pointsValue.text = String.format("%,d", currentPoints)
         // Only update adapter if it's initialized
@@ -84,6 +111,13 @@ class RewardsFragment : Fragment() {
     private fun addPoints(points: Int) {
         currentPoints += points
         updatePointsDisplay()
+        updatePointsInSupabase()
+    }
+
+    private fun spendPoints(points: Int) {
+        currentPoints -= points
+        updatePointsDisplay()
+        updatePointsInSupabase()
     }
 
     private fun canAffordReward(cost: Int): Boolean {
@@ -187,8 +221,7 @@ class RewardsFragment : Fragment() {
 
         rewardShopAdapter = RewardShopAdapter(rewards.toMutableList(), { reward ->
             if (canAffordReward(reward.pointsCost)) {
-                currentPoints -= reward.pointsCost
-                updatePointsDisplay()
+                spendPoints(reward.pointsCost)
                 Toast.makeText(context, "Unlocked: ${reward.title}!", Toast.LENGTH_SHORT).show()
                 true
             } else {
@@ -200,6 +233,21 @@ class RewardsFragment : Fragment() {
         rewardShopList.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = rewardShopAdapter
+        }
+    }
+
+    private fun updatePointsInSupabase() {
+        CoroutineScope(Dispatchers.IO).launch {
+            android.util.Log.d("Supabase", "Updating userId: $userId with points: $currentPoints")
+            val response = supabaseClient.updateUserPoints(userId, currentPoints, authToken)
+            if (response.code != 204 && response.code != 200) {
+                android.util.Log.e("Supabase", "Failed to update points: ${response.code} ${response.body?.string()}")
+            } else {
+                android.util.Log.d("Supabase", "Points updated successfully! New value: $currentPoints")
+            }
+            // Immediately GET after PATCH to see the value in Supabase
+            val getResponse = supabaseClient.getUserAttributes(userId)
+            android.util.Log.d("Supabase", "GET after PATCH: ${getResponse.body?.string()}")
         }
     }
 
