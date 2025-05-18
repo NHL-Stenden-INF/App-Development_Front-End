@@ -146,25 +146,41 @@
     </com.google.android.material.card.MaterialCardView>
 
     <!-- Continue Learning Section -->
-    <TextView
-        android:id="@+id/continueLearningTitle"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:id="@+id/continueLearningHeader"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Continue learning"
-        android:textColor="#000000"
-        android:textStyle="bold"
-        android:textSize="16sp"
+        android:orientation="vertical"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="16dp"
         app:layout_constraintTop_toBottomOf="@id/streakCard"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:id="@+id/continueLearningTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Continue learning"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/motivationalMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="#FFA500"
+            android:layout_marginTop="2dp" />
+
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/continueLearningList"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginHorizontal="8dp"
-        app:layout_constraintTop_toBottomOf="@id/continueLearningTitle"
+        app:layout_constraintTop_toBottomOf="@id/continueLearningHeader"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@id/dailyChallengeCard"/>

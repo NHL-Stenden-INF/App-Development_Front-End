@@ -65,6 +65,7 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>) : RecyclerView.Ad
  */
 class HomeFragment : Fragment() {
     private lateinit var greetingText: TextView
+    private lateinit var motivationalMessage: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -77,11 +78,13 @@ class HomeFragment : Fragment() {
         dayCounter(view)
 
         greetingText = view.findViewById(R.id.greetingText)
+        motivationalMessage = view.findViewById(R.id.motivationalMessage)
 
         // Get user data from arguments
         val userData = arguments?.getParcelable<User>("USER_DATA")
         userData?.let { user ->
             greetingText.text = getString(R.string.greeting_format, user.username)
+            updateMotivationalMessage(user)
         }
 
         // Set up dynamic course cards
@@ -94,6 +97,13 @@ class HomeFragment : Fragment() {
         val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)
         recyclerView.layoutManager = LinearLayoutManager(context)
         recyclerView.adapter = HomeCourseAdapter(courses)
+    }
+
+    private fun updateMotivationalMessage(user: User) {
+        // TODO: Replace with actual friend data from your backend
+        val friendName = "John"
+        val tasksAhead = 5
+        motivationalMessage.text = getString(R.string.motivational_message, friendName, tasksAhead)
     }
 
     private fun dayCounter(view: View) {
