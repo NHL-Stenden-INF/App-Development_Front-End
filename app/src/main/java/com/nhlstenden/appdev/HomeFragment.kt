@@ -1,11 +1,11 @@
 package com.nhlstenden.appdev
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.fragment.app.Fragment
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -18,41 +18,35 @@ private const val ARG_PARAM2 = "param2"
  * create an instance of this fragment.
  */
 class HomeFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
-    private var user: User? = null
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
-    }
-
-    fun setUserData(user: User) {
-        this.user = user
-        // Update views if they are already created
-        view?.let { updateUserInfo(it) }
-    }
-
-    private fun updateUserInfo(view: View) {
-        user?.let {
-            view.findViewById<TextView>(R.id.Usernameview).text = """username: ${it.username}"""
-            view.findViewById<TextView>(R.id.Emailview).text = """email: ${it.email}"""
-            view.findViewById<TextView>(R.id.Pointsview).text = """points: ${it.points.toString()}"""
-            view.findViewById<TextView>(R.id.Useridview).text = """User ID: ${it.id.toString()}"""
-        }
-    }
+    private lateinit var usernameView: TextView
+    private lateinit var emailView: TextView
+    private lateinit var pointsView: TextView
+    private lateinit var userIdView: TextView
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val view = inflater.inflate(R.layout.fragment_home, container, false)
-        updateUserInfo(view)
-        return view
+        return inflater.inflate(R.layout.fragment_home, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        usernameView = view.findViewById(R.id.Usernameview)
+        emailView = view.findViewById(R.id.Emailview)
+        pointsView = view.findViewById(R.id.Pointsview)
+        userIdView = view.findViewById(R.id.Useridview)
+
+        // Get user data from arguments
+        val userData = arguments?.getParcelable<User>("USER_DATA")
+        userData?.let { user ->
+            usernameView.text = "Username: ${user.username}"
+            emailView.text = "Email: ${user.email}"
+            pointsView.text = "Points: ${user.points}"
+            userIdView.text = "User ID: ${user.id}"
+        }
     }
 
     companion object {
