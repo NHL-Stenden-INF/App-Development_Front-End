@@ -26,33 +26,33 @@
             style="@style/Widget.MaterialComponents.Chip.Filter" />
 
         <com.google.android.material.chip.Chip
-            android:id="@+id/filterInProgress"
+            android:id="@+id/filterBeginner"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="In Progress"
+            android:text="Beginner"
             android:checkable="true"
             style="@style/Widget.MaterialComponents.Chip.Filter" />
 
         <com.google.android.material.chip.Chip
-            android:id="@+id/filterCompleted"
+            android:id="@+id/filterIntermediate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Completed"
+            android:text="Intermediate"
             android:checkable="true"
             style="@style/Widget.MaterialComponents.Chip.Filter" />
 
         <com.google.android.material.chip.Chip
-            android:id="@+id/filterDifficulty"
+            android:id="@+id/filterAdvanced"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Difficulty"
+            android:text="Advanced"
             android:checkable="true"
             style="@style/Widget.MaterialComponents.Chip.Filter" />
     </com.google.android.material.chip.ChipGroup>
 
-    <!-- Tasks List -->
+    <!-- Courses List -->
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/tasksList"
+        android:id="@+id/coursesList"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="16dp"
@@ -61,4 +61,4 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/filterChipGroup" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout> 

@@ -1,24 +1,24 @@
 package com.nhlstenden.appdev
 
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.os.Bundle
 import android.view.Gravity
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.toColorInt
+import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import android.widget.ProgressBar
-import android.content.res.ColorStateList
-import android.widget.ImageButton
-import androidx.core.graphics.toColorInt
 
 // Data class for course info
 data class HomeCourse(
@@ -58,12 +58,20 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>) : RecyclerView.Ad
     override fun getItemCount() = courses.size
 }
 
+/**
+ * A simple [Fragment] subclass.
+ * Use the [HomeFragment.newInstance] factory method to
+ * create an instance of this fragment.
+ */
 class HomeFragment : Fragment() {
+    private lateinit var usernameView: TextView
+    private lateinit var emailView: TextView
+    private lateinit var pointsView: TextView
+    private lateinit var userIdView: TextView
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View? {
         return inflater.inflate(R.layout.fragment_home, container, false)
     }
 
@@ -71,13 +79,27 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         dayCounter(view)
 
+        usernameView = view.findViewById(R.id.Usernameview)
+        emailView = view.findViewById(R.id.Emailview)
+        pointsView = view.findViewById(R.id.Pointsview)
+        userIdView = view.findViewById(R.id.Useridview)
+
+        // Get user data from arguments
+        val userData = arguments?.getParcelable<User>("USER_DATA")
+        userData?.let { user ->
+            usernameView.text = "Username: ${user.username}"
+            emailView.text = "Email: ${user.email}"
+            pointsView.text = "Points: ${user.points}"
+            userIdView.text = "User ID: ${user.id}"
+        }
+
         // Set up dynamic course cards
         val courses = listOf(
             HomeCourse("HTML", "Lesson 5 of 10", 50, R.drawable.html_course, "#E44D26".toColorInt()),
             HomeCourse("CSS", "Lesson 8 of 12", 67, R.drawable.css_course, "#264DE4".toColorInt()),
             HomeCourse("SQL", "Lesson 3 of 8", 38, R.drawable.sql_course, "#336791".toColorInt())
         )
-        
+
         val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)
         recyclerView.layoutManager = LinearLayoutManager(context)
         recyclerView.adapter = HomeCourseAdapter(courses)
@@ -94,7 +116,8 @@ class HomeFragment : Fragment() {
             val dayLayout = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                layoutParams =
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
 
             // Draw the circle

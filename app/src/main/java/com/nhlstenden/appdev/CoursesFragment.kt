@@ -24,12 +24,12 @@ private const val ARG_PARAM2 = "param2"
  * Use the [TasksFragment.newInstance] factory method to
  * create an instance of this fragment.
  */
-class TasksFragment : Fragment() {
+class CoursesFragment : Fragment() {
     // TODO: Rename and change types of parameters
     private var param1: String? = null
     private var param2: String? = null
 
-    private lateinit var tasksList: RecyclerView
+    private lateinit var coursesList: RecyclerView
     private lateinit var filterChipGroup: ChipGroup
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,14 +51,14 @@ class TasksFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        tasksList = view.findViewById(R.id.coursesList)
+        coursesList = view.findViewById(R.id.coursesList)
         filterChipGroup = view.findViewById(R.id.filterChipGroup)
 
-        setupTasksList()
+        setupCoursesList()
         setupFilterChips()
     }
 
-    private fun setupTasksList() {
+    private fun setupCoursesList() {
         val courses = listOf(
             Course(
                 "HTML",
@@ -80,7 +80,7 @@ class TasksFragment : Fragment() {
             )
         )
 
-        tasksList.apply {
+        coursesList.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = CourseAdapter(courses) { course ->
                 // Show CourseTopicsFragment in fragment_container
@@ -117,7 +117,7 @@ class TasksFragment : Fragment() {
         // TODO: Rename and change types and number of parameters
         @JvmStatic
         fun newInstance(param1: String, param2: String) =
-            TasksFragment().apply {
+            CoursesFragment().apply {
                 arguments = Bundle().apply {
                     putString(ARG_PARAM1, param1)
                     putString(ARG_PARAM2, param2)
