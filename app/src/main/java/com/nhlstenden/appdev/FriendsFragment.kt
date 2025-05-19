@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 import android.util.Base64
 import android.util.Log
 import android.widget.Button
+import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,15 +30,26 @@ import qrcode.raw.ErrorCorrectionLevel
  */
 class FriendsFragment : Fragment() {
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
+    private lateinit var user: User
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        this.user = activity?.intent?.getParcelableExtra("USER_DATA", User::class.java)!!
 
         resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 val data: Intent? = result.data
-                val scannedData = data?.getStringExtra("SCANNED_UUID")
-                Log.i("FriendsFragment", scannedData.toString()) // TODO: Do something with the UUID
+                val scannedData = data?.getStringExtra("SCANNED_UUID").toString()
+
+                var response = SupabaseClient().addFriend(scannedData, this.user.authToken ?: "")
+
+                if (response.isSuccessful) {
+                    Toast.makeText(activity, "Added a new friend!", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(activity, "Failed to add new friend :<", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                Toast.makeText(activity, "Not a valid QR code", Toast.LENGTH_LONG).show()
             }
         }
     }
