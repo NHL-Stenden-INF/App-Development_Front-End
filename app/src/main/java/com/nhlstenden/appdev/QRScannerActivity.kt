@@ -19,6 +19,7 @@ import com.budiyev.android.codescanner.ScanMode
 
 class QRScannerActivity : AppCompatActivity() {
     private lateinit var codeScanner: CodeScanner
+    private var uuidRegex = Regex("UID:([a-zA-Z0-9]{8}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{12})")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,13 +44,19 @@ class QRScannerActivity : AppCompatActivity() {
         // Callbacks
         codeScanner.decodeCallback = DecodeCallback {
             runOnUiThread {
+                val result = it.text.toString()
+                if (!uuidRegex.containsMatchIn(result)) {
+                    setResult(Activity.RESULT_CANCELED)
+                    finish()
+                }
                 val resultIntent = Intent().apply {
-                    putExtra("SCANNED_UUID", it.text)
+                    putExtra("SCANNED_UUID", result)
                 }
                 setResult(Activity.RESULT_OK, resultIntent)
                 finish()
             }
         }
+
         codeScanner.errorCallback = ErrorCallback { // or ErrorCallback.SUPPRESS
             Log.w("QRScanActivity", "Camera initialization error: ${it.message}", it)
             runOnUiThread {
