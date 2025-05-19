@@ -1,5 +1,7 @@
 package com.nhlstenden.appdev
 
+import android.app.Activity
+import android.content.Intent
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -13,15 +15,12 @@ import android.util.Base64
 import android.util.Log
 import android.widget.Button
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import qrcode.QRCodeBuilder
 import qrcode.QRCodeShapesEnum
 import qrcode.color.Colors
 import qrcode.raw.ErrorCorrectionLevel
-
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
 
 /**
  * A simple [Fragment] subclass.
@@ -29,8 +28,18 @@ private const val ARG_PARAM2 = "param2"
  * create an instance of this fragment.
  */
 class FriendsFragment : Fragment() {
+    private lateinit var resultLauncher: ActivityResultLauncher<Intent>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val data: Intent? = result.data
+                val scannedData = data?.getStringExtra("SCANNED_UUID")
+                Log.i("FriendsFragment", scannedData.toString()) // TODO: Do something with the UUID
+            }
+        }
     }
 
     override fun onCreateView(
@@ -38,6 +47,7 @@ class FriendsFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        Log.i("FriendsFragment", "Created view")
         val view = inflater.inflate(R.layout.fragment_friends, container, false)
 
         val friendsList: RecyclerView = view.findViewById(R.id.friendList)
@@ -74,8 +84,8 @@ class FriendsFragment : Fragment() {
         val scanButton: Button = view.findViewById(R.id.scanCodeButton)
 
         scanButton.setOnClickListener {
-            Log.i("FriendsFragment", "Clicked the scan button")
-//            TODO: Open a scanner page to scan a QR code
+            val intent = Intent(activity, QRScannerActivity::class.java)
+            resultLauncher.launch(intent)
         }
 
         return view
