@@ -36,12 +36,12 @@ class FriendsFragment : Fragment() {
         super.onCreate(savedInstanceState)
         this.user = activity?.intent?.getParcelableExtra("USER_DATA", User::class.java)!!
 
-        resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        this.resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 val data: Intent? = result.data
                 val scannedData = data?.getStringExtra("SCANNED_UUID").toString()
 
-                var response = SupabaseClient().addFriend(scannedData, this.user.authToken ?: "")
+                var response = SupabaseClient().addFriend(scannedData, this.user.authToken)
 
                 if (response.isSuccessful) {
                     Toast.makeText(activity, "Added a new friend!", Toast.LENGTH_LONG).show()
@@ -75,7 +75,7 @@ class FriendsFragment : Fragment() {
         }
 
         val shareButton: Button = view.findViewById(R.id.shareCodeButton)
-        val uuid = "38a42566-e1c3-43b4-9f9a-a05094770596" // TODO: Make it use the User UUID instead of this hardcoded one
+        val uuid = this.user.id
 
         shareButton.setOnClickListener {
             val qrCode = QRCodeBuilder(QRCodeShapesEnum.SQUARE)
@@ -98,7 +98,7 @@ class FriendsFragment : Fragment() {
 
         scanButton.setOnClickListener {
             val intent = Intent(activity, QRScannerActivity::class.java)
-            resultLauncher.launch(intent)
+            this.resultLauncher.launch(intent)
         }
 
         return view
