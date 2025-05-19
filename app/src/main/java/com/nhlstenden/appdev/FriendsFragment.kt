@@ -68,6 +68,7 @@ class FriendsFragment : Fragment() {
         shareButton.setOnClickListener {
             val qrCode = QRCodeBuilder(QRCodeShapesEnum.SQUARE)
                 .withErrorCorrectionLevel(ErrorCorrectionLevel.LOW)
+                .withBackgroundColor(Colors.WHITE_SMOKE)
                 .build("UID:${uuid}")
                 .renderToBytes()
             val qrCodeImage: ImageView = view.findViewById(R.id.qrImage)
