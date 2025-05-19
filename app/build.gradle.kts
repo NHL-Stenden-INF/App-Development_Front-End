@@ -83,4 +83,5 @@ dependencies {
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation("io.github.g0dkar:qrcode-kotlin:4.4.1")
     implementation("com.github.yuriy-budiyev:code-scanner:2.3.0")
+    implementation("com.google.zxing:core:3.5.3")
 }

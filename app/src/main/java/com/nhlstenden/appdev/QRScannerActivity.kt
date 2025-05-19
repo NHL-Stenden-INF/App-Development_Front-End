@@ -44,7 +44,7 @@ class QRScannerActivity : AppCompatActivity() {
         codeScanner.decodeCallback = DecodeCallback {
             runOnUiThread {
                 val resultIntent = Intent().apply {
-                    putExtra("SCANNED_UUID", "PLACEHOLDER")
+                    putExtra("SCANNED_UUID", it.text)
                 }
                 setResult(Activity.RESULT_OK, resultIntent)
                 finish()
