@@ -1,8 +1,9 @@
 package com.nhlstenden.appdev
 
 import android.os.Parcelable
-import android.util.Log
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -120,7 +121,7 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
-    fun addFriend(userId: String, authToken: String): Response {
+    suspend fun addFriend(userId: String, authToken: String): Response {
         val json = """{"new_friend_id": "$userId"}"""
         val requestBody = json.toRequestBody("application/json".toMediaType())
 
@@ -133,7 +134,9 @@ class SupabaseClient() {
             .addHeader("Prefer", "return=minimal")
             .build()
 
-        return client.newCall(request).execute()
+        return withContext(Dispatchers.IO) {
+            client.newCall(request).execute()
+        }
     }
 
     fun updateUserPoints(userId: String, newPoints: Int, authToken: String): Response {

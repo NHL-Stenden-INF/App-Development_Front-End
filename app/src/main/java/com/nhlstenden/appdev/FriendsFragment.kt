@@ -18,6 +18,9 @@ import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import qrcode.QRCodeBuilder
 import qrcode.QRCodeShapesEnum
 import qrcode.color.Colors
@@ -41,12 +44,14 @@ class FriendsFragment : Fragment() {
                 val data: Intent? = result.data
                 val scannedData = data?.getStringExtra("SCANNED_UUID").toString()
 
-                var response = SupabaseClient().addFriend(scannedData, this.user.authToken)
+                GlobalScope.launch(Dispatchers.Main) {
+                    val response = SupabaseClient().addFriend(scannedData, user.authToken)
 
-                if (response.isSuccessful) {
-                    Toast.makeText(activity, "Added a new friend!", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(activity, "Failed to add new friend :<", Toast.LENGTH_LONG).show()
+                    if (response.isSuccessful) {
+                        Toast.makeText(activity, "Added a new friend!", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(activity, "Failed to add new friend :<", Toast.LENGTH_LONG).show()
+                    }
                 }
             } else {
                 Toast.makeText(activity, "Not a valid QR code", Toast.LENGTH_LONG).show()
@@ -81,7 +86,7 @@ class FriendsFragment : Fragment() {
             val qrCode = QRCodeBuilder(QRCodeShapesEnum.SQUARE)
                 .withErrorCorrectionLevel(ErrorCorrectionLevel.LOW)
                 .withBackgroundColor(Colors.WHITE_SMOKE)
-                .build("UID:${uuid}")
+                .build(uuid.toString())
                 .renderToBytes()
             val qrCodeImage: ImageView = view.findViewById(R.id.qrImage)
 
