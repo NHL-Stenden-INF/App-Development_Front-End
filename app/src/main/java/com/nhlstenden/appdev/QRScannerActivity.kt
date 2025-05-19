@@ -34,7 +34,7 @@ class QRScannerActivity : AppCompatActivity() {
         codeScanner.autoFocusMode = AutoFocusMode.SAFE // or CONTINUOUS
         codeScanner.scanMode = ScanMode.SINGLE // or CONTINUOUS or PREVIEW
         codeScanner.isAutoFocusEnabled = true // Whether to enable auto focus or not
-        codeScanner.isFlashEnabled = false // Whether to enable flash or not
+        codeScanner.isFlashEnabled = true // Whether to enable flash or not
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 100)
