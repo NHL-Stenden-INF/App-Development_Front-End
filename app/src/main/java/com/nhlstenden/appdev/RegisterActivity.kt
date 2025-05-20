@@ -9,6 +9,8 @@ import android.view.MotionEvent
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GestureDetectorCompat
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.nhlstenden.appdev.LoginActivity
 import com.nhlstenden.appdev.databinding.ActivityRegisterBinding
 import kotlinx.coroutines.CoroutineScope
@@ -54,6 +56,13 @@ class RegisterActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityRegisterBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Load and animate the mascot GIF
+        Glide.with(this)
+            .asGif()
+            .load(R.drawable.mascot)
+            .transition(DrawableTransitionOptions.withCrossFade())
+            .into(binding.imageViewLogoRegister)
 
         gestureDetector = GestureDetectorCompat(this, SwipeGestureListener())
 

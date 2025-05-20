@@ -22,4 +22,8 @@
     <color name="cardBackground">#FFFFFF</color>
     <color name="textPrimary">#212121</color>
     <color name="textSecondary">#757575</color>
+    
+    <!-- Input field colors -->
+    <color name="input_background">@color/white</color>
+    <color name="input_stroke">#E0E0E0</color>
 </resources>
