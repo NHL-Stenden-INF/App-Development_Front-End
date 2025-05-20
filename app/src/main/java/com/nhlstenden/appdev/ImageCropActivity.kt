@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
 import android.widget.Button
 import android.widget.ImageView
@@ -32,6 +33,12 @@ class ImageCropActivity : AppCompatActivity() {
     private val imageMatrix = Matrix()
     private var imageMatrixValues = FloatArray(9)
     
+    // Scale gesture detector for pinch-to-zoom
+    private lateinit var scaleGestureDetector: ScaleGestureDetector
+    private var scaleFactor = 1.0f
+    private val minScale = 0.5f
+    private val maxScale = 5.0f
+    
     companion object {
         const val EXTRA_IMAGE_URI = "image_uri"
         const val RESULT_CROPPED_IMAGE_URI = "cropped_image_uri"
@@ -46,6 +53,9 @@ class ImageCropActivity : AppCompatActivity() {
         cropOverlay = findViewById(R.id.cropOverlay)
         confirmButton = findViewById(R.id.confirmButton)
         cancelButton = findViewById(R.id.cancelButton)
+        
+        // Initialize scale gesture detector
+        scaleGestureDetector = ScaleGestureDetector(this, ScaleListener())
         
         // Get image URI from intent
         val imageUri = intent.getParcelableExtra<Uri>(EXTRA_IMAGE_URI)
@@ -70,7 +80,13 @@ class ImageCropActivity : AppCompatActivity() {
         
         // Set up touch listener for dragging the image
         imageView.setOnTouchListener { _, event ->
-            handleImageTouch(event)
+            // Handle both scaling and dragging
+            scaleGestureDetector.onTouchEvent(event)
+            
+            // If we're not scaling, handle the drag events
+            if (!scaleGestureDetector.isInProgress) {
+                handleImageTouch(event)
+            }
             true
         }
         
@@ -112,6 +128,36 @@ class ImageCropActivity : AppCompatActivity() {
         }
     }
     
+    // Scale listener for pinch-to-zoom
+    private inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        override fun onScale(detector: ScaleGestureDetector): Boolean {
+            // Calculate the new scale factor
+            scaleFactor *= detector.scaleFactor
+            
+            // Constrain the scale factor to avoid extreme zooming
+            scaleFactor = scaleFactor.coerceIn(minScale, maxScale)
+            
+            // Get the focus point of the scaling gesture
+            val focusX = detector.focusX
+            val focusY = detector.focusY
+            
+            // Apply the scale transformation centered on the focus point
+            imageMatrix.getValues(imageMatrixValues)
+            val currentScale = imageMatrixValues[Matrix.MSCALE_X]
+            val newScale = currentScale * detector.scaleFactor
+            
+            // Apply the scale
+            imageMatrix.postScale(
+                detector.scaleFactor, detector.scaleFactor,
+                focusX, focusY
+            )
+            
+            // Apply the transformation
+            imageView.imageMatrix = imageMatrix
+            return true
+        }
+    }
+    
     private fun centerImage() {
         imageBitmap?.let { bitmap ->
             // Get dimensions
@@ -125,6 +171,7 @@ class ImageCropActivity : AppCompatActivity() {
                 
                 // Calculate scale to fill the view while maintaining aspect ratio
                 val scale = Math.max(viewWidth / imageWidth, viewHeight / imageHeight)
+                scaleFactor = scale  // Initialize the scale factor
                 
                 // Calculate translation to center
                 val translateX = (viewWidth - imageWidth * scale) / 2f
