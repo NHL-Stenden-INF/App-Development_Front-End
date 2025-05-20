@@ -122,13 +122,8 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
-    suspend fun addFriend(userId: String, friendId: String, authToken: String): Response {
-        val json = """{"friend_id": "${friendId.trim()}", "current_user_id": "${userId.trim()}"}"""
-
-        Log.i("SupabaseClient", userId)
-        Log.i("SupabaseClient", authToken)
-        Log.i("SupabaseClient", json)
-
+    suspend fun addFriend(friendId: String, authToken: String): Response {
+        val json = """{"friend_id": "${friendId.trim()}"}"""
         val requestBody = json.toRequestBody("application/json".toMediaType())
 
         val request = Request.Builder()
@@ -137,7 +132,7 @@ class SupabaseClient() {
             .addHeader("apikey", supabaseKey)
             .addHeader("Authorization", "Bearer $authToken")
             .addHeader("Content-Type", "application/json")
-//            .addHeader("Prefer", "return=minimal")
+            .addHeader("Prefer", "return=minimal")
             .build()
 
         return withContext(Dispatchers.IO) {

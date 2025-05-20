@@ -45,12 +45,7 @@ class FriendsFragment : Fragment() {
                 val scannedData = data?.getStringExtra("SCANNED_UUID").toString()
 
                 GlobalScope.launch(Dispatchers.Main) {
-                    val response = SupabaseClient().addFriend(user.id.toString(), scannedData, user.authToken)
-
-                    Log.i("FriendsFragment", response.code.toString())
-                    Log.i("FriendsFragment", response.body?.string() ?: "No body supplied")
-                    Log.i("FriendsFragment", response.request.url.toString())
-
+                    val response = SupabaseClient().addFriend(scannedData, user.authToken)
                     if (response.isSuccessful) {
                         Toast.makeText(activity, "Added a new friend!", Toast.LENGTH_LONG).show()
                     } else {
