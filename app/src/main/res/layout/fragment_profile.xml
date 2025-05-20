@@ -44,8 +44,7 @@
                 android:autoSizeTextType="uniform"
                 android:ellipsize="none"
                 android:gravity="center_vertical"
-                android:maxLines="1"
-                android:text="@string/username" />
+                android:maxLines="1" />
 
         </LinearLayout>
 
