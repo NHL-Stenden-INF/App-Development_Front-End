@@ -183,6 +183,76 @@ class SupabaseClient() {
             .build()
         return client.newCall(request).execute()
     }
+
+    fun updateProfilePicture(userId: String, profilePicture: String, authToken: String): Response {
+        // Log the attempt to update
+        Log.d("SupabaseClient", "Attempting to update profile picture for user: $userId")
+        
+        try {
+            // First try with RPC approach
+            val jsonObject = org.json.JSONObject()
+            jsonObject.put("input_user_id", userId)
+            jsonObject.put("new_profile_picture", profilePicture)
+            
+            val requestBody = jsonObject.toString().toRequestBody("application/json".toMediaType())
+            
+            val request = Request.Builder()
+                .url("$supabaseUrl/rest/v1/rpc/update_user_profile_picture")
+                .post(requestBody) // RPC uses POST, not PATCH
+                .addHeader("apikey", supabaseKey)
+                .addHeader("Authorization", "Bearer $authToken")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Prefer", "return=minimal")
+                .build()
+            
+            val response = client.newCall(request).execute()
+            
+            // Log the response
+            Log.d("SupabaseClient", "RPC profile picture update response: ${response.code} ${response.message}")
+            
+            // If RPC succeeds or returns something other than 404, return that response
+            if (response.isSuccessful || response.code != 404) {
+                return response
+            }
+            
+            // If we get here, RPC function doesn't exist, try direct update
+            Log.d("SupabaseClient", "RPC method not found, trying direct update")
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Error in RPC profile update", e)
+            // Continue to fallback method
+        }
+        
+        // Fallback to direct update
+        try {
+            // Direct SQL update approach
+            val updateObject = org.json.JSONObject()
+            updateObject.put("profile_picture", profilePicture)
+            
+            val directRequestBody = updateObject.toString().toRequestBody("application/json".toMediaType())
+            
+            val directRequest = Request.Builder()
+                .url("$supabaseUrl/rest/v1/user_attributes?user_id=eq.$userId")
+                .patch(directRequestBody)
+                .addHeader("apikey", supabaseKey)
+                .addHeader("Authorization", "Bearer $authToken")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Prefer", "return=minimal")
+                .build()
+            
+            val directResponse = client.newCall(directRequest).execute()
+            
+            // Log the direct update response
+            Log.d("SupabaseClient", "Direct profile picture update response: ${directResponse.code} ${directResponse.message}")
+            if (!directResponse.isSuccessful) {
+                Log.e("SupabaseClient", "Direct update error body: ${directResponse.body?.string()}")
+            }
+            
+            return directResponse
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Error in direct profile update", e)
+            throw e
+        }
+    }
 }
 
 @Parcelize

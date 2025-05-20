@@ -100,7 +100,43 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Update method to more reliably refresh UI
+    fun updateUserData(updatedUser: User?) {
+        if (updatedUser != null) {
+            // Update the stored user data
+            userData = updatedUser
+            android.util.Log.d("MainActivity", "User data updated, profile pic: ${updatedUser.profilePicture.take(20)}...")
+            
+            // Check which fragments are visible and update them
+            val fragmentContainer = findViewById<FrameLayout>(R.id.fragment_container)
+            val viewPagerView = findViewById<ViewPager2>(R.id.viewPager)
+            
+            // Handle profile screen if visible
+            if (fragmentContainer.visibility == View.VISIBLE) {
+                val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+                if (currentFragment is ProfileFragment) {
+                    android.util.Log.d("MainActivity", "Refreshing ProfileFragment")
+                    currentFragment.refreshUI(userData)
+                }
+            }
+            
+            // Always recreate the ViewPager adapter to ensure fragments are refreshed when shown
+            if (viewPagerView.adapter != null) {
+                android.util.Log.d("MainActivity", "Recreating ViewPager adapter")
+                // Create and set fresh adapter
+                viewPagerView.adapter = null
+                val newAdapter = MainPagerAdapter(this)
+                viewPagerView.adapter = newAdapter
+                
+                // Preserve current position
+                val currentPosition = viewPagerView.currentItem
+                viewPagerView.setCurrentItem(currentPosition, false)
+            }
+        }
+    }
+
     private inner class MainPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {
+        // Remove fragments map as it's not necessary with our new approach
         override fun getItemCount(): Int = 5
 
         override fun createFragment(position: Int): Fragment {
