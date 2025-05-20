@@ -5,22 +5,22 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="24dp"
-    android:background="@android:color/white"
+    android:background="?android:attr/windowBackground"
     tools:context=".RegisterActivity">
 
     <ImageView
         android:id="@+id/imageViewLogoRegister"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_height="250dp"
         android:layout_marginStart="32dp"
+        android:layout_marginTop="16dp"
         android:layout_marginEnd="32dp"
         android:adjustViewBounds="true"
         android:contentDescription="@string/app_name"
-        app:srcCompat="@drawable/logo" 
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/mascot" />
 
     <androidx.cardview.widget.CardView
         android:id="@+id/cardViewRegisterInputs"
@@ -50,8 +50,8 @@
                 android:hint="Username"
                 android:inputType="textPersonName"
                 android:padding="12dp"
-                android:textColor="@color/black"
-                android:textColorHint="#FF888888" />
+                android:textColor="?android:attr/textColorPrimary"
+                android:textColorHint="?android:attr/textColorHint" />
 
             <EditText
                 android:id="@+id/editTextEmailAddressRegister"
@@ -62,8 +62,8 @@
                 android:hint="Email"
                 android:inputType="textEmailAddress"
                 android:padding="12dp"
-                android:textColor="@color/black"
-                android:textColorHint="#FF888888" />
+                android:textColor="?android:attr/textColorPrimary"
+                android:textColorHint="?android:attr/textColorHint" />
 
             <EditText
                 android:id="@+id/editTextPasswordRegister"
@@ -73,8 +73,8 @@
                 android:hint="Password"
                 android:inputType="textPassword"
                 android:padding="12dp"
-                android:textColor="@color/black"
-                android:textColorHint="#FF888888" />
+                android:textColor="?android:attr/textColorPrimary"
+                android:textColorHint="?android:attr/textColorHint" />
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>
@@ -101,26 +101,42 @@
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:layout_marginBottom="32dp"
         android:gravity="center"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Swipe right to login"
+                android:textColor="?android:attr/textColorSecondary"
+                android:layout_marginEnd="8dp" />
+
+            <ImageView
+                android:id="@+id/imageViewArrowLogin"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/animated_arrow"
+                android:contentDescription="Swipe indicator" />
+        </LinearLayout>
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Swipe right to login"
-            android:textColor="@android:color/darker_gray"
-            android:layout_marginEnd="8dp" />
-
-        <ImageView
-            android:id="@+id/imageViewArrowLogin"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/animated_arrow"
-            android:contentDescription="Swipe indicator" />
+            android:text="GitGud"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textStyle="italic"
+            android:textSize="12sp" />
 
     </LinearLayout>
 

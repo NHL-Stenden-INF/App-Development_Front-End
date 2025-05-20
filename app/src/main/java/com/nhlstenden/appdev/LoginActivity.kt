@@ -18,6 +18,8 @@ import android.widget.EditText
 import android.widget.Toast
 import android.util.Base64
 import android.util.Log
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -66,6 +68,13 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Load and animate the mascot GIF
+        Glide.with(this)
+            .asGif()
+            .load(R.drawable.mascot)
+            .transition(DrawableTransitionOptions.withCrossFade())
+            .into(binding.imageViewLogo)
 
         // Set up gesture detector
         gestureDetector = GestureDetectorCompat(this, SwipeGestureListener())

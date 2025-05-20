@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark mode specific colors -->
+    <color name="darkBackground">#121212</color>
+    <color name="darkSurface">#1E1E1E</color>
+    <color name="darkCardBackground">#2D2D2D</color>
+    <color name="darkTextPrimary">#E0E0E0</color>
+    <color name="darkTextSecondary">#A0A0A0</color>
+    
+    <!-- Override default colors for dark theme -->
+    <color name="background">@color/darkBackground</color>
+    <color name="cardBackground">@color/darkCardBackground</color>
+    <color name="textPrimary">@color/darkTextPrimary</color>
+    <color name="textSecondary">@color/darkTextSecondary</color>
+
+    <!-- Input field colors for dark mode -->
+    <color name="input_background">#333333</color>
+    <color name="input_stroke">#555555</color>
+</resources> 
