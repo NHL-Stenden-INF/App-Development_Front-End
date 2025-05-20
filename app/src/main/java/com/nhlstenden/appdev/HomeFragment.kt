@@ -83,6 +83,11 @@ class HomeFragment : Fragment() {
         motivationalMessage = view.findViewById(R.id.motivationalMessage)
         profilePicture = view.findViewById(R.id.profileImage)
 
+        setupProfileButton()
+        setupUI(view)
+    }
+    
+    private fun setupProfileButton() {
         profilePicture.setOnClickListener {
             val userData = arguments?.getParcelable<User>("USER_DATA")
 
@@ -100,12 +105,17 @@ class HomeFragment : Fragment() {
             activity?.findViewById<ViewPager2>(R.id.viewPager)?.visibility = View.GONE
             activity?.findViewById<FrameLayout>(R.id.fragment_container)?.visibility = View.VISIBLE
         }
-
+    }
+    
+    private fun setupUI(view: View) {
         // Get user data from arguments
         val userData = arguments?.getParcelable<User>("USER_DATA")
         userData?.let { user ->
             greetingText.text = getString(R.string.greeting_format, user.username)
             updateMotivationalMessage(user)
+            
+            // Load profile picture
+            loadProfilePicture(user.profilePicture)
         }
 
         // Set up dynamic course cards
@@ -118,6 +128,21 @@ class HomeFragment : Fragment() {
         val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)
         recyclerView.layoutManager = LinearLayoutManager(context)
         recyclerView.adapter = HomeCourseAdapter(courses)
+    }
+    
+    private fun loadProfilePicture(profilePictureData: String) {
+        if (profilePictureData.isNotEmpty()) {
+            try {
+                val imageData = android.util.Base64.decode(profilePictureData, android.util.Base64.DEFAULT)
+                val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
+                if (bitmap != null) {
+                    profilePicture.setImageBitmap(bitmap)
+                }
+            } catch (e: Exception) {
+                // If there's an error, keep the default image
+                android.util.Log.e("HomeFragment", "Error loading profile picture: ${e.message}")
+            }
+        }
     }
 
     private fun updateMotivationalMessage(user: User) {
