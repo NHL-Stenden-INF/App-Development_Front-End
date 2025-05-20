@@ -3,6 +3,8 @@ package com.nhlstenden.appdev
 import android.os.Parcelable
 import android.util.Log
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -118,6 +120,24 @@ class SupabaseClient() {
             .build()
 
         return client.newCall(request).execute()
+    }
+
+    suspend fun addFriend(friendId: String, authToken: String): Response {
+        val json = """{"friend_id": "${friendId.trim()}"}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/add_friend")
+            .post(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+
+        return withContext(Dispatchers.IO) {
+            client.newCall(request).execute()
+        }
     }
 
     fun updateUserPoints(userId: String, newPoints: Int, authToken: String): Response {
