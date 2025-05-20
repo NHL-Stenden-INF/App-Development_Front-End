@@ -19,6 +19,7 @@ import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 
 // Data class for course info
 data class HomeCourse(
@@ -66,6 +67,7 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>) : RecyclerView.Ad
 class HomeFragment : Fragment() {
     private lateinit var greetingText: TextView
     private lateinit var motivationalMessage: TextView
+    private lateinit var profilePicture: ImageView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -79,6 +81,25 @@ class HomeFragment : Fragment() {
 
         greetingText = view.findViewById(R.id.greetingText)
         motivationalMessage = view.findViewById(R.id.motivationalMessage)
+        profilePicture = view.findViewById(R.id.profileImage)
+
+        profilePicture.setOnClickListener {
+            val userData = arguments?.getParcelable<User>("USER_DATA")
+
+            val profileFragment = ProfileFragment().apply {
+                arguments = Bundle().apply {
+                    putParcelable("USER_DATA", userData)
+                }
+            }
+
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, profileFragment)
+                .addToBackStack(null)
+                .commit()
+
+            activity?.findViewById<ViewPager2>(R.id.viewPager)?.visibility = View.GONE
+            activity?.findViewById<FrameLayout>(R.id.fragment_container)?.visibility = View.VISIBLE
+        }
 
         // Get user data from arguments
         val userData = arguments?.getParcelable<User>("USER_DATA")
