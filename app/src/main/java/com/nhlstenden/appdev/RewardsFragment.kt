@@ -45,6 +45,7 @@ class RewardsFragment : Fragment() {
     private val supabaseClient = SupabaseClient()
     private lateinit var userId: String
     private lateinit var authToken: String
+    private var openedDailyAt: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,14 +88,16 @@ class RewardsFragment : Fragment() {
         userId = userData?.id.toString()
         authToken = userData?.authToken ?: ""
         android.util.Log.d("Supabase", "AuthToken: $authToken")
-        // Fetch points from Supabase
+        // Fetch points and opened_daily_at from Supabase
         CoroutineScope(Dispatchers.IO).launch {
             val response = supabaseClient.getUserAttributes(userId)
             if (response.code == 200) {
                 val userResponse = JSONArray(response.body?.string())
                 currentPoints = userResponse.getJSONObject(0).getInt("points")
+                openedDailyAt = userResponse.getJSONObject(0).optString("opened_daily_at", null)
                 withContext(Dispatchers.Main) {
                     updatePointsDisplay()
+                    setupDailyRewardTimer() // Now that we have openedDailyAt
                 }
             }
         }
@@ -125,25 +128,42 @@ class RewardsFragment : Fragment() {
     }
 
     private fun setupDailyRewardTimer() {
-        // TODO: Get last reward time from SharedPreferences
-        val lastRewardTime = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(12) // Example: 12 hours ago
-        val timeUntilNextReward = TimeUnit.HOURS.toMillis(24) - (System.currentTimeMillis() - lastRewardTime)
-
-        if (timeUntilNextReward > 0) {
-            startCountDownTimer(timeUntilNextReward)
-            openChestButton.isEnabled = false
-        } else {
+        val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString() // YYYY-MM-DD
+        if (openedDailyAt == null || openedDailyAt != today) {
             timerText.text = "Ready to collect!"
             openChestButton.isEnabled = true
+        } else {
+            // Calculate ms until midnight UTC
+            val now = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC)
+            val midnight = now.toLocalDate().plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC)
+            val msUntilMidnight = java.time.Duration.between(now, midnight).toMillis()
+            startCountDownTimer(msUntilMidnight)
+            openChestButton.isEnabled = false
         }
 
         openChestButton.setOnClickListener {
-            // Add random points between 50 and 200
-            val rewardPoints = (50..200).random()
+            // Add random points between 1 and 100
+            val rewardPoints = (1..100).random()
             addPoints(rewardPoints)
             Toast.makeText(context, "You earned $rewardPoints points!", Toast.LENGTH_SHORT).show()
             openChestButton.isEnabled = false
-            startCountDownTimer(TimeUnit.HOURS.toMillis(24))
+            // Update opened_daily_at in Supabase
+            CoroutineScope(Dispatchers.IO).launch {
+                val todayDate = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString()
+                val response = supabaseClient.updateUserOpenedDaily(userId, todayDate, authToken)
+                if (response.code == 204 || response.code == 200) {
+                    openedDailyAt = todayDate
+                    withContext(Dispatchers.Main) {
+                        // Start timer to next midnight
+                        val now = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC)
+                        val midnight = now.toLocalDate().plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC)
+                        val msUntilMidnight = java.time.Duration.between(now, midnight).toMillis()
+                        startCountDownTimer(msUntilMidnight)
+                    }
+                } else {
+                    android.util.Log.e("Supabase", "Failed to update opened_daily_at: ${response.code} ${response.body?.string()}")
+                }
+            }
         }
     }
 

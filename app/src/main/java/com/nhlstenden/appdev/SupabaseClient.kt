@@ -135,6 +135,34 @@ class SupabaseClient() {
             .build()
         return client.newCall(request).execute()
     }
+
+    fun updateUserOpenedDaily(userId: String, date: String, authToken: String): Response {
+        val json = """{"input_user_id": "$userId", "new_date": "$date"}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/update_user_opened_daily")
+            .post(requestBody) // RPC uses POST, not PATCH
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+        return client.newCall(request).execute()
+    }
+
+    fun updateOpenedDailyAt(userId: String, date: String, authToken: String): Response {
+        val json = """{"opened_daily_at": "$date"}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/user_attributes?user_id=eq.$userId")
+            .patch(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+        return client.newCall(request).execute()
+    }
 }
 
 @Parcelize
