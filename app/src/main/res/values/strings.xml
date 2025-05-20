@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">App Development</string>
     <!-- TODO: Remove or change this placeholder text -->
@@ -6,7 +5,7 @@
     <string name="overall_progress_title">Overall Progress</string>
     <string name="overall_progress_percentage">%d%%</string>
     <string name="greeting_format">Hey, %s!</string>
-    
+
     <!-- Course Progress Item Strings -->
     <string name="course_image_description">Course icon</string>
     <string name="course_title_placeholder">Course Title</string>
@@ -23,7 +22,7 @@
     <string name="scan_button_placeholder">Scan</string>
     <string name="share_button_placeholder">Share</string>
     <string name="share_code_placeholder">Add friends with your QR Code</string>
-    
+
     <!-- Motivational Area Strings -->
     <string name="motivational_title">Friend Challenge</string>
     <string name="motivational_message">%1$s leads by %2$d tasks</string>
