@@ -20,17 +20,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.util.concurrent.TimeUnit
+import com.nhlstenden.appdev.models.RewardsManager
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 private const val ARG_PARAM1 = "param1"
 private const val ARG_PARAM2 = "param2"
 
-/**
- * A simple [Fragment] subclass.
- * Use the [RewardsFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class RewardsFragment : Fragment() {
     // TODO: Rename and change types of parameters
     private var param1: String? = null
@@ -67,16 +63,9 @@ class RewardsFragment : Fragment() {
         openChestButton = view.findViewById(R.id.openChestButton)
         rewardShopList = view.findViewById(R.id.rewardShopList)
 
-        // Set up reward shop first
         setupRewardShop()
-
-        // Set initial points after adapter is initialized
         updatePointsDisplay()
-
-        // Set up daily reward timer
         setupDailyRewardTimer()
-
-        // Set up achievements
         setupAchievements(view)
 
         return view
@@ -232,12 +221,16 @@ class RewardsFragment : Fragment() {
     }
 
     private fun setupRewardShop() {
-        val rewards = listOf(
-            Reward("Premium Theme", "Unlock a beautiful dark theme", 500, R.drawable.ic_achievement, false),
-            Reward("Custom Avatar", "Get a unique profile picture", 1000, R.drawable.ic_achievement, false),
-            Reward("Advanced Stats", "View detailed progress analytics", 750, R.drawable.ic_achievement, true),
-            Reward("Practice Mode", "Unlimited practice exercises", 1500, R.drawable.ic_achievement, false)
-        )
+        // Use RewardsManager to load rewards from resources
+        val rewardsManager = RewardsManager(resources)
+        var rewards = rewardsManager.loadRewards()
+
+        val unlockedRewardIds = listOf<String>() 
+        
+        if (unlockedRewardIds.isNotEmpty()) {
+            rewards = rewardsManager.updateUnlockedStatus(rewards, unlockedRewardIds)
+        }
+
 
         rewardShopAdapter = RewardShopAdapter(rewards.toMutableList(), { reward ->
             if (canAffordReward(reward.pointsCost)) {
@@ -294,6 +287,15 @@ class RewardsFragment : Fragment() {
                     putString(ARG_PARAM2, param2)
                 }
             }
+    }
+
+    /**
+     * Helper function to log loaded rewards for debugging
+     */
+    private fun logRewards(rewards: List<Reward>) {
+        rewards.forEachIndexed { index, reward ->
+            android.util.Log.d("RewardsFragment", "Reward[$index]: ${reward.title}, ${reward.pointsCost}pts - ${reward.description}")
+        }
     }
 }
 

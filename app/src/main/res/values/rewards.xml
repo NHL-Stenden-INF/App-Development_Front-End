@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="reward_titles">
+        <item>Code Snippets Library</item>
+        <item>Code Editor Themes Pack</item>
+        <item>Custom Code Font Collection</item>
+        <item>Profile Badges Collection</item>
+        <item>Challenge Skipper</item>
+        <item>Extra Daily Reward</item>
+        <item>Streak Shield</item>
+        <item>Double XP Weekend</item>
+        <item>Achievement Hunter</item>
+        <item>Point Multiplier</item>
+    </array>
+    
+    <array name="reward_descriptions">
+        <item>Unlock a collection of reusable code snippets for common programming tasks</item>
+        <item>Unlock 10 premium editor themes optimized for coding comfort</item>
+        <item>Choose from 15 programming-optimized fonts for your code editor</item>
+        <item>Show off your skills with exclusive profile badges</item>
+        <item>Skip one difficult challenge per week without losing progress</item>
+        <item>Get two daily reward chests instead of one for 7 days</item>
+        <item>Protect your learning streak for one missed day</item>
+        <item>Earn double experience points for all completed tasks over a weekend</item>
+        <item>Reveals hidden achievements and how to unlock them</item>
+        <item>Earn 1.5x points on all completed tasks for 3 days</item>
+    </array>
+    
+    <integer-array name="reward_points">
+        <item>800</item>
+        <item>600</item>
+        <item>400</item>
+        <item>750</item>
+        <item>1500</item>
+        <item>1000</item>
+        <item>700</item>
+        <item>1600</item>
+        <item>850</item>
+        <item>2000</item>
+    </integer-array>
+    
+    <array name="reward_icons">
+        <item>@drawable/ic_code_snippets_library</item>
+        <item>@drawable/ic_editor_themes</item>
+        <item>@drawable/ic_font_collection</item>
+        <item>@drawable/ic_profile_badges</item>
+        <item>@drawable/ic_challenge_skipper</item>
+        <item>@drawable/ic_extra_daily_reward</item>
+        <item>@drawable/ic_streak_shield</item>
+        <item>@drawable/ic_double_xp</item>
+        <item>@drawable/ic_achievement_hunter</item>
+        <item>@drawable/ic_point_multiplier</item>
+    </array>
+</resources> 
