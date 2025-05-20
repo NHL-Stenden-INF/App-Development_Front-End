@@ -1,10 +1,18 @@
 package com.nhlstenden.appdev
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.commit
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.chip.ChipGroup
+import com.nhlstenden.appdev.models.Course
+import com.nhlstenden.appdev.models.CourseAdapter
+import androidx.viewpager2.widget.ViewPager2
+import android.widget.FrameLayout
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -21,6 +29,9 @@ class TasksFragment : Fragment() {
     private var param1: String? = null
     private var param2: String? = null
 
+    private lateinit var tasksList: RecyclerView
+    private lateinit var filterChipGroup: ChipGroup
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
@@ -30,11 +41,68 @@ class TasksFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_tasks, container, false)
+        return inflater.inflate(R.layout.fragment_courses, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        tasksList = view.findViewById(R.id.coursesList)
+        filterChipGroup = view.findViewById(R.id.filterChipGroup)
+
+        setupTasksList()
+        setupFilterChips()
+    }
+
+    private fun setupTasksList() {
+        val courses = listOf(
+            Course(
+                "HTML",
+                "Beginner",
+                "Learn the fundamentals of HTML markup language",
+                R.drawable.html_course
+            ),
+            Course(
+                "CSS",
+                "Intermediate",
+                "Master CSS styling and layout techniques",
+                R.drawable.css_course
+            ),
+            Course(
+                "SQL",
+                "Advanced",
+                "Learn database management with SQL",
+                R.drawable.sql_course
+            )
+        )
+
+        tasksList.apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = CourseAdapter(courses) { course ->
+                // Show CourseTopicsFragment in fragment_container
+                val fragment = CourseTopicsFragment().apply {
+                    arguments = Bundle().apply {
+                        putString("courseName", course.title)
+                    }
+                }
+                requireActivity().findViewById<FrameLayout>(R.id.fragment_container).visibility = View.VISIBLE
+                requireActivity().findViewById<ViewPager2>(R.id.viewPager).visibility = View.GONE
+                parentFragmentManager.commit {
+                    replace(R.id.fragment_container, fragment)
+                    addToBackStack(null)
+                }
+            }
+        }
+    }
+
+    private fun setupFilterChips() {
+        filterChipGroup.setOnCheckedStateChangeListener { group, checkedIds ->
+            // TODO: Implement filtering when connected to backend
+        }
     }
 
     companion object {

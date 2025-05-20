@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#3B82F6"
+        android:padding="20dp">
+
+        <!-- Icon in blue circle -->
+        <FrameLayout
+            android:id="@+id/iconCircle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/day_circle_active"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <ImageView
+                android:id="@+id/dailyChallengeIcon"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_bug"
+                android:contentDescription="Daily challenge icon"
+                app:tint="#FFFFFF" />
+        </FrameLayout>
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/dailyChallengeTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Fix the bug"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/iconCircle"
+            android:layout_marginEnd="12dp" />
+
+        <!-- Subtitle -->
+        <TextView
+            android:id="@+id/dailyChallengeSubtitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Complete today's challenge"
+            android:textColor="#E0E7FF"
+            android:textSize="15sp"
+            app:layout_constraintTop_toBottomOf="@id/dailyChallengeTitle"
+            app:layout_constraintStart_toStartOf="@id/dailyChallengeTitle"
+            app:layout_constraintEnd_toEndOf="@id/dailyChallengeTitle"
+            android:layout_marginTop="6dp" />
+
+        <!-- Start Challenge Button -->
+        <Button
+            android:id="@+id/dailyChallengeButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:text="Start Challenge"
+            android:textAllCaps="false"
+            android:textColor="#3B82F6"
+            android:backgroundTint="#FFFFFF"
+            android:textStyle="bold"
+            app:cornerRadius="24dp"
+            app:layout_constraintTop_toBottomOf="@id/dailyChallengeSubtitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginTop="18dp"
+            android:layout_marginBottom="2dp" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.cardview.widget.CardView>

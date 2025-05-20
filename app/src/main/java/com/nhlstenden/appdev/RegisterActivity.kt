@@ -9,12 +9,14 @@ import android.view.MotionEvent
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GestureDetectorCompat
+import com.nhlstenden.appdev.LoginActivity
 import com.nhlstenden.appdev.databinding.ActivityRegisterBinding
-import com.nhlstenden.appdev.RegisterRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONException
+import org.json.JSONObject
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -22,7 +24,7 @@ class RegisterActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityRegisterBinding
     private lateinit var gestureDetector: GestureDetectorCompat
-    private val apiService = RetrofitClient.instance
+    private val supabaseClient = SupabaseClient()
 
     private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onFling(e1: MotionEvent, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
@@ -69,38 +71,25 @@ class RegisterActivity : AppCompatActivity() {
             if (username.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
                 binding.buttonRegister.isEnabled = false
 
-                val registerRequest = RegisterRequest(username = username, email = email, password = password)
-
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        val response = apiService.registerUser(registerRequest)
+                        supabaseClient.createNewUser(email, password, username)
                         withContext(Dispatchers.Main) {
-                            if (response.isSuccessful) {
-                                Toast.makeText(this@RegisterActivity, "Registration successful!", Toast.LENGTH_SHORT).show()
-                                val intent = Intent(this@RegisterActivity, LoginActivity::class.java)
-                                startActivity(intent)
-                                overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
-                                finish()
-                            } else {
-                                val errorMsg = response.errorBody()?.string() ?: "Registration failed"
-                                Log.e("RegisterActivity", "Registration failed: ${response.code()} - $errorMsg")
-                                Toast.makeText(this@RegisterActivity, errorMsg, Toast.LENGTH_LONG).show()
-                            }
+                            Toast.makeText(this@RegisterActivity, "Registration successful!", Toast.LENGTH_SHORT).show()
+                            val intent = Intent(this@RegisterActivity, LoginActivity::class.java)
+                            startActivity(intent)
+                            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                            finish()
                         }
-                    } catch (e: IOException) {
-                        Log.e("RegisterActivity", "Network error during registration", e)
+                    } catch (e: RuntimeException) {
+                        Log.e("RegisterActivity", "HTTP error during login: ", e)
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(this@RegisterActivity, "Network error. Check connection.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@RegisterActivity, JSONObject(e.message.toString()).getString("msg"), Toast.LENGTH_LONG).show()
                         }
-                    } catch (e: HttpException) {
-                        Log.e("RegisterActivity", "HTTP error during registration", e)
+                    }  catch (e: JSONException) {
+                        Log.e("LoginActivity", "JSON error during login: ", e)
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(this@RegisterActivity, "Server error: ${e.message()}", Toast.LENGTH_LONG).show()
-                        }
-                    } catch (e: Exception) {
-                        Log.e("RegisterActivity", "Unexpected error during registration", e)
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(this@RegisterActivity, "An unexpected error occurred.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@RegisterActivity, "Faulty response, unable to login", Toast.LENGTH_LONG).show()
                         }
                     } finally {
                         withContext(Dispatchers.Main) {
@@ -124,4 +113,4 @@ class RegisterActivity : AppCompatActivity() {
     override fun onTouchEvent(event: MotionEvent): Boolean {
         return gestureDetector.onTouchEvent(event) || super.onTouchEvent(event)
     }
-} 
+}
