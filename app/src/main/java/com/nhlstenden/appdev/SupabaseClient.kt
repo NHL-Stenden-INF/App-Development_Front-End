@@ -1,6 +1,7 @@
 package com.nhlstenden.appdev
 
 import android.os.Parcelable
+import android.util.Log
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -121,8 +122,13 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
-    suspend fun addFriend(userId: String, authToken: String): Response {
-        val json = """{"new_friend_id": "$userId"}"""
+    suspend fun addFriend(userId: String, friendId: String, authToken: String): Response {
+        val json = """{"friend_id": "${friendId.trim()}", "current_user_id": "${userId.trim()}"}"""
+
+        Log.i("SupabaseClient", userId)
+        Log.i("SupabaseClient", authToken)
+        Log.i("SupabaseClient", json)
+
         val requestBody = json.toRequestBody("application/json".toMediaType())
 
         val request = Request.Builder()
@@ -131,7 +137,7 @@ class SupabaseClient() {
             .addHeader("apikey", supabaseKey)
             .addHeader("Authorization", "Bearer $authToken")
             .addHeader("Content-Type", "application/json")
-            .addHeader("Prefer", "return=minimal")
+//            .addHeader("Prefer", "return=minimal")
             .build()
 
         return withContext(Dispatchers.IO) {
