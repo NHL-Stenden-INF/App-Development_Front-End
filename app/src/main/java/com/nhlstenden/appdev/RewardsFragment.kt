@@ -20,17 +20,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.util.concurrent.TimeUnit
+import com.nhlstenden.appdev.models.RewardsManager
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 private const val ARG_PARAM1 = "param1"
 private const val ARG_PARAM2 = "param2"
 
-/**
- * A simple [Fragment] subclass.
- * Use the [RewardsFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class RewardsFragment : Fragment() {
     // TODO: Rename and change types of parameters
     private var param1: String? = null
@@ -45,6 +41,7 @@ class RewardsFragment : Fragment() {
     private val supabaseClient = SupabaseClient()
     private lateinit var userId: String
     private lateinit var authToken: String
+    private var openedDailyAt: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,16 +63,9 @@ class RewardsFragment : Fragment() {
         openChestButton = view.findViewById(R.id.openChestButton)
         rewardShopList = view.findViewById(R.id.rewardShopList)
 
-        // Set up reward shop first
         setupRewardShop()
-
-        // Set initial points after adapter is initialized
         updatePointsDisplay()
-
-        // Set up daily reward timer
         setupDailyRewardTimer()
-
-        // Set up achievements
         setupAchievements(view)
 
         return view
@@ -87,14 +77,16 @@ class RewardsFragment : Fragment() {
         userId = userData?.id.toString()
         authToken = userData?.authToken ?: ""
         android.util.Log.d("Supabase", "AuthToken: $authToken")
-        // Fetch points from Supabase
+        // Fetch points and opened_daily_at from Supabase
         CoroutineScope(Dispatchers.IO).launch {
             val response = supabaseClient.getUserAttributes(userId)
             if (response.code == 200) {
                 val userResponse = JSONArray(response.body?.string())
                 currentPoints = userResponse.getJSONObject(0).getInt("points")
+                openedDailyAt = userResponse.getJSONObject(0).optString("opened_daily_at", null)
                 withContext(Dispatchers.Main) {
                     updatePointsDisplay()
+                    setupDailyRewardTimer() // Now that we have openedDailyAt
                 }
             }
         }
@@ -125,25 +117,42 @@ class RewardsFragment : Fragment() {
     }
 
     private fun setupDailyRewardTimer() {
-        // TODO: Get last reward time from SharedPreferences
-        val lastRewardTime = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(12) // Example: 12 hours ago
-        val timeUntilNextReward = TimeUnit.HOURS.toMillis(24) - (System.currentTimeMillis() - lastRewardTime)
-
-        if (timeUntilNextReward > 0) {
-            startCountDownTimer(timeUntilNextReward)
-            openChestButton.isEnabled = false
-        } else {
+        val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString() // YYYY-MM-DD
+        if (openedDailyAt == null || openedDailyAt != today) {
             timerText.text = "Ready to collect!"
             openChestButton.isEnabled = true
+        } else {
+            // Calculate ms until midnight UTC
+            val now = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC)
+            val midnight = now.toLocalDate().plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC)
+            val msUntilMidnight = java.time.Duration.between(now, midnight).toMillis()
+            startCountDownTimer(msUntilMidnight)
+            openChestButton.isEnabled = false
         }
 
         openChestButton.setOnClickListener {
-            // Add random points between 50 and 200
-            val rewardPoints = (50..200).random()
+            // Add random points between 1 and 100
+            val rewardPoints = (1..100).random()
             addPoints(rewardPoints)
             Toast.makeText(context, "You earned $rewardPoints points!", Toast.LENGTH_SHORT).show()
             openChestButton.isEnabled = false
-            startCountDownTimer(TimeUnit.HOURS.toMillis(24))
+            // Update opened_daily_at in Supabase
+            CoroutineScope(Dispatchers.IO).launch {
+                val todayDate = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString()
+                val response = supabaseClient.updateUserOpenedDaily(userId, todayDate, authToken)
+                if (response.code == 204 || response.code == 200) {
+                    openedDailyAt = todayDate
+                    withContext(Dispatchers.Main) {
+                        // Start timer to next midnight
+                        val now = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC)
+                        val midnight = now.toLocalDate().plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC)
+                        val msUntilMidnight = java.time.Duration.between(now, midnight).toMillis()
+                        startCountDownTimer(msUntilMidnight)
+                    }
+                } else {
+                    android.util.Log.e("Supabase", "Failed to update opened_daily_at: ${response.code} ${response.body?.string()}")
+                }
+            }
         }
     }
 
@@ -212,12 +221,16 @@ class RewardsFragment : Fragment() {
     }
 
     private fun setupRewardShop() {
-        val rewards = listOf(
-            Reward("Premium Theme", "Unlock a beautiful dark theme", 500, R.drawable.ic_achievement, false),
-            Reward("Custom Avatar", "Get a unique profile picture", 1000, R.drawable.ic_achievement, false),
-            Reward("Advanced Stats", "View detailed progress analytics", 750, R.drawable.ic_achievement, true),
-            Reward("Practice Mode", "Unlimited practice exercises", 1500, R.drawable.ic_achievement, false)
-        )
+        // Use RewardsManager to load rewards from resources
+        val rewardsManager = RewardsManager(resources)
+        var rewards = rewardsManager.loadRewards()
+
+        val unlockedRewardIds = listOf<String>() 
+        
+        if (unlockedRewardIds.isNotEmpty()) {
+            rewards = rewardsManager.updateUnlockedStatus(rewards, unlockedRewardIds)
+        }
+
 
         rewardShopAdapter = RewardShopAdapter(rewards.toMutableList(), { reward ->
             if (canAffordReward(reward.pointsCost)) {
@@ -274,6 +287,15 @@ class RewardsFragment : Fragment() {
                     putString(ARG_PARAM2, param2)
                 }
             }
+    }
+
+    /**
+     * Helper function to log loaded rewards for debugging
+     */
+    private fun logRewards(rewards: List<Reward>) {
+        rewards.forEachIndexed { index, reward ->
+            android.util.Log.d("RewardsFragment", "Reward[$index]: ${reward.title}, ${reward.pointsCost}pts - ${reward.description}")
+        }
     }
 }
 
