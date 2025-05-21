@@ -159,6 +159,13 @@ class HomeFragment : Fragment() {
         val container = view.findViewById<LinearLayout>(R.id.daysContainer)
         container.removeAllViews()
 
+        // Use a solid color that's visible in both light and dark modes
+        val textColor = if (isNightMode()) {
+            Color.WHITE
+        } else {
+            Color.BLACK
+        }
+
         for ((index, day) in days.withIndex()) {
             val dayLayout = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.VERTICAL
@@ -189,7 +196,7 @@ class HomeFragment : Fragment() {
 
             val label = TextView(requireContext()).apply {
                 text = day
-                setTextColor(Color.BLACK)
+                setTextColor(textColor)
                 textSize = 16f
                 setPadding(0, 8, 0, 0)
                 gravity = Gravity.CENTER
@@ -200,5 +207,11 @@ class HomeFragment : Fragment() {
             dayLayout.addView(label)
             container.addView(dayLayout)
         }
+    }
+    
+    private fun isNightMode(): Boolean {
+        return resources.configuration.uiMode and 
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK == 
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
     }
 }

@@ -62,16 +62,17 @@
                         android:src="@drawable/pfp_placeholder"
                         app:shapeAppearanceOverlay="@style/roundedImageView" />
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/changePhotoButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_below="@id/imageView2"
                         android:layout_centerHorizontal="true"
                         android:layout_marginTop="8dp"
-                        android:backgroundTint="@color/colorPrimary"
                         android:text="Change Photo"
-                        android:textColor="@color/white" />
+                        android:textColor="?attr/colorOnPrimary"
+                        app:backgroundTint="?attr/colorPrimary"
+                        app:cornerRadius="24dp" />
                 </RelativeLayout>
 
                 <TextView
