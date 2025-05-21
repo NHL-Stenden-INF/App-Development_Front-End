@@ -52,7 +52,7 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
         viewPager.adapter = TaskPagerAdapter(this)
         viewPager.offscreenPageLimit = 1
         viewPager.overScrollMode = View.OVER_SCROLL_NEVER
-        viewPager.isUserInputEnabled = true
+        viewPager.isUserInputEnabled = false
 
         viewPager.setPageTransformer { page, position ->
             val scale = if (position < 0) 1f + position * 0.1f else 1f - position * 0.1f
