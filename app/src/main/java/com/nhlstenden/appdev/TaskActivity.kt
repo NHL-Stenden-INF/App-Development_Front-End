@@ -14,7 +14,9 @@ class TaskActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        viewPager = findViewById(R.id.viewPager)
+        setContentView(R.layout.activity_task)
+
+        viewPager = findViewById(R.id.questionViewPager)
 
         viewPager.adapter = TaskPagerAdapter(this)
         viewPager.offscreenPageLimit = 1
@@ -26,7 +28,6 @@ class TaskActivity : AppCompatActivity() {
             page.scaleX = scale
             page.scaleY = scale
         }
-
     }
 
     private inner class TaskPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {

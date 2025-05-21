@@ -162,7 +162,7 @@ class CourseTopicsFragment : Fragment() {
         override fun onBindViewHolder(holder: TopicViewHolder, position: Int) {
             val topic = topics[position]
             holder.card.setOnClickListener {
-                val intent = Intent(context, MainActivity::class.java)
+                val intent = Intent(context, TaskActivity::class.java)
                 context.startActivity(intent)
 
                 if (context is Activity)
