@@ -1,21 +1,52 @@
 package com.nhlstenden.appdev
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
+import com.nhlstenden.appdev.CourseTopicsFragment.Topic
+import java.io.Serializable
 
-class TaskActivity : AppCompatActivity() {
+class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
+    private lateinit var taskName: TextView
+    private lateinit var taskProgress: TextView
+    private var questions: List<Question> = listOf(
+        Question.MultipleChoiceQuestion(
+            "What does OOP stand for?",
+            listOf<Option>(
+                Option("Object Oriented Programming", true),
+                Option("Omg Obviously Porkchops", false),
+                Option("OOP", false),
+                Option("Obstructive Obedient People", false)
+            ),
+        ),
+        Question.MultipleChoiceQuestion(
+            "What does HTML stand for?",
+            listOf<Option>(
+                Option("Hyper-Text Markup Language", true),
+                Option("Heiko, Theo, Mayo and Leo", false),
+                Option("High-Transfer Marking Language", false),
+                Option("High-Temperature Machine Learning", false)
+            )
+        )
+    )
+
     private lateinit var viewPager: ViewPager2
+
+    private var activeQuestion: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_task)
 
+        taskName = findViewById(R.id.taskName)
+        taskProgress = findViewById(R.id.taskProgress)
         viewPager = findViewById(R.id.questionViewPager)
 
         viewPager.adapter = TaskPagerAdapter(this)
@@ -28,16 +59,64 @@ class TaskActivity : AppCompatActivity() {
             page.scaleX = scale
             page.scaleY = scale
         }
+
+        val topic = intent.getSerializableExtra("TOPIC_DATA") as? Topic
+        taskName.text = topic?.title
+        updateTaskProgress()
+    }
+
+    override fun onTaskCompleted(hasSucceeded: Boolean) {
+        activeQuestion++
+
+        if (activeQuestion >= questions.size)
+        {
+            // TODO: Make it open a results screen
+        }
+
+        viewPager.currentItem = activeQuestion
+        updateTaskProgress()
+    }
+
+    fun updateTaskProgress(){
+        taskProgress.text = "${activeQuestion + 1} of ${questions.size}"
     }
 
     private inner class TaskPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {
-        override fun getItemCount(): Int = 1
+        override fun getItemCount(): Int = questions.size
 
         override fun createFragment(position: Int): Fragment {
-            return when (position) {
-                0 -> MultipleChoiceFragment()
+            val question = questions[position]
+            return when (question) {
+                is Question.MultipleChoiceQuestion -> MultipleChoiceFragment.newInstance(question)
+                // is Question.FlipCardQuestion -> FlipCardFragment()
+                // is Question.PressMistakesQuestion -> PressMistakesFragment()
+                // is Question.EditTextQuestion -> EditTextFragment()
                 else -> MultipleChoiceFragment()
             }
         }
     }
+
+    sealed class Question(): Serializable {
+        data class MultipleChoiceQuestion(
+            val question: String,
+            val options: List<Option>,
+        ) : Question(), Serializable
+
+        data class FlipCardQuestion(
+            val frontBackPair: Pair<String, String>
+        ) : Question(), Serializable
+
+        data class PressMistakesQuestion(
+            val question: String,
+            val sentence: String,
+            val mistakes: List<String>
+        ) : Question(), Serializable
+
+        data class EditTextQuestion(
+            val question: String,
+            val incorrectText: String,
+            val correctText: String
+        ) : Question(), Serializable
+    }
 }
+

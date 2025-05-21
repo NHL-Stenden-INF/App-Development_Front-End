@@ -112,7 +112,7 @@ class MainActivity : AppCompatActivity() {
                 1 -> CoursesFragment()
                 2 -> RewardsFragment()
                 3 -> FriendsFragment()
-                4 -> MultipleChoiceFragment()
+                4 -> ProgressFragment()
                 else -> HomeFragment()
             }
         }

@@ -22,6 +22,7 @@ import androidx.viewpager2.widget.ViewPager2
 import android.widget.FrameLayout
 import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.ContextCompat.startActivity
+import java.io.Serializable
 
 class CourseTopicsFragment : Fragment() {
     private lateinit var topicsList: RecyclerView
@@ -138,7 +139,7 @@ class CourseTopicsFragment : Fragment() {
         val difficulty: String,
         val description: String,
         val progress: Int
-    )
+    ) : Serializable
 
     class TopicAdapter(
         private val context: Context,
@@ -163,6 +164,7 @@ class CourseTopicsFragment : Fragment() {
             val topic = topics[position]
             holder.card.setOnClickListener {
                 val intent = Intent(context, TaskActivity::class.java)
+                intent.putExtra("TOPIC_DATA", topic)
                 context.startActivity(intent)
 
                 if (context is Activity)

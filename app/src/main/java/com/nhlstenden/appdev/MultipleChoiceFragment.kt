@@ -1,5 +1,6 @@
 package com.nhlstenden.appdev
 
+import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -9,10 +10,59 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.nhlstenden.appdev.TaskActivity.Question
 
 class MultipleChoiceFragment : Fragment() {
     private lateinit var questionText: TextView
     private lateinit var questionList: RecyclerView
+
+    private lateinit var question: Question.MultipleChoiceQuestion
+
+    private var taskCompleteListener: OnTaskCompleteListener? = null
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is OnTaskCompleteListener) {
+            taskCompleteListener = context
+        } else {
+            throw RuntimeException("$context must implement OnTaskCompleteListener")
+        }
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        taskCompleteListener = null
+    }
+
+    companion object {
+        fun newInstance(question: Question.MultipleChoiceQuestion): MultipleChoiceFragment {
+            val fragment = MultipleChoiceFragment()
+            val args = Bundle()
+            args.putSerializable("question_data", question)
+            fragment.arguments = args
+            return fragment
+        }
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        question = arguments?.getSerializable("question_data") as Question.MultipleChoiceQuestion
+
+        questionText = view.findViewById<TextView>(R.id.question_text)
+        questionList = view.findViewById<RecyclerView>(R.id.question_list)
+
+        questionText.text = question.question
+        val options = question.options
+
+        questionList.apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = OptionAdapter(options)
+        }
+
+    }
+
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -20,23 +70,12 @@ class MultipleChoiceFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_multiple_choice, container, false)
 
-        // Initialize views
-        var questionText = view.findViewById<TextView>(R.id.question_text)
-        var questionList = view.findViewById<RecyclerView>(R.id.question_list)
+        val confirmButton = view.findViewById<Button>(R.id.confirm_button)
 
-        questionText.text = "Question"
+        confirmButton.setOnClickListener(
 
-        val options = listOf<Option>(
-            Option("Hyper-Text Markup Language", true),
-            Option("Heiko, Theo, Mayo and Leo", false),
-            Option("High-Transfer Marking Language", false),
-            Option("High-Temperature Machine Learning", false)
+            {taskCompleteListener?.onTaskCompleted(true)}
         )
-
-        questionList.apply {
-            layoutManager = LinearLayoutManager(context)
-            adapter = OptionAdapter(options)
-        }
 
         return view
     }
