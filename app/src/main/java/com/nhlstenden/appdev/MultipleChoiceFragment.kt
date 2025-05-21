@@ -1,6 +1,7 @@
 package com.nhlstenden.appdev
 
 import android.content.Context
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -12,10 +13,13 @@ import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.nhlstenden.appdev.TaskActivity.Question
+import okhttp3.internal.notify
+import okhttp3.internal.notifyAll
 
 class MultipleChoiceFragment : Fragment() {
     private lateinit var questionText: TextView
     private lateinit var questionList: RecyclerView
+    private lateinit var adapter: OptionAdapter
 
     private lateinit var question: Question.MultipleChoiceQuestion
 
@@ -56,12 +60,9 @@ class MultipleChoiceFragment : Fragment() {
         questionText.text = question.question
         val options = question.options
 
-        Log.d("MultipleChoice", "Option size: ${options.size}")
-
-        questionList.apply {
-            layoutManager = LinearLayoutManager(context)
-            adapter = OptionAdapter(options)
-        }
+        adapter = OptionAdapter(options)
+        questionList.layoutManager = LinearLayoutManager(context)
+        questionList.adapter = adapter
 
     }
 
@@ -73,10 +74,21 @@ class MultipleChoiceFragment : Fragment() {
 
         val confirmButton = view.findViewById<Button>(R.id.confirm_button)
 
-        confirmButton.setOnClickListener(
+        confirmButton.setOnClickListener({
+            val selectedOption = (questionList.adapter as? OptionAdapter)?.getSelectedOption()
 
-            {taskCompleteListener?.onTaskCompleted(true)}
-        )
+            if (!adapter.clickEnabled){
+                taskCompleteListener?.onTaskCompleted(selectedOption?.isCorrect == true)
+            }
+            else
+            {
+                if (selectedOption != null) {
+                    confirmButton.text = "Next"
+                    adapter.clickEnabled = false
+                    adapter.notifyDataSetChanged()
+                }
+            }
+        })
 
         return view
     }
@@ -88,7 +100,10 @@ data class Option(
 )
 
 class OptionAdapter(private val options: List<Option>) :
-    RecyclerView.Adapter<OptionAdapter.ViewHolder>(){
+    RecyclerView.Adapter<OptionAdapter.ViewHolder>() {
+
+    var selectedPosition = RecyclerView.NO_POSITION
+    var clickEnabled : Boolean = true;
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val multipleChoiceButton: Button = view.findViewById(R.id.multiple_choice_button)
@@ -102,9 +117,38 @@ class OptionAdapter(private val options: List<Option>) :
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val option = options[position]
-        holder.apply {
-            multipleChoiceButton.text = option.text
+        holder.multipleChoiceButton.text = option.text
+
+        holder.multipleChoiceButton.setOnClickListener {
+            if (clickEnabled){
+                val previous = selectedPosition
+                selectedPosition = position
+                notifyItemChanged(previous)
+                notifyItemChanged(position)
+            }
         }
+
+        holder.multipleChoiceButton.setBackgroundColor(
+            if (clickEnabled)
+                if (position == selectedPosition)
+                    0xFF6200EE.toInt()
+                else
+                    0xFFD0D0D0.toInt()
+            else
+                if (option.isCorrect)
+                    0xFF388E3C.toInt()
+                else
+                    if (position == selectedPosition)
+                        0xFFB71C1C.toInt()
+                    else
+                        0xFFD0D0D0.toInt()
+        )
+    }
+
+    fun getSelectedOption(): Option? {
+        return if (selectedPosition != RecyclerView.NO_POSITION) {
+            options[selectedPosition]
+        } else null
     }
 
     override fun getItemCount() = options.size
