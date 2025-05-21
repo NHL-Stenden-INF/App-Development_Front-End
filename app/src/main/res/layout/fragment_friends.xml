@@ -110,6 +110,19 @@
             app:layout_constraintStart_toStartOf="@+id/cardView"
             app:layout_constraintTop_toBottomOf="@+id/cardView" />
 
+        <TextView
+            android:id="@+id/emptyFriendsText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="You don't have any friends yet.\nScan a QR code to add a friend!"
+            android:textAlignment="center"
+            android:textSize="16sp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/yourFriendsLabel" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </FrameLayout>

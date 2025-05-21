@@ -67,7 +67,6 @@ class RewardsFragment : Fragment() {
         openChestButton = view.findViewById(R.id.openChestButton)
         rewardShopList = view.findViewById(R.id.rewardShopList)
 
-        setupRewardShop()
         updatePointsDisplay()
         setupDailyRewardTimer()
         setupAchievements(view)
@@ -81,6 +80,10 @@ class RewardsFragment : Fragment() {
         userId = userData?.id.toString()
         authToken = userData?.authToken ?: ""
         android.util.Log.d("Supabase", "AuthToken: $authToken")
+        
+        // Initialize the reward shop AFTER userId is initialized
+        setupRewardShop()
+        
         // Fetch points and opened_daily_at from Supabase
         CoroutineScope(Dispatchers.IO).launch {
             val response = supabaseClient.getUserAttributes(userId)
@@ -94,7 +97,7 @@ class RewardsFragment : Fragment() {
                 }
             }
             
-            // Check saved rewards to debug any issues
+            // Check saved rewards to debug any issues - moved after userId initialization
             checkSavedRewards()
         }
     }
@@ -271,6 +274,13 @@ class RewardsFragment : Fragment() {
     }
 
     private fun fetchUnlockedRewards(callback: (List<String>) -> Unit) {
+        // Add null safety check
+        if (!::userId.isInitialized) {
+            android.util.Log.e("RewardsFragment", "Cannot fetch unlocked rewards - userId not initialized")
+            callback(emptyList())
+            return
+        }
+        
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val response = supabaseClient.getUserUnlockedRewards(userId, authToken)
@@ -365,6 +375,12 @@ class RewardsFragment : Fragment() {
     }
 
     private fun checkSavedRewards() {
+        // Add null safety check for userId
+        if (!::userId.isInitialized || userId.isEmpty()) {
+            android.util.Log.e("RewardsFragment", "Cannot check saved rewards - userId not initialized")
+            return
+        }
+        
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val response = supabaseClient.getUserUnlockedRewards(userId, authToken)
