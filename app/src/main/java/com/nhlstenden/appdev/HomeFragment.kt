@@ -47,6 +47,7 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>) : RecyclerView.Ad
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val course = courses[position]
         holder.courseIcon.setImageResource(course.iconResId)
+        holder.courseIcon.contentDescription = "${course.title} course icon"
         holder.courseTitle.text = course.title
         holder.courseProgress.text = course.progressText
         holder.courseProgressBar.max = 100
@@ -118,11 +119,29 @@ class HomeFragment : Fragment() {
             loadProfilePicture(user.profilePicture)
         }
 
-        // Set up dynamic course cards
+        // Set up dynamic course cards with more detailed data
         val courses = listOf(
-            HomeCourse("HTML", "Lesson 5 of 10", 50, R.drawable.html_course, "#E44D26".toColorInt()),
-            HomeCourse("CSS", "Lesson 8 of 12", 67, R.drawable.css_course, "#264DE4".toColorInt()),
-            HomeCourse("SQL", "Lesson 3 of 8", 38, R.drawable.sql_course, "#336791".toColorInt())
+            HomeCourse(
+                "HTML", 
+                "Lesson 5 of 10", 
+                50, 
+                R.drawable.html_course, 
+                ContextCompat.getColor(requireContext(), R.color.html_color)
+            ),
+            HomeCourse(
+                "CSS", 
+                "Lesson 8 of 12", 
+                67, 
+                R.drawable.css_course, 
+                ContextCompat.getColor(requireContext(), R.color.css_color)
+            ),
+            HomeCourse(
+                "SQL", 
+                "Lesson 3 of 8", 
+                38, 
+                R.drawable.sql_course, 
+                ContextCompat.getColor(requireContext(), R.color.sql_color)
+            )
         )
 
         val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)
@@ -159,6 +178,13 @@ class HomeFragment : Fragment() {
         val container = view.findViewById<LinearLayout>(R.id.daysContainer)
         container.removeAllViews()
 
+        // Use a solid color that's visible in both light and dark modes
+        val textColor = if (isNightMode()) {
+            Color.WHITE
+        } else {
+            Color.BLACK
+        }
+
         for ((index, day) in days.withIndex()) {
             val dayLayout = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.VERTICAL
@@ -189,7 +215,7 @@ class HomeFragment : Fragment() {
 
             val label = TextView(requireContext()).apply {
                 text = day
-                setTextColor(Color.BLACK)
+                setTextColor(textColor)
                 textSize = 16f
                 setPadding(0, 8, 0, 0)
                 gravity = Gravity.CENTER
@@ -200,5 +226,11 @@ class HomeFragment : Fragment() {
             dayLayout.addView(label)
             container.addView(dayLayout)
         }
+    }
+    
+    private fun isNightMode(): Boolean {
+        return resources.configuration.uiMode and 
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK == 
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
     }
 }

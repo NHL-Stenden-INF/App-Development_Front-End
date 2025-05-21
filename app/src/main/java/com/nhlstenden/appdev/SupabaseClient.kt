@@ -253,6 +253,36 @@ class SupabaseClient() {
             throw e
         }
     }
+
+    // Get user unlocked rewards
+    fun getUserUnlockedRewards(userId: String, authToken: String): Response {
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/user_rewards?select=*&user_id=eq.$userId")
+            .get()
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .build()
+
+        return client.newCall(request).execute()
+    }
+
+    // Unlock a new reward
+    fun unlockReward(userId: String, rewardId: String, authToken: String): Response {
+        // Use the RPC function to unlock a reward
+        val json = """{"input_user_id": "$userId", "input_reward_id": "$rewardId"}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/unlock_user_reward")
+            .post(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+            
+        return client.newCall(request).execute()
+    }
 }
 
 @Parcelize

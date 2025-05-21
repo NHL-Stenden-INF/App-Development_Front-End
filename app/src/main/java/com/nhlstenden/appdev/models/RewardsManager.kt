@@ -109,9 +109,19 @@ class RewardsManager(private val resources: Resources) {
      * @return Updated list of rewards with correct unlock status
      */
     fun updateUnlockedStatus(rewards: List<Reward>, unlockedRewardIds: List<String>): List<Reward> {
+        android.util.Log.d("RewardsManager", "Updating unlocked status with IDs: $unlockedRewardIds")
+        
+        // Convert unlocked IDs to lowercase for case-insensitive comparison
+        val normalizedUnlockedIds = unlockedRewardIds.map { it.trim().lowercase() }
+        
         return rewards.map { reward ->
+            val rewardTitle = reward.title.trim().lowercase()
+            android.util.Log.d("RewardsManager", "Checking if reward '$rewardTitle' is in unlocked IDs")
+            
             // If the reward title is in the list of unlocked rewards, mark it as unlocked
-            if (unlockedRewardIds.contains(reward.title)) {
+            val isUnlocked = normalizedUnlockedIds.contains(rewardTitle)
+            if (isUnlocked) {
+                android.util.Log.d("RewardsManager", "Marking reward as unlocked: ${reward.title}")
                 reward.copy(isUnlocked = true)
             } else {
                 reward

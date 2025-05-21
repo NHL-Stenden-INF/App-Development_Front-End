@@ -16,23 +16,17 @@
         android:padding="12dp">
 
         <!-- Course Icon -->
-        <FrameLayout
-            android:id="@+id/courseIconContainer"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+        <ImageView
+            android:id="@+id/courseIcon"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:scaleType="fitCenter"
+            android:padding="8dp"
+            android:background="@drawable/rounded_image_background"
+            android:contentDescription="@string/course_image_description"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent">
-
-            <ImageView
-                android:id="@+id/courseIcon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="center"
-                android:background="@drawable/rounded_image_background"
-                android:text="@string/course_title_placeholder"
-                android:contentDescription="@string/course_image_description" />
-        </FrameLayout>
+            app:layout_constraintBottom_toBottomOf="parent" />
 
         <!-- Course Title -->
         <TextView
@@ -42,11 +36,11 @@
             android:text="@string/course_title_placeholder"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="#000000"
+            android:textColor="?android:attr/textColorPrimary"
             android:layout_marginStart="12dp"
             android:layout_marginEnd="12dp"
-            app:layout_constraintStart_toEndOf="@id/courseIconContainer"
-            app:layout_constraintTop_toTopOf="@id/courseIconContainer"
+            app:layout_constraintStart_toEndOf="@id/courseIcon"
+            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toStartOf="@id/coursePlayButton" />
 
         <!-- Progress Text -->
@@ -56,7 +50,8 @@
             android:layout_height="wrap_content"
             android:text="@string/completion_status_placeholder"
             android:textSize="14sp"
-            android:textColor="#888888"
+            android:textColor="?android:attr/textColorSecondary"
+            android:layout_marginTop="4dp"
             app:layout_constraintStart_toStartOf="@id/courseTitle"
             app:layout_constraintTop_toBottomOf="@id/courseTitle"
             app:layout_constraintEnd_toEndOf="@id/courseTitle" />
@@ -66,12 +61,13 @@
             android:id="@+id/courseProgressBar"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="0dp"
-            android:layout_height="6dp"
+            android:layout_height="8dp"
             android:progress="0"
             android:progressTint="#4285F4"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="12dp"
             app:layout_constraintStart_toStartOf="@id/courseTitle"
-            app:layout_constraintEnd_toEndOf="@id/courseTitle"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/courseProgress" />
 
         <!-- Play Button -->
@@ -87,7 +83,6 @@
             android:elevation="4dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:tint="@android:color/white" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>

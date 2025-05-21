@@ -1,8 +1,12 @@
 package com.nhlstenden.appdev
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.StrikethroughSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -89,6 +93,9 @@ class RewardsFragment : Fragment() {
                     setupDailyRewardTimer() // Now that we have openedDailyAt
                 }
             }
+            
+            // Check saved rewards to debug any issues
+            checkSavedRewards()
         }
     }
 
@@ -121,6 +128,9 @@ class RewardsFragment : Fragment() {
         if (openedDailyAt == null || openedDailyAt != today) {
             timerText.text = "Ready to collect!"
             openChestButton.isEnabled = true
+            openChestButton.text = "Open Now"
+            openChestButton.alpha = 1.0f
+            openChestButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.colorPrimary))
         } else {
             // Calculate ms until midnight UTC
             val now = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC)
@@ -128,6 +138,9 @@ class RewardsFragment : Fragment() {
             val msUntilMidnight = java.time.Duration.between(now, midnight).toMillis()
             startCountDownTimer(msUntilMidnight)
             openChestButton.isEnabled = false
+            openChestButton.text = "Wait for next reward"
+            openChestButton.alpha = 0.6f
+            openChestButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.gray))
         }
 
         openChestButton.setOnClickListener {
@@ -136,6 +149,9 @@ class RewardsFragment : Fragment() {
             addPoints(rewardPoints)
             Toast.makeText(context, "You earned $rewardPoints points!", Toast.LENGTH_SHORT).show()
             openChestButton.isEnabled = false
+            openChestButton.text = "Wait for next reward"
+            openChestButton.alpha = 0.6f
+            openChestButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.gray))
             // Update opened_daily_at in Supabase
             CoroutineScope(Dispatchers.IO).launch {
                 val todayDate = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString()
@@ -164,11 +180,17 @@ class RewardsFragment : Fragment() {
                 val minutes = TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished) % 60
                 val seconds = TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) % 60
                 timerText.text = "Next reward in: %02d:%02d:%02d".format(hours, minutes, seconds)
+                openChestButton.text = "Wait for next reward"
+                openChestButton.alpha = 0.6f
+                openChestButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.gray))
             }
 
             override fun onFinish() {
                 timerText.text = "Ready to collect!"
                 openChestButton.isEnabled = true
+                openChestButton.text = "Open Now"
+                openChestButton.alpha = 1.0f
+                openChestButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.colorPrimary))
             }
         }.start()
     }
@@ -223,15 +245,9 @@ class RewardsFragment : Fragment() {
     private fun setupRewardShop() {
         // Use RewardsManager to load rewards from resources
         val rewardsManager = RewardsManager(resources)
-        var rewards = rewardsManager.loadRewards()
+        val rewards = rewardsManager.loadRewards()
 
-        val unlockedRewardIds = listOf<String>() 
-        
-        if (unlockedRewardIds.isNotEmpty()) {
-            rewards = rewardsManager.updateUnlockedStatus(rewards, unlockedRewardIds)
-        }
-
-
+        // Initialize adapter with rewards but don't load unlocked status yet
         rewardShopAdapter = RewardShopAdapter(rewards.toMutableList(), { reward ->
             if (canAffordReward(reward.pointsCost)) {
                 spendPoints(reward.pointsCost)
@@ -241,11 +257,95 @@ class RewardsFragment : Fragment() {
                 Toast.makeText(context, "Not enough points!", Toast.LENGTH_SHORT).show()
                 false
             }
-        }, currentPoints)
+        }, currentPoints, { rewardId ->
+            saveUnlockedRewardToSupabase(rewardId)
+        })
 
         rewardShopList.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = rewardShopAdapter
+        }
+        
+        // Now refresh to get unlocked status from server
+        refreshRewardsList()
+    }
+
+    private fun fetchUnlockedRewards(callback: (List<String>) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = supabaseClient.getUserUnlockedRewards(userId, authToken)
+                android.util.Log.d("RewardsFragment", "Fetch unlocked rewards response code: ${response.code}")
+                if (response.code == 200) {
+                    val responseBody = response.body?.string()
+                    android.util.Log.d("RewardsFragment", "Unlocked rewards response: $responseBody")
+                    val rewardsArray = JSONArray(responseBody ?: "[]")
+                    val unlockedRewards = mutableListOf<String>()
+                    
+                    for (i in 0 until rewardsArray.length()) {
+                        val rewardObj = rewardsArray.getJSONObject(i)
+                        val rewardId = rewardObj.getString("reward_id")
+                        unlockedRewards.add(rewardId)
+                        android.util.Log.d("RewardsFragment", "Found unlocked reward: $rewardId")
+                    }
+                    
+                    android.util.Log.d("RewardsFragment", "Total unlocked rewards: ${unlockedRewards.size}")
+                    withContext(Dispatchers.Main) {
+                        callback(unlockedRewards)
+                    }
+                } else {
+                    android.util.Log.e("Supabase", "Failed to fetch unlocked rewards: ${response.code}")
+                    withContext(Dispatchers.Main) {
+                        callback(emptyList())
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("Supabase", "Error fetching unlocked rewards: ${e.message}")
+                android.util.Log.e("Supabase", "Stack trace: ${e.stackTraceToString()}")
+                withContext(Dispatchers.Main) {
+                    callback(emptyList())
+                }
+            }
+        }
+    }
+
+    private fun saveUnlockedRewardToSupabase(rewardId: String) {
+        android.util.Log.d("RewardsFragment", "Attempting to save reward: $rewardId for user: $userId")
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = supabaseClient.unlockReward(userId, rewardId, authToken)
+                android.util.Log.d("RewardsFragment", "Unlock reward response code: ${response.code}")
+                if (response.code != 201 && response.code != 200 && response.code != 204) {
+                    val errorBody = response.body?.string()
+                    android.util.Log.e("Supabase", "Failed to save unlocked reward: ${response.code} $errorBody")
+                } else {
+                    android.util.Log.d("Supabase", "Reward unlocked successfully: $rewardId")
+                    // After successfully unlocking, refresh the rewards from server
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Reward unlocked and saved to server!", Toast.LENGTH_SHORT).show()
+                        refreshRewardsList()
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("Supabase", "Error saving unlocked reward: ${e.message}")
+                android.util.Log.e("Supabase", "Stack trace: ${e.stackTraceToString()}")
+            }
+        }
+    }
+
+    private fun refreshRewardsList() {
+        android.util.Log.d("RewardsFragment", "Refreshing rewards list from server")
+        // Use RewardsManager to load rewards from resources
+        val rewardsManager = RewardsManager(resources)
+        val rewards = rewardsManager.loadRewards()
+
+        // Fetch unlocked rewards from Supabase
+        fetchUnlockedRewards { unlockedRewardIds ->
+            android.util.Log.d("RewardsFragment", "Refreshed unlocked rewards: $unlockedRewardIds")
+            if (unlockedRewardIds.isNotEmpty()) {
+                val updatedRewards = rewardsManager.updateUnlockedStatus(rewards, unlockedRewardIds)
+                // Update the adapter with new rewards
+                rewardShopAdapter.updateRewards(updatedRewards.toMutableList())
+            }
         }
     }
 
@@ -261,6 +361,30 @@ class RewardsFragment : Fragment() {
             // Immediately GET after PATCH to see the value in Supabase
             val getResponse = supabaseClient.getUserAttributes(userId)
             android.util.Log.d("Supabase", "GET after PATCH: ${getResponse.body?.string()}")
+        }
+    }
+
+    private fun checkSavedRewards() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = supabaseClient.getUserUnlockedRewards(userId, authToken)
+                if (response.code == 200) {
+                    val responseBody = response.body?.string()
+                    android.util.Log.d("RewardsFragment", "SAVED REWARDS CHECK - Response: $responseBody")
+                    
+                    val rewardsArray = JSONArray(responseBody ?: "[]")
+                    for (i in 0 until rewardsArray.length()) {
+                        val rewardObj = rewardsArray.getJSONObject(i)
+                        val rewardId = rewardObj.getString("reward_id")
+                        val createdAt = rewardObj.optString("created_at", "unknown")
+                        android.util.Log.d("RewardsFragment", "SAVED REWARD: ID=$rewardId, Created=$createdAt")
+                    }
+                } else {
+                    android.util.Log.e("RewardsFragment", "Failed to check saved rewards: ${response.code}")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("RewardsFragment", "Error checking saved rewards: ${e.message}")
+            }
         }
     }
 
@@ -317,11 +441,18 @@ data class Reward(
 class RewardShopAdapter(
     private val rewards: MutableList<Reward>,
     private val onUnlockClick: (Reward) -> Boolean,
-    private var currentPoints: Int
+    private var currentPoints: Int,
+    private val onSaveReward: (String) -> Unit
 ) : RecyclerView.Adapter<RewardShopAdapter.ViewHolder>() {
 
     fun updatePoints(newPoints: Int) {
         currentPoints = newPoints
+        notifyDataSetChanged()
+    }
+
+    fun updateRewards(newRewards: MutableList<Reward>) {
+        rewards.clear()
+        rewards.addAll(newRewards)
         notifyDataSetChanged()
     }
 
@@ -333,7 +464,6 @@ class RewardShopAdapter(
         val rewardIcon: ImageView = view.findViewById(R.id.rewardIcon)
         val rewardTitle: TextView = view.findViewById(R.id.rewardTitle)
         val rewardDescription: TextView = view.findViewById(R.id.rewardDescription)
-        val pointsCost: TextView = view.findViewById(R.id.pointsCost)
         val unlockButton: MaterialButton = view.findViewById(R.id.unlockButton)
     }
 
@@ -349,25 +479,27 @@ class RewardShopAdapter(
             rewardIcon.setImageResource(reward.iconResId)
             rewardTitle.text = reward.title
             rewardDescription.text = reward.description
-            pointsCost.text = "${reward.pointsCost} pts"
-
             if (reward.isUnlocked) {
-                unlockButton.text = "Unlocked"
+                // Show strikethrough text for unlocked items
+                val pointsText = "${reward.pointsCost} pts"
+                val spannableString = SpannableString(pointsText)
+                spannableString.setSpan(StrikethroughSpan(), 0, pointsText.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                unlockButton.text = spannableString
                 unlockButton.isEnabled = false
                 unlockButton.alpha = 0.5f
                 unlockButton.setBackgroundColor(ContextCompat.getColor(unlockButton.context, R.color.gray))
                 rewardIcon.alpha = 0.5f
                 rewardTitle.alpha = 0.5f
                 rewardDescription.alpha = 0.5f
-                pointsCost.alpha = 0.5f
             } else {
-                unlockButton.text = "Unlock"
+                // Show points cost in the button
+                unlockButton.text = "${reward.pointsCost} pts"
                 unlockButton.isEnabled = true
                 unlockButton.alpha = 1.0f
                 rewardIcon.alpha = 1.0f
                 rewardTitle.alpha = 1.0f
                 rewardDescription.alpha = 1.0f
-                pointsCost.alpha = 1.0f
+                // Set color based on affordability
                 if (!canAffordReward(reward.pointsCost)) {
                     unlockButton.setBackgroundColor(ContextCompat.getColor(unlockButton.context, R.color.error))
                 } else {
@@ -375,6 +507,8 @@ class RewardShopAdapter(
                 }
                 unlockButton.setOnClickListener {
                     if (onUnlockClick(reward)) {
+                        // Save the unlocked reward to the database using the callback
+                        onSaveReward(reward.title)
                         // Update the reward's unlocked state in the list
                         rewards[position] = reward.copy(isUnlocked = true)
                         notifyItemChanged(position)
