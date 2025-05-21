@@ -78,7 +78,7 @@ class MultipleChoiceFragment : Fragment() {
             val selectedOption = (questionList.adapter as? OptionAdapter)?.getSelectedOption()
 
             if (!adapter.clickEnabled){
-                taskCompleteListener?.onTaskCompleted(selectedOption?.isCorrect == true)
+                taskCompleteListener?.onTaskCompleted(question, selectedOption?.isCorrect == true)
             }
             else
             {

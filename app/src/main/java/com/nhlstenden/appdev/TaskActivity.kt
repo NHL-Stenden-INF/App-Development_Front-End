@@ -35,8 +35,11 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
             )
         )
     )
+    private var failedQuestions: MutableList<Question> = mutableListOf()
 
     private lateinit var viewPager: ViewPager2
+    private lateinit var taskPagerAdapter: TaskPagerAdapter
+
 
     private var activeQuestion: Int = 0
 
@@ -49,7 +52,8 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
         taskProgress = findViewById(R.id.taskProgress)
         viewPager = findViewById(R.id.questionViewPager)
 
-        viewPager.adapter = TaskPagerAdapter(this)
+        taskPagerAdapter = TaskPagerAdapter(this)
+        viewPager.adapter = taskPagerAdapter
         viewPager.offscreenPageLimit = 1
         viewPager.overScrollMode = View.OVER_SCROLL_NEVER
         viewPager.isUserInputEnabled = false
@@ -65,12 +69,28 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
         updateTaskProgress()
     }
 
-    override fun onTaskCompleted(hasSucceeded: Boolean) {
+    override fun onTaskCompleted(question: Question, hasSucceeded: Boolean) {
+        if (!hasSucceeded) {
+            failedQuestions.add(question)
+        }
         activeQuestion++
 
         if (activeQuestion >= questions.size)
         {
-            // TODO: Make it open a results screen
+            if (failedQuestions.isNotEmpty()) {
+                activeQuestion = 0
+                questions = failedQuestions
+                failedQuestions = mutableListOf()
+                // Randomize id list to ensure new views
+                questionIds = questions.map { fragmentIdSeed++ }
+                taskPagerAdapter.notifyDataSetChanged()
+                viewPager.setCurrentItem(0, false)
+            }
+            else {
+                // TODO: Make it open a results screen
+                return
+            }
+
         }
 
         viewPager.currentItem = activeQuestion
@@ -81,6 +101,9 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
         taskProgress.text = "${activeQuestion + 1} of ${questions.size}"
     }
 
+    private var fragmentIdSeed = 0L
+    private var questionIds: List<Long> = questions.map { fragmentIdSeed++ }
+
     private inner class TaskPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {
         override fun getItemCount(): Int = questions.size
 
@@ -88,11 +111,19 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
             val question = questions[position]
             return when (question) {
                 is Question.MultipleChoiceQuestion -> MultipleChoiceFragment.newInstance(question)
-                // is Question.FlipCardQuestion -> FlipCardFragment()
-                // is Question.PressMistakesQuestion -> PressMistakesFragment()
-                // is Question.EditTextQuestion -> EditTextFragment()
+                // is Question.FlipCardQuestion -> FlipCardFragment().newInstance(question)
+                // is Question.PressMistakesQuestion -> PressMistakesFragment().newInstance(question)
+                // is Question.EditTextQuestion -> EditTextFragment().newInstance(question)
                 else -> MultipleChoiceFragment()
             }
+        }
+
+        override fun getItemId(position: Int): Long {
+            return questionIds[position]
+        }
+
+        override fun containsItem(itemId: Long): Boolean {
+            return questionIds.contains(itemId)
         }
     }
 
