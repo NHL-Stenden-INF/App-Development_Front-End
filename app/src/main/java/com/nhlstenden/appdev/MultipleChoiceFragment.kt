@@ -2,6 +2,7 @@ package com.nhlstenden.appdev
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -55,14 +56,14 @@ class MultipleChoiceFragment : Fragment() {
         questionText.text = question.question
         val options = question.options
 
+        Log.d("MultipleChoice", "Option size: ${options.size}")
+
         questionList.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = OptionAdapter(options)
         }
 
     }
-
-
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
