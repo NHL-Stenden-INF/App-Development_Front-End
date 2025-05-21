@@ -266,6 +266,81 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
+    // Get friend details by user ID
+    fun getFriendDetails(friendId: String, authToken: String): Response {
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/user_attributes?select=user_id,points,profile_picture&user_id=eq.$friendId")
+            .get()
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .build()
+
+        return client.newCall(request).execute()
+    }
+    
+    // Get or create friend attributes using our SQL function
+    fun getOrCreateFriendAttributes(friendId: String, authToken: String): Response {
+        Log.d("SupabaseClient", "Getting attributes for friend using SQL function: $friendId")
+        
+        // Use the SQL function we created in Supabase
+        val rpcRequest = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/get_friend_details")
+            .post("""{"friend_id": "$friendId"}""".toRequestBody("application/json".toMediaType()))
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .build()
+        
+        val response = client.newCall(rpcRequest).execute()
+        Log.d("SupabaseClient", "Get friend details SQL function response code: ${response.code}")
+        return response
+    }
+    
+    // Get friend's username by user ID - this doesn't work for non-admin users
+    fun getFriendUsername(friendId: String, authToken: String): Response {
+        val request = Request.Builder()
+            .url("$supabaseUrl/auth/v1/admin/users/$friendId")
+            .get()
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .build()
+
+        return client.newCall(request).execute()
+    }
+    
+    // Get friendly display name for a friend
+    // This uses a public function that should be created in Supabase
+    fun getFriendDisplayName(friendId: String, authToken: String): Response {
+        Log.d("SupabaseClient", "Getting display name for friend: $friendId")
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/get_user_display_name")
+            .post("""{"user_id": "$friendId"}""".toRequestBody("application/json".toMediaType()))
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .build()
+
+        val response = client.newCall(request).execute()
+        Log.d("SupabaseClient", "Get display name response code: ${response.code}")
+        return response
+    }
+    
+    // Get multiple friends' details at once
+    fun getFriendsDetails(friendIds: List<String>, authToken: String): Response {
+        // Create a comma-separated list of UUIDs in parentheses for the SQL IN clause
+        val friendIdsFormatted = friendIds.joinToString(",") { "\"$it\"" }
+        
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/get_friends_details")
+            .post("""{"friend_ids": [$friendIdsFormatted]}""".toRequestBody("application/json".toMediaType()))
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .build()
+
+        return client.newCall(request).execute()
+    }
+
     // Unlock a new reward
     fun unlockReward(userId: String, rewardId: String, authToken: String): Response {
         // Use the RPC function to unlock a reward
