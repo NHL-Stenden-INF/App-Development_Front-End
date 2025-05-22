@@ -22,6 +22,7 @@ import androidx.viewpager2.widget.ViewPager2
 import android.widget.FrameLayout
 import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.ContextCompat.startActivity
+import com.nhlstenden.appdev.models.CourseParser
 import java.io.Serializable
 
 class CourseTopicsFragment : Fragment() {
@@ -33,6 +34,7 @@ class CourseTopicsFragment : Fragment() {
     private lateinit var gestureDetector: GestureDetectorCompat
     private lateinit var mediaPlayer: MediaPlayer
     private var courseName: String = ""
+    private var courseData: CourseParser.Course? = null
 
     private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onFling(
@@ -68,6 +70,10 @@ class CourseTopicsFragment : Fragment() {
     ): View? {
         this.user = activity?.intent?.getParcelableExtra("USER_DATA", User::class.java)!!
         this.courseName = arguments?.getString("courseName") ?: ""
+        
+        // Load course data from XML
+        val courseParser = CourseParser(requireContext())
+        this.courseData = courseParser.loadCourseByTitle(courseName)
 
         return inflater.inflate(R.layout.fragment_course_topics, container, false)
     }
@@ -96,7 +102,7 @@ class CourseTopicsFragment : Fragment() {
 
     private fun setupCourseInfo() {
         courseTitle.text = courseName
-        courseDescription.text = when (courseName) {
+        courseDescription.text = courseData?.description ?: when (courseName) {
             "HTML" -> "Learn the fundamentals of HTML markup language and web structure"
             "CSS" -> "Master CSS styling, layout techniques, and responsive design"
             "SQL" -> "Learn database management, queries, and data manipulation"
@@ -116,7 +122,8 @@ class CourseTopicsFragment : Fragment() {
     }
 
     private fun setupTopicsList() {
-        val topics = when (courseName) {
+        // Try to use topics from XML, fall back to hardcoded topics if needed
+        val topics = courseData?.topics ?: when (courseName) {
             "HTML" -> listOf(
                 Topic("HTML Basics", "Beginner", "Learn the fundamentals of HTML markup language", 75),
                 Topic("HTML Structure", "Beginner", "Learn about the basic structure of HTML documents", 50),

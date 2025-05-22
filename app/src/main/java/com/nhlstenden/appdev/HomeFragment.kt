@@ -19,6 +19,7 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
+import com.nhlstenden.appdev.models.CourseParser
 
 // Data class for course info
 data class HomeCourse(
@@ -145,30 +146,74 @@ class HomeFragment : Fragment() {
             loadProfilePicture(user.profilePicture)
         }
 
-        // Set up dynamic course cards with more detailed data
-        val courses = listOf(
-            HomeCourse(
-                "HTML", 
-                "Lesson 5 of 10", 
-                50, 
-                R.drawable.html_course, 
-                ContextCompat.getColor(requireContext(), R.color.html_color)
-            ),
-            HomeCourse(
-                "CSS", 
-                "Lesson 8 of 12", 
-                67, 
-                R.drawable.css_course, 
-                ContextCompat.getColor(requireContext(), R.color.css_color)
-            ),
-            HomeCourse(
-                "SQL", 
-                "Lesson 3 of 8", 
-                38, 
-                R.drawable.sql_course, 
-                ContextCompat.getColor(requireContext(), R.color.sql_color)
+        // Get course data from XML
+        val courseParser = CourseParser(requireContext())
+        val parsedCourses = courseParser.loadAllCourses()
+        
+        // Process course data for the UI
+        val courses = if (parsedCourses.isNotEmpty()) {
+            parsedCourses.map { course ->
+                // Calculate progress information
+                val totalTopics = course.topics.size
+                val topicsWithProgress = course.topics.count { it.progress > 0 }
+                val averageProgress = if (totalTopics > 0) {
+                    course.topics.sumOf { it.progress } / totalTopics
+                } else 0
+                
+                // Get appropriate icon and accent color based on course title
+                val (iconResId, accentColor) = when (course.title) {
+                    "HTML" -> Pair(
+                        R.drawable.html_course,
+                        ContextCompat.getColor(requireContext(), R.color.html_color)
+                    )
+                    "CSS" -> Pair(
+                        R.drawable.css_course,
+                        ContextCompat.getColor(requireContext(), R.color.css_color)
+                    )
+                    "SQL" -> Pair(
+                        R.drawable.sql_course,
+                        ContextCompat.getColor(requireContext(), R.color.sql_color)
+                    )
+                    else -> Pair(
+                        R.drawable.html_course,
+                        ContextCompat.getColor(requireContext(), R.color.html_color)
+                    )
+                }
+                
+                HomeCourse(
+                    course.title,
+                    "Lesson $topicsWithProgress of $totalTopics",
+                    averageProgress,
+                    iconResId,
+                    accentColor
+                )
+            }
+        } else {
+            // Fallback to hardcoded data if XML parsing fails
+            listOf(
+                HomeCourse(
+                    "HTML", 
+                    "Lesson 5 of 10", 
+                    50, 
+                    R.drawable.html_course, 
+                    ContextCompat.getColor(requireContext(), R.color.html_color)
+                ),
+                HomeCourse(
+                    "CSS", 
+                    "Lesson 8 of 12", 
+                    67, 
+                    R.drawable.css_course, 
+                    ContextCompat.getColor(requireContext(), R.color.css_color)
+                ),
+                HomeCourse(
+                    "SQL", 
+                    "Lesson 3 of 8", 
+                    38, 
+                    R.drawable.sql_course, 
+                    ContextCompat.getColor(requireContext(), R.color.sql_color)
+                )
             )
-        )
+        }
 
         val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)
         recyclerView.layoutManager = LinearLayoutManager(context)
