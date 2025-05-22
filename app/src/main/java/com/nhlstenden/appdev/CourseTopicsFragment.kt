@@ -137,7 +137,7 @@ class CourseTopicsFragment : Fragment() {
                 "HTML" -> R.raw.html_themesong
                 "CSS" -> R.raw.css_themesong
                 "SQL" -> R.raw.sql_themesong
-                else -> R.raw.html_themesong
+                else -> R.raw.default_themesong
             })
         mediaPlayer.start()
     }
