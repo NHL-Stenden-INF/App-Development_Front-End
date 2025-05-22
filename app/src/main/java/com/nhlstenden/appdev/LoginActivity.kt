@@ -3,6 +3,8 @@ package com.nhlstenden.appdev
 import android.animation.AnimatorInflater
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
@@ -18,6 +20,8 @@ import android.widget.EditText
 import android.widget.Toast
 import android.util.Base64
 import android.util.Log
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -33,6 +37,38 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private lateinit var gestureDetector: GestureDetectorCompat
     private val supabaseClient = SupabaseClient()
+    private val sleepHandler = Handler(Looper.getMainLooper())
+    private var isMascotSleeping = false
+    private val SLEEP_DELAY = 60000L // 1 minute in milliseconds
+
+    // Runnable that changes mascot to sleeping state
+    private val sleepRunnable = Runnable {
+        if (!isFinishing) {
+            isMascotSleeping = true
+            // Switch to sleeping mascot with crossfade
+            Glide.with(this@LoginActivity)
+                .asGif()
+                .load(R.drawable.mascot_sleep)
+                .into(binding.imageViewLogo)
+        }
+    }
+
+    // Method to reset the sleep timer
+    private fun resetSleepTimer() {
+        sleepHandler.removeCallbacks(sleepRunnable)
+        
+        // If mascot was sleeping, wake it up
+        if (isMascotSleeping) {
+            isMascotSleeping = false
+            Glide.with(this)
+                .asGif()
+                .load(R.drawable.mascot)
+                .into(binding.imageViewLogo)
+        }
+        
+        // Start the sleep timer again
+        sleepHandler.postDelayed(sleepRunnable, SLEEP_DELAY)
+    }
 
     private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onFling(
@@ -41,6 +77,7 @@ class LoginActivity : AppCompatActivity() {
             velocityX: Float,
             velocityY: Float
         ): Boolean {
+            resetSleepTimer()
             val diffX = e2.x - e1.x
             val diffY = e2.y - e1.y
 
@@ -58,6 +95,7 @@ class LoginActivity : AppCompatActivity() {
         }
 
         override fun onDown(e: MotionEvent): Boolean {
+            resetSleepTimer()
             return true
         }
     }
@@ -66,9 +104,24 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
+        
+        // Simple GIF loading without any transitions or placeholders
+        Glide.with(this)
+            .asGif()
+            .load(R.drawable.mascot)
+            .into(binding.imageViewLogo)
+            
         // Set up gesture detector
         gestureDetector = GestureDetectorCompat(this, SwipeGestureListener())
+
+        // Start the sleep timer
+        resetSleepTimer()
+
+        // Set up touch listener for the entire screen to reset sleep timer
+        binding.root.setOnTouchListener { _, event ->
+            resetSleepTimer()
+            false // Don't consume the event
+        }
 
         // Start arrow animation
         binding.imageViewArrow.let { arrow ->
@@ -79,6 +132,7 @@ class LoginActivity : AppCompatActivity() {
 
         // Set up click listeners
         binding.buttonLogin.setOnClickListener {
+            resetSleepTimer()
             val email = binding.editTextEmailAddress.text.toString().trim()
             val password = binding.editTextPassword.text.toString()
 
@@ -114,14 +168,33 @@ class LoginActivity : AppCompatActivity() {
             }
         }
 
-        // binding.buttonRegister.setOnClickListener {
-        //     startActivity(Intent(this, RegisterActivity::class.java))
-        //     overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
-        // }
+        // Add touch listeners to input fields to reset sleep timer
+        binding.editTextEmailAddress.setOnTouchListener { _, _ ->
+            resetSleepTimer()
+            false
+        }
+        
+        binding.editTextPassword.setOnTouchListener { _, _ ->
+            resetSleepTimer()
+            false
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        resetSleepTimer()
         return gestureDetector.onTouchEvent(event) || super.onTouchEvent(event)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Remove any pending sleep timer callbacks when activity is paused
+        sleepHandler.removeCallbacks(sleepRunnable)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Reset sleep timer when activity is resumed
+        resetSleepTimer()
     }
 
     private fun navigateToMain(loggedInUser: User?) {

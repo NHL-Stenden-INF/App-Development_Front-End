@@ -54,6 +54,12 @@ dependencies {
     implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
     
+    // Glide for image loading and GIF animation
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    
+    // Lottie animation library for advanced animations
+    implementation("com.airbnb.android:lottie:6.3.0")
+    
     testImplementation(libs.junit)
     testImplementation(libs.junit.jupiter)
     androidTestImplementation(libs.androidx.junit)
@@ -81,4 +87,7 @@ dependencies {
     }
 
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    implementation("io.github.g0dkar:qrcode-kotlin:4.4.1")
+    implementation("com.github.yuriy-budiyev:code-scanner:2.3.0")
+    implementation("com.google.zxing:core:3.5.3")
 }

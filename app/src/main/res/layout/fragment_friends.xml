@@ -9,7 +9,6 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-
         android:padding="12dp">
 
         <androidx.recyclerview.widget.RecyclerView
@@ -45,11 +44,14 @@
                     app:layout_constraintHorizontal_bias="0.0"
                     app:layout_constraintStart_toStartOf="parent">
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/scanCodeButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/scan_button_placeholder"
+                        android:textColor="?attr/colorOnPrimary"
+                        app:backgroundTint="?attr/colorPrimary"
+                        app:cornerRadius="24dp"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintHorizontal_bias="0.935"
@@ -57,12 +59,15 @@
                         app:layout_constraintTop_toTopOf="parent"
                         app:layout_constraintVertical_bias="0.5" />
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/shareCodeButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="129dp"
                         android:text="@string/share_button_placeholder"
+                        android:textColor="?attr/colorOnPrimary"
+                        app:backgroundTint="?attr/colorPrimary"
+                        app:cornerRadius="24dp"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toStartOf="@+id/scanCodeButton"
                         app:layout_constraintTop_toTopOf="parent"
@@ -70,11 +75,11 @@
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
                 <ImageView
-                    android:id="@+id/imageView"
+                    android:id="@+id/qrImage"
                     android:layout_width="180dp"
                     android:layout_height="180dp"
                     android:contentDescription="Friend QR Code"
-                    android:src="@drawable/ic_launcher_background"
+                    android:src="@drawable/qr_code"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintHorizontal_bias="0.5"
@@ -88,7 +93,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="32dp"
                     android:text="@string/share_code_placeholder"
-                    app:layout_constraintBottom_toTopOf="@+id/imageView"
+                    app:layout_constraintBottom_toTopOf="@+id/qrImage"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintHorizontal_bias="0.503"
                     app:layout_constraintStart_toStartOf="parent" />
@@ -104,6 +109,19 @@
             android:text="@string/your_friend_placeholder"
             app:layout_constraintStart_toStartOf="@+id/cardView"
             app:layout_constraintTop_toBottomOf="@+id/cardView" />
+
+        <TextView
+            android:id="@+id/emptyFriendsText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="You don't have any friends yet.\nScan a QR code to add a friend!"
+            android:textAlignment="center"
+            android:textSize="16sp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/yourFriendsLabel" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

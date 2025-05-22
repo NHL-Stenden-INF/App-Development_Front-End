@@ -1,5 +1,7 @@
 package com.nhlstenden.appdev
 
+import android.app.Activity
+import android.content.Intent
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -10,12 +12,23 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import android.util.Base64
+import android.util.Log
+import android.widget.Button
+import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
-
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
+import qrcode.QRCodeBuilder
+import qrcode.QRCodeShapesEnum
+import qrcode.color.Colors
+import qrcode.raw.ErrorCorrectionLevel
 
 /**
  * A simple [Fragment] subclass.
@@ -23,60 +36,185 @@ private const val ARG_PARAM2 = "param2"
  * create an instance of this fragment.
  */
 class FriendsFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
-
-    private lateinit var friendslist: RecyclerView
+    private lateinit var resultLauncher: ActivityResultLauncher<Intent>
+    private lateinit var user: User
+    private lateinit var friendsList: RecyclerView
+    private lateinit var friendAdapter: FriendAdapter
+    private val supabaseClient = SupabaseClient()
+    private val TAG = "FriendsFragment"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
+        this.user = activity?.intent?.getParcelableExtra("USER_DATA", User::class.java)!!
+
+        this.resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val data: Intent? = result.data
+                val scannedData = data?.getStringExtra("SCANNED_UUID").toString()
+
+                GlobalScope.launch(Dispatchers.Main) {
+                    val response = supabaseClient.addFriend(scannedData, user.authToken)
+                    if (response.isSuccessful) {
+                        Toast.makeText(activity, "Added a new friend!", Toast.LENGTH_LONG).show()
+                        // Refresh friends list after adding a new friend
+                        fetchFriends()
+                    } else {
+                        Toast.makeText(activity, "Failed to add new friend :<", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } else {
+                Toast.makeText(activity, "Not a valid QR code", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_friends, container, false)
 
-        friendslist = view.findViewById(R.id.friendList)
-
-        val friends = listOf(
-            Friend("John Doe", 30, "/9j//gARTGF2YzU4LjEzNC4xMDAA/9sAQwAIBgYHBgcICAgICAgJCQkKCgoJCQkJCgoKCgoKDAwMCgoKCgoKCgwMDAwNDg0NDQwNDg4PDw8SEhERFRUVGRkf/8QAkgAAAgMBAQEAAAAAAAAAAAAABgcFAgQBAAgBAAMBAQEAAAAAAAAAAAAAAAADAgEEBRAAAgECBQIDBQMNAQAAAAAAAQIDBBExIQASBRMGB0FRYRSRInGCMghDI5OysTSBcjN0UiSz8BEAAQMCBAUEAgMBAAAAAAAAAQIAEQNBMSESBHGxE4EiYTIzUcHRkXKCBf/AABEIACgAKAMBEgACEgADEgD/2gAMAwEAAhEDEQA/APn/AF7QxjHqoqVqkvtXdttics/M/DUrwISOKVmIDs4FjiVAx+JOtAl3Tu8Jh4p1ShS2YGXsA1sqUEZ3Ddn5W1gS6OT2XgcTNHtYjHVqhze1rX9dQQwl6x4JUO6/rot7b7H5Dn5VZnhpILgs80i9Yr59KmB6pNsGYKnt1L56+7RRyAK1fQGQ4nAc3roJJbB5Tsngfd6qgp6GCB4/eg1RGN0sb00SSxTGSWS4Ug7HXcEYte2oLxC7uoKanq+H4p2llqpmatqy+9ijHd0Q31yIGCix0hNerrHlMWsc2zb0ZVqI8RmJxJ/QfpHaUlIMJgRM3H8te73I0mmk5nIxgkfs8mIcPxddWq5o4xMI2AkkVl2qxGQLE2wGWjrwdoBXcRzQx/2YB8Ynz06tuqO2jqLCScBmSewBfJ/0Nt110/Seb4U01L9omGygvQCx0cIwsKyrRJZMoqeOxZze12dhtVb5YG+t3d/G+5Vn51jHLEYrNmQYje23LG+Rzx16dApro1zAOAuWmgtFMIQVQUpGXC7SpOkxdtUhSgVAZTjxfOK4Ono5qkVZlikQ76arhhacGwt03Rk3rnmL7bg61UPKPUN0+lIqhB85QrvI+vprpCdNsb4uOumofEgtTZ0ykeSSOIcP3HBUUlRS8jHvhdgNrrZJEdP8trGxIzxOWR1zurkRUPHApBEQJb+Y+X8BqK6AqzFqkwwPWA69oY1Mb6/D+iycZzSkEk1dNb9E+rfh6/cOZ/u6f/k+uTdrIUgD3EGPru83fy0naMCxGBZp3L2LFzTBlmaBtrI6lFdZFzIuDgwOBvgdGU33v/eh0jr9NY1IE2M5+rRuflHfk2hZA0gmDiLd3IadrPDbuCJH6FfBUx2+QTtJG6nAgWUx+tj9LjTZqP6H2h+truRuqVMEpSkariM/y/OHxU/7B2oqXGpZMWJcnE8Gi5PCPk5lutfRgt8zdSOcP7QQENrZ+tzpw/lW+1+0670buTJBvg+VGI/1zdFOWWH26Hsf/9k="),
-            Friend("Jane Doe", 900, "/9j//gARTGF2YzU4LjEzNC4xMDAA/9sAQwAIBgYHBgcICAgICAgJCQkKCgoJCQkJCgoKCgoKDAwMCgoKCgoKCgwMDAwNDg0NDQwNDg4PDw8SEhERFRUVGRkf/8QAkgAAAgMBAQEAAAAAAAAAAAAABgcFAgQBAAgBAAMBAQEAAAAAAAAAAAAAAAADAgEEBRAAAgECBQIDBQMNAQAAAAAAAQIDBBExIQASBRMGB0FRYRSRInGCMghDI5OysTSBcjN0UiSz8BEAAQMCBAUEAgMBAAAAAAAAAQIAEQNBMSESBHGxE4EiYTIzUcHRkXKCBf/AABEIACgAKAMBEgACEgADEgD/2gAMAwEAAhEDEQA/APn/AF7QxjHqoqVqkvtXdttics/M/DUrwISOKVmIDs4FjiVAx+JOtAl3Tu8Jh4p1ShS2YGXsA1sqUEZ3Ddn5W1gS6OT2XgcTNHtYjHVqhze1rX9dQQwl6x4JUO6/rot7b7H5Dn5VZnhpILgs80i9Yr59KmB6pNsGYKnt1L56+7RRyAK1fQGQ4nAc3roJJbB5Tsngfd6qgp6GCB4/eg1RGN0sb00SSxTGSWS4Ug7HXcEYte2oLxC7uoKanq+H4p2llqpmatqy+9ijHd0Q31yIGCix0hNerrHlMWsc2zb0ZVqI8RmJxJ/QfpHaUlIMJgRM3H8te73I0mmk5nIxgkfs8mIcPxddWq5o4xMI2AkkVl2qxGQLE2wGWjrwdoBXcRzQx/2YB8Ynz06tuqO2jqLCScBmSewBfJ/0Nt110/Seb4U01L9omGygvQCx0cIwsKyrRJZMoqeOxZze12dhtVb5YG+t3d/G+5Vn51jHLEYrNmQYje23LG+Rzx16dApro1zAOAuWmgtFMIQVQUpGXC7SpOkxdtUhSgVAZTjxfOK4Ono5qkVZlikQ76arhhacGwt03Rk3rnmL7bg61UPKPUN0+lIqhB85QrvI+vprpCdNsb4uOumofEgtTZ0ykeSSOIcP3HBUUlRS8jHvhdgNrrZJEdP8trGxIzxOWR1zurkRUPHApBEQJb+Y+X8BqK6AqzFqkwwPWA69oY1Mb6/D+iycZzSkEk1dNb9E+rfh6/cOZ/u6f/k+uTdrIUgD3EGPru83fy0naMCxGBZp3L2LFzTBlmaBtrI6lFdZFzIuDgwOBvgdGU33v/eh0jr9NY1IE2M5+rRuflHfk2hZA0gmDiLd3IadrPDbuCJH6FfBUx2+QTtJG6nAgWUx+tj9LjTZqP6H2h+truRuqVMEpSkariM/y/OHxU/7B2oqXGpZMWJcnE8Gi5PCPk5lutfRgt8zdSOcP7QQENrZ+tzpw/lW+1+0670buTJBvg+VGI/1zdFOWWH26Hsf/9k="),
-            Friend("Johan Doe", 3000, "/9j//gARTGF2YzU4LjEzNC4xMDAA/9sAQwAIBgYHBgcICAgICAgJCQkKCgoJCQkJCgoKCgoKDAwMCgoKCgoKCgwMDAwNDg0NDQwNDg4PDw8SEhERFRUVGRkf/8QAkgAAAgMBAQEAAAAAAAAAAAAABgcFAgQBAAgBAAMBAQEAAAAAAAAAAAAAAAADAgEEBRAAAgECBQIDBQMNAQAAAAAAAQIDBBExIQASBRMGB0FRYRSRInGCMghDI5OysTSBcjN0UiSz8BEAAQMCBAUEAgMBAAAAAAAAAQIAEQNBMSESBHGxE4EiYTIzUcHRkXKCBf/AABEIACgAKAMBEgACEgADEgD/2gAMAwEAAhEDEQA/APn/AF7QxjHqoqVqkvtXdttics/M/DUrwISOKVmIDs4FjiVAx+JOtAl3Tu8Jh4p1ShS2YGXsA1sqUEZ3Ddn5W1gS6OT2XgcTNHtYjHVqhze1rX9dQQwl6x4JUO6/rot7b7H5Dn5VZnhpILgs80i9Yr59KmB6pNsGYKnt1L56+7RRyAK1fQGQ4nAc3roJJbB5Tsngfd6qgp6GCB4/eg1RGN0sb00SSxTGSWS4Ug7HXcEYte2oLxC7uoKanq+H4p2llqpmatqy+9ijHd0Q31yIGCix0hNerrHlMWsc2zb0ZVqI8RmJxJ/QfpHaUlIMJgRM3H8te73I0mmk5nIxgkfs8mIcPxddWq5o4xMI2AkkVl2qxGQLE2wGWjrwdoBXcRzQx/2YB8Ynz06tuqO2jqLCScBmSewBfJ/0Nt110/Seb4U01L9omGygvQCx0cIwsKyrRJZMoqeOxZze12dhtVb5YG+t3d/G+5Vn51jHLEYrNmQYje23LG+Rzx16dApro1zAOAuWmgtFMIQVQUpGXC7SpOkxdtUhSgVAZTjxfOK4Ono5qkVZlikQ76arhhacGwt03Rk3rnmL7bg61UPKPUN0+lIqhB85QrvI+vprpCdNsb4uOumofEgtTZ0ykeSSOIcP3HBUUlRS8jHvhdgNrrZJEdP8trGxIzxOWR1zurkRUPHApBEQJb+Y+X8BqK6AqzFqkwwPWA69oY1Mb6/D+iycZzSkEk1dNb9E+rfh6/cOZ/u6f/k+uTdrIUgD3EGPru83fy0naMCxGBZp3L2LFzTBlmaBtrI6lFdZFzIuDgwOBvgdGU33v/eh0jr9NY1IE2M5+rRuflHfk2hZA0gmDiLd3IadrPDbuCJH6FfBUx2+QTtJG6nAgWUx+tj9LjTZqP6H2h+truRuqVMEpSkariM/y/OHxU/7B2oqXGpZMWJcnE8Gi5PCPk5lutfRgt8zdSOcP7QQENrZ+tzpw/lW+1+0670buTJBvg+VGI/1zdFOWWH26Hsf/9k=")
-        )
-
-        friendslist.apply {
+        friendsList = view.findViewById(R.id.friendList)
+        // Initialize with empty list, will be populated in onViewCreated
+        val emptyFriends = listOf<Friend>()
+        friendAdapter = FriendAdapter(emptyFriends.toMutableList())
+        
+        friendsList.apply {
             layoutManager = LinearLayoutManager(context)
-            adapter = FriendAdapter(friends)
+            adapter = friendAdapter
+        }
+
+        val shareButton: Button = view.findViewById(R.id.shareCodeButton)
+        val uuid = this.user.id
+
+        shareButton.setOnClickListener {
+            val qrCode = QRCodeBuilder(QRCodeShapesEnum.SQUARE)
+                .withErrorCorrectionLevel(ErrorCorrectionLevel.LOW)
+                .withBackgroundColor(Colors.WHITE_SMOKE)
+                .build(uuid.toString())
+                .renderToBytes()
+            val qrCodeImage: ImageView = view.findViewById(R.id.qrImage)
+
+            qrCodeImage.setImageBitmap(
+                BitmapFactory.decodeByteArray(
+                    qrCode,
+                    0,
+                    qrCode.size
+                )
+            )
+        }
+
+        val scanButton: Button = view.findViewById(R.id.scanCodeButton)
+
+        scanButton.setOnClickListener {
+            val intent = Intent(activity, QRScannerActivity::class.java)
+            this.resultLauncher.launch(intent)
         }
 
         return view
     }
-
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment FriendsFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            FriendsFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
+    
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // Add debug logging for user data
+        Log.d(TAG, "User data loaded: ${user.username}, ID: ${user.id}, Friends count: ${user.friends.size}")
+        fetchFriends()
+    }
+    
+    private fun fetchFriends() {
+        // Log user info to debug
+        Log.d(TAG, "User ID: ${user.id}, Friends count: ${user.friends.size}")
+        Log.d(TAG, "Auth token: ${user.authToken.take(15)}...")
+        
+        // Don't hide elements yet - wait until we know if we have friends from the user object
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Convert the UUIDs to strings
+                val friendIds = user.friends.map { it.toString() }
+                
+                Log.d(TAG, "Friend IDs from User object: $friendIds")
+                
+                // Update UI based on whether we have friends or not
+                withContext(Dispatchers.Main) {
+                    val emptyText: TextView? = view?.findViewById(R.id.emptyFriendsText)
+                    
+                    if (friendIds.isEmpty()) {
+                        // No friends found, show empty message
+                        Log.d(TAG, "No friends found in user object")
+                        emptyText?.visibility = View.VISIBLE
+                        friendsList.visibility = View.GONE
+                        return@withContext
+                    }
+                    
+                    // We have friends, hide empty message and show list
+                    Log.d(TAG, "Found ${friendIds.size} friends in user object")
+                    emptyText?.visibility = View.GONE
+                    friendsList.visibility = View.VISIBLE
+                }
+                
+                // Create a list to store friend details
+                val friendDetails = mutableListOf<Friend>()
+                
+                // For each friend ID, fetch the details
+                for (friendId in friendIds) {
+                    Log.d(TAG, "Fetching details for friend ID: $friendId")
+                    
+                    // Use our new SQL function to get friend details
+                    val attributesResponse = supabaseClient.getOrCreateFriendAttributes(friendId, user.authToken)
+                    Log.d(TAG, "Friend details response code: ${attributesResponse.code}")
+                    
+                    if (attributesResponse.isSuccessful) {
+                        val attrResponseBody = attributesResponse.body?.string()
+                        Log.d(TAG, "Friend detailed response: $attrResponseBody")
+                        
+                        try {
+                            val jsonArray = JSONArray(attrResponseBody ?: "[]")
+                            if (jsonArray.length() > 0) {
+                                val friendData = jsonArray.getJSONObject(0)
+                                val points = friendData.getInt("points")
+                                val profilePicture = friendData.getString("profile_picture")
+                                
+                                // Get the display name from our SQL function
+                                val displayName = friendData.getString("display_name")
+                                
+                                // Add the friend to our list with all data from SQL function
+                                friendDetails.add(Friend(displayName, points, profilePicture))
+                                Log.d(TAG, "Added friend with full details: $displayName, points: $points")
+                            } else {
+                                Log.e(TAG, "No friend data in JSON response")
+                                val shortId = friendId.replace("-", "").take(8)
+                                friendDetails.add(Friend("User ($shortId)", 0, ""))
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error parsing friend data: ${e.message}")
+                            e.printStackTrace()
+                            val shortId = friendId.replace("-", "").take(8)
+                            friendDetails.add(Friend("User ($shortId)", 0, ""))
+                        }
+                    } else {
+                        Log.e(TAG, "Error getting friend details: ${attributesResponse.code}")
+                        val shortId = friendId.replace("-", "").take(8)
+                        friendDetails.add(Friend("User ($shortId)", 0, ""))
+                    }
+                }
+                
+                // Update the UI on the main thread
+                withContext(Dispatchers.Main) {
+                    Log.d(TAG, "Updating adapter with ${friendDetails.size} friends")
+                    friendAdapter.updateFriends(friendDetails)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching friends: ${e.message}")
+                e.printStackTrace()
+                
+                withContext(Dispatchers.Main) {
+                    val emptyText: TextView? = view?.findViewById(R.id.emptyFriendsText)
+                    emptyText?.visibility = View.VISIBLE
+                    friendsList.visibility = View.GONE
                 }
             }
+        }
     }
 }
 
@@ -86,8 +224,14 @@ data class Friend(
     val profilePicture: String
 )
 
-class FriendAdapter(private val friends: List<Friend>) :
+class FriendAdapter(private val friends: MutableList<Friend>) :
     RecyclerView.Adapter<FriendAdapter.ViewHolder>(){
+
+    fun updateFriends(newFriends: List<Friend>) {
+        friends.clear()
+        friends.addAll(newFriends)
+        notifyDataSetChanged()
+    }
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val friendProfilePicture: ImageView = view.findViewById(R.id.friendProfilePicture)
@@ -104,18 +248,34 @@ class FriendAdapter(private val friends: List<Friend>) :
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val friend = friends[position]
         holder.apply {
-            val imageData = Base64.decode(friend.profilePicture, Base64.DEFAULT)
             friendName.text = friend.name
-            friendPoints.text = friend.points.toString()
-            friendProfilePicture.setImageBitmap(
-                BitmapFactory.decodeByteArray(
-                    imageData,
-                    0,
-                    imageData.size
-                )
-            )
+            friendPoints.text = "${friend.points} pts"
+            
+            try {
+                if (friend.profilePicture.isNotEmpty()) {
+                    val imageData = Base64.decode(friend.profilePicture, Base64.DEFAULT)
+                    friendProfilePicture.setImageBitmap(
+                        BitmapFactory.decodeByteArray(
+                            imageData,
+                            0,
+                            imageData.size
+                        )
+                    )
+                } else {
+                    // Set a default image if no profile picture is available
+                    friendProfilePicture.setImageResource(R.drawable.zorotlpf)
+                }
+            } catch (e: Exception) {
+                Log.e("FriendAdapter", "Error setting profile picture: ${e.message}")
+                // Set a default image on error
+                friendProfilePicture.setImageResource(R.drawable.zorotlpf)
+            }
+            
+            // Update the scaleType and padding for the profile picture
+            friendProfilePicture.scaleType = ImageView.ScaleType.FIT_CENTER
+            friendProfilePicture.setPadding(8, 8, 8, 8)
         }
     }
 
     override fun getItemCount() = friends.size
-}
+} 
