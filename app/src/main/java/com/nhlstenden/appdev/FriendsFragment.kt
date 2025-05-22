@@ -24,10 +24,15 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
 import qrcode.QRCodeBuilder
 import qrcode.QRCodeShapesEnum
 import qrcode.color.Colors
 import qrcode.raw.ErrorCorrectionLevel
+import java.util.UUID
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import androidx.viewpager2.widget.ViewPager2
+import android.widget.FrameLayout
 
 /**
  * A simple [Fragment] subclass.
@@ -41,6 +46,30 @@ class FriendsFragment : Fragment() {
     private lateinit var friendAdapter: FriendAdapter
     private val supabaseClient = SupabaseClient()
     private val TAG = "FriendsFragment"
+    
+    // This method can be called from MainActivity to force a refresh
+    fun fetchFriendsNow() {
+        // Check if view and user are ready
+        if (this::user.isInitialized && view != null && isAdded) {
+            Log.d(TAG, "External call to fetch friends, refreshing list")
+            
+            // Make sure we have the latest user data from the activity
+            activity?.let {
+                if (it is MainActivity && it.intent.hasExtra("USER_DATA")) {
+                    val updatedUser = it.intent.getParcelableExtra("USER_DATA", User::class.java)
+                    if (updatedUser != null) {
+                        Log.d(TAG, "Got updated user data with ${updatedUser.friends.size} friends")
+                        user = updatedUser
+                    }
+                }
+            }
+            
+            // Fetch the latest friend data
+            fetchFriends()
+        } else {
+            Log.d(TAG, "Fragment not ready for refresh")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,12 +80,72 @@ class FriendsFragment : Fragment() {
                 val data: Intent? = result.data
                 val scannedData = data?.getStringExtra("SCANNED_UUID").toString()
 
+                // Before any async work, immediately try to navigate to Friends tab
+                activity?.let { mainActivity ->
+                    if (mainActivity is MainActivity) {
+                        Log.d(TAG, "QR scan successful, immediately navigating to Friends tab")
+                        
+                        // Add a flag to the MainActivity's intent to indicate we need to navigate to Friends tab
+                        // This will be checked in MainActivity.onResume()
+                        mainActivity.intent.putExtra("NAVIGATE_TO_FRIENDS", true)
+                        
+                        // Immediate navigation
+                        mainActivity.runOnUiThread {
+                            try {
+                                // Navigate directly
+                                mainActivity.findViewById<BottomNavigationView>(R.id.bottom_navigation)?.selectedItemId = R.id.nav_friends
+                                // And use our helper method
+                                mainActivity.navigateToTab("friends")
+                                // Ensure proper visibility
+                                mainActivity.findViewById<ViewPager2>(R.id.viewPager)?.visibility = View.VISIBLE
+                                mainActivity.findViewById<FrameLayout>(R.id.fragment_container)?.visibility = View.GONE
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error navigating to Friends tab", e)
+                            }
+                        }
+                        
+                        // Schedule another navigation attempt after a short delay
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            try {
+                                if (isAdded && !isDetached) {
+                                    Log.d(TAG, "Delayed navigation to Friends tab")
+                                    mainActivity.navigateToTab("friends")
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error in delayed navigation", e)
+                            }
+                        }, 300) // Wait 300ms to ensure UI has stabilized
+                    }
+                }
+
                 GlobalScope.launch(Dispatchers.Main) {
                     val response = supabaseClient.addFriend(scannedData, user.authToken)
                     if (response.isSuccessful) {
                         Toast.makeText(activity, "Added a new friend!", Toast.LENGTH_LONG).show()
+                        
+                        // Update user object with the new friend
+                        updateUserWithNewFriend(scannedData)
+                        
                         // Refresh friends list after adding a new friend
                         fetchFriends()
+                        
+                        // Make sure we navigate to the Friends tab
+                        activity?.let { mainActivity ->
+                            // Force navigation to Friends tab
+                            val bottomNav = mainActivity.findViewById<BottomNavigationView>(R.id.bottom_navigation)
+                            Log.d(TAG, "Setting selected nav item to Friends")
+                            bottomNav?.selectedItemId = R.id.nav_friends
+                            
+                            // Ensure ViewPager is set to Friends tab (position 3)
+                            if (mainActivity is MainActivity) {
+                                Log.d(TAG, "Explicitly navigating to Friends tab via MainActivity")
+                                mainActivity.navigateToTab("friends")
+                                
+                                // Ensure fragment container is hidden and ViewPager is visible
+                                mainActivity.findViewById<ViewPager2>(R.id.viewPager).visibility = View.VISIBLE
+                                mainActivity.findViewById<FrameLayout>(R.id.fragment_container).visibility = View.GONE
+                            }
+                        }
                     } else {
                         Toast.makeText(activity, "Failed to add new friend :<", Toast.LENGTH_LONG).show()
                     }
@@ -64,6 +153,27 @@ class FriendsFragment : Fragment() {
             } else {
                 Toast.makeText(activity, "Not a valid QR code", Toast.LENGTH_LONG).show()
             }
+        }
+    }
+    
+    private fun updateUserWithNewFriend(friendId: String) {
+        try {
+            // Add the new friend UUID to the user's friends list if not already there
+            val friendUuid = UUID.fromString(friendId)
+            if (!user.friends.contains(friendUuid)) {
+                user.friends.add(friendUuid)
+                Log.d(TAG, "Added friend $friendId to user's friend list. New count: ${user.friends.size}")
+                
+                // If we're in an activity context, update the user data
+                activity?.let {
+                    if (it is MainActivity) {
+                        it.updateUserData(user)
+                        Log.d(TAG, "Updated MainActivity with new user data")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update user with new friend: ${e.message}")
         }
     }
 
@@ -109,6 +219,9 @@ class FriendsFragment : Fragment() {
 
         scanButton.setOnClickListener {
             val intent = Intent(activity, QRScannerActivity::class.java)
+            // Add a flag to remember we should return to the Friends tab
+            intent.putExtra("RETURN_TO", "friends")
+            Log.d(TAG, "Launching QR scanner with RETURN_TO=friends flag")
             this.resultLauncher.launch(intent)
         }
 
@@ -121,6 +234,52 @@ class FriendsFragment : Fragment() {
         // Add debug logging for user data
         Log.d(TAG, "User data loaded: ${user.username}, ID: ${user.id}, Friends count: ${user.friends.size}")
         fetchFriends()
+    }
+    
+    override fun onStart() {
+        super.onStart()
+        
+        // One more check to ensure we're on the Friends tab
+        activity?.let { mainActivity ->
+            if (mainActivity is MainActivity) {
+                // Don't switch immediately, give the UI time to set up
+                view?.post {
+                    Log.d(TAG, "onStart: Post-delayed navigation to Friends tab")
+                    mainActivity.navigateToTab("friends")
+                }
+            }
+        }
+    }
+    
+    // Add a method to refresh data when fragment becomes visible again
+    override fun onResume() {
+        super.onResume()
+        // Refresh the friends list in case it was updated elsewhere
+        fetchFriends()
+        
+        // Ensure we're on the Friends tab when this fragment is resumed
+        activity?.let { mainActivity ->
+            Log.d(TAG, "onResume: Setting selected nav item to Friends")
+            val bottomNav = mainActivity.findViewById<BottomNavigationView>(R.id.bottom_navigation)
+            bottomNav?.selectedItemId = R.id.nav_friends
+            
+            if (mainActivity is MainActivity) {
+                Log.d(TAG, "onResume: Explicitly navigating to Friends tab")
+                mainActivity.navigateToTab("friends")
+                
+                // If FriendsFragment is being displayed directly (not in ViewPager),
+                // we need to make sure we switch back to ViewPager mode
+                if (mainActivity.findViewById<FrameLayout>(R.id.fragment_container).visibility == View.VISIBLE) {
+                    val currentFragment = mainActivity.supportFragmentManager.findFragmentById(R.id.fragment_container)
+                    // Only switch if the current fragment isn't something important like profile
+                    if (currentFragment is FriendsFragment) {
+                        Log.d(TAG, "onResume: Switching from direct fragment to ViewPager")
+                        mainActivity.findViewById<ViewPager2>(R.id.viewPager).visibility = View.VISIBLE
+                        mainActivity.findViewById<FrameLayout>(R.id.fragment_container).visibility = View.GONE
+                    }
+                }
+            }
+        }
     }
     
     private fun fetchFriends() {
