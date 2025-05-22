@@ -22,24 +22,26 @@ class SupabaseClient() {
 
     fun createNewUser(email: String, password: String, username: String) {
         val signupRequest = this.signup(email, password, username)
-        if (signupRequest.code != 200) {
+        if (!signupRequest.isSuccessful) {
             throw RuntimeException(signupRequest.body?.string())
         }
+
         val authToken = JSONObject(signupRequest.body?.string()).getString("access_token")
         val createUserRequest = this.createUserAttributes(authToken)
-        if (createUserRequest.code != 201) {
+        if (!createUserRequest.isSuccessful) {
             throw RuntimeException(createUserRequest.body?.string())
         }
     }
 
     fun getUser(email: String, password: String): User {
         val loginRequest = login(email, password)
-        if (loginRequest.code != 200) {
+        if (!loginRequest.isSuccessful) {
             throw RuntimeException(loginRequest.body?.string())
         }
+
         val authResponse = JSONObject(loginRequest.body?.string())
         val userRequest = this.getUserAttributes(authResponse.getJSONObject("user").getString("id"))
-        if (userRequest.code != 200) {
+        if (!userRequest.isSuccessful) {
             throw RuntimeException(userRequest.body?.string())
         }
 
@@ -153,6 +155,7 @@ class SupabaseClient() {
             .addHeader("Content-Type", "application/json")
             .addHeader("Prefer", "return=minimal")
             .build()
+
         return client.newCall(request).execute()
     }
 
@@ -167,6 +170,7 @@ class SupabaseClient() {
             .addHeader("Content-Type", "application/json")
             .addHeader("Prefer", "return=minimal")
             .build()
+
         return client.newCall(request).execute()
     }
 
@@ -181,6 +185,7 @@ class SupabaseClient() {
             .addHeader("Content-Type", "application/json")
             .addHeader("Prefer", "return=minimal")
             .build()
+
         return client.newCall(request).execute()
     }
 
@@ -322,6 +327,7 @@ class SupabaseClient() {
 
         val response = client.newCall(request).execute()
         Log.d("SupabaseClient", "Get display name response code: ${response.code}")
+
         return response
     }
     

@@ -11,9 +11,6 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import android.widget.FrameLayout
 import androidx.activity.OnBackPressedCallback
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
-import android.view.WindowManager
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2

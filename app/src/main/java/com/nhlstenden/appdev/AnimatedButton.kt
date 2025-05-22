@@ -37,6 +37,7 @@ class AnimatedButton @JvmOverloads constructor(
                     animationView.playAnimation()
                     false
                 }
+
                 MotionEvent.ACTION_UP -> {
                     // If pressed within bounds, trigger click
                     if (event.x >= 0 && event.x <= width &&
@@ -53,6 +54,7 @@ class AnimatedButton @JvmOverloads constructor(
                     
                     false
                 }
+
                 MotionEvent.ACTION_CANCEL -> {
                     // Reset animation back to idle state
                     animationView.setAnimation(R.raw.button_animation)
@@ -60,6 +62,7 @@ class AnimatedButton @JvmOverloads constructor(
                     animationView.pauseAnimation()
                     false
                 }
+
                 else -> false
             }
         }

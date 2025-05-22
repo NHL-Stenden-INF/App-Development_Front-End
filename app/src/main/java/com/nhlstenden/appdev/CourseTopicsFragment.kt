@@ -1,5 +1,6 @@
 package com.nhlstenden.appdev
 
+import android.media.MediaPlayer
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -32,6 +33,7 @@ class CourseTopicsFragment : Fragment() {
     private lateinit var user: User
     private val args: CourseTopicsFragmentArgs by navArgs()
     private lateinit var gestureDetector: GestureDetectorCompat
+    private lateinit var mediaPlayer: MediaPlayer
 
     private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onFling(
@@ -89,6 +91,7 @@ class CourseTopicsFragment : Fragment() {
         setupCourseInfo()
         setupTopicsList()
         setupBackButton()
+        playMusic()
     }
 
     private fun setupCourseInfo() {
@@ -105,6 +108,7 @@ class CourseTopicsFragment : Fragment() {
         backButton.setOnClickListener {
             // Pop the back stack to return to the previous fragment
             parentFragmentManager.popBackStack()
+
             // Restore the main menu visibility
             requireActivity().findViewById<ViewPager2>(R.id.viewPager).visibility = View.VISIBLE
             requireActivity().findViewById<FrameLayout>(R.id.fragment_container).visibility = View.GONE
@@ -135,6 +139,28 @@ class CourseTopicsFragment : Fragment() {
         }
 
         topicsList.adapter = TopicAdapter(requireContext(), topics, user)
+    }
+
+    private fun playMusic() {
+        mediaPlayer = MediaPlayer.create(context,
+            when(args.courseName) {
+                "HTML" -> R.raw.html_themesong
+                "CSS" -> R.raw.css_themesong
+                "SQL" -> R.raw.sql_themesong
+                else -> R.raw.default_themesong
+            })
+        mediaPlayer.start()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        mediaPlayer.pause()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        mediaPlayer.stop()
+        mediaPlayer.release()
     }
 
     data class Topic(
