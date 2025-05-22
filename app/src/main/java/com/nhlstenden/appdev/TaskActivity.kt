@@ -42,6 +42,11 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
         )
     )
     private var failedQuestions: MutableList<Question> = mutableListOf()
+    
+    // Track correctly answered questions and points
+    private var correctAnswersCount: Int = 0
+    private val POINTS_PER_CORRECT_ANSWER = 10
+    private val COMPLETION_BONUS = 20
 
     private lateinit var viewPager: ViewPager2
     private lateinit var taskPagerAdapter: TaskPagerAdapter
@@ -81,11 +86,16 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
             dialog.show(supportFragmentManager, "popup")
         }
 
+        // Reset correct answers count
+        correctAnswersCount = 0
     }
 
     override fun onTaskCompleted(question: Question, hasSucceeded: Boolean) {
         if (!hasSucceeded) {
             failedQuestions.add(question)
+        } else {
+            // Increment correct answers count
+            correctAnswersCount++
         }
         activeQuestion++
 
@@ -101,10 +111,15 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
                 viewPager.setCurrentItem(0, false)
             }
             else {
-                // TODO: Make it save completion in the database
+                // Calculate points to award
+                val pointsEarned = calculatePointsEarned()
+                
+                // Update user points in both local state and Supabase
+                updateUserPoints(pointsEarned)
 
                 val intent = Intent(this, TaskCompleteActivity::class.java)
                 intent.putExtra("TOPIC_DATA", topicData)
+                intent.putExtra("POINTS_EARNED", pointsEarned)
                 
                 // Get user data from intent or UserManager singleton
                 val userData = this.intent.getParcelableExtra("USER_DATA", User::class.java) 
@@ -120,6 +135,48 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
 
         viewPager.currentItem = activeQuestion
         updateTaskProgress()
+    }
+    
+    private fun calculatePointsEarned(): Int {
+        // Base points from correct answers
+        val answerPoints = correctAnswersCount * POINTS_PER_CORRECT_ANSWER
+        
+        // Bonus for completing the task without incorrect answers
+        val completionBonus = if (failedQuestions.isEmpty()) COMPLETION_BONUS else 0
+        
+        return answerPoints + completionBonus
+    }
+    
+    private fun updateUserPoints(pointsToAdd: Int) {
+        // Get current user
+        val currentUser = UserManager.getCurrentUser() ?: return
+        
+        // Create updated user with new points
+        val updatedPoints = currentUser.points + pointsToAdd
+        val updatedUser = currentUser.copy(points = updatedPoints)
+        
+        // Update local user data
+        UserManager.setCurrentUser(updatedUser)
+        
+        // Update points in Supabase
+        Thread {
+            try {
+                val supabaseClient = SupabaseClient()
+                val response = supabaseClient.updateUserPoints(
+                    currentUser.id.toString(), 
+                    updatedPoints,
+                    currentUser.authToken
+                )
+                
+                if (response.code != 200 && response.code != 204) {
+                    Log.e("TaskActivity", "Failed to update points: ${response.code}")
+                } else {
+                    Log.d("TaskActivity", "Points updated successfully! New value: $updatedPoints")
+                }
+            } catch (e: Exception) {
+                Log.e("TaskActivity", "Error updating points: ${e.message}")
+            }
+        }.start()
     }
 
     fun updateTaskProgress(){
