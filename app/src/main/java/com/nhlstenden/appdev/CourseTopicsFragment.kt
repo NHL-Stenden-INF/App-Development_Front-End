@@ -1,5 +1,6 @@
 package com.nhlstenden.appdev
 
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -25,6 +26,7 @@ class CourseTopicsFragment : Fragment() {
     private lateinit var backButton: ImageButton
     private val args: CourseTopicsFragmentArgs by navArgs()
     private lateinit var gestureDetector: GestureDetectorCompat
+    private lateinit var mediaPlayer: MediaPlayer
 
     private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onFling(
@@ -80,6 +82,7 @@ class CourseTopicsFragment : Fragment() {
         setupCourseInfo()
         setupTopicsList()
         setupBackButton()
+        playMusic()
     }
 
     private fun setupCourseInfo() {
@@ -126,6 +129,28 @@ class CourseTopicsFragment : Fragment() {
         }
 
         topicsList.adapter = TopicAdapter(topics)
+    }
+
+    private fun playMusic() {
+        mediaPlayer = MediaPlayer.create(context,
+            when(args.courseName) {
+                "HTML" -> R.raw.html_themesong
+                "CSS" -> R.raw.css_themesong
+                "SQL" -> R.raw.sql_themesong
+                else -> R.raw.default_themesong
+            })
+        mediaPlayer.start()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        mediaPlayer.pause()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        mediaPlayer.stop()
+        mediaPlayer.release()
     }
 
     data class Topic(
