@@ -1,8 +1,10 @@
 package com.nhlstenden.appdev
 
+import android.app.Dialog
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -15,6 +17,7 @@ import java.io.Serializable
 class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
     private lateinit var taskName: TextView
     private lateinit var taskProgress: TextView
+    private lateinit var exitButton: TextView
     private var questions: List<Question> = listOf(
         Question.MultipleChoiceQuestion(
             "What does OOP stand for?",
@@ -51,6 +54,7 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
         taskName = findViewById(R.id.taskName)
         taskProgress = findViewById(R.id.taskProgress)
         viewPager = findViewById(R.id.questionViewPager)
+        exitButton = findViewById(R.id.exitButton)
 
         taskPagerAdapter = TaskPagerAdapter(this)
         viewPager.adapter = taskPagerAdapter
@@ -67,6 +71,12 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
         val topic = intent.getSerializableExtra("TOPIC_DATA") as? Topic
         taskName.text = topic?.title
         updateTaskProgress()
+
+        exitButton.setOnClickListener {
+            var dialog = EndTaskDialogFragment()
+            dialog.show(supportFragmentManager, "popup")
+        }
+
     }
 
     override fun onTaskCompleted(question: Question, hasSucceeded: Boolean) {
