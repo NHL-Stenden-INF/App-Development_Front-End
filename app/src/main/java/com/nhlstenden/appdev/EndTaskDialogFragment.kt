@@ -1,7 +1,9 @@
 package com.nhlstenden.appdev
 
+import android.app.Activity
 import android.app.Dialog
 import android.content.DialogInterface
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
@@ -13,10 +15,16 @@ class EndTaskDialogFragment : DialogFragment() {
             val inflater = requireActivity().layoutInflater;
 
             builder.setView(inflater.inflate(R.layout.item_end_task_popup, null))
-                // Add action buttons.
                 .setPositiveButton("Confirm",
                     DialogInterface.OnClickListener { dialog, id ->
-                        // Sign in the user.
+                        val context = requireContext()
+                        val intent = Intent(context, MainActivity::class.java)
+                        context.startActivity(intent)
+
+                        if (context is Activity)
+                        {
+                            context.finish()
+                        }
                     })
                 .setNegativeButton("Cancel",
                     DialogInterface.OnClickListener { dialog, id ->
