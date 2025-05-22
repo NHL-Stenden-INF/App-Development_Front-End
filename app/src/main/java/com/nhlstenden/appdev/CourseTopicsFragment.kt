@@ -136,7 +136,7 @@ class CourseTopicsFragment : Fragment() {
             when(args.courseName) {
                 "HTML" -> R.raw.html_themesong
                 "CSS" -> R.raw.css_themesong
-                "SQL" -> R.raw.html_themesong //TODO: Create a song for SQL
+                "SQL" -> R.raw.sql_themesong
                 else -> R.raw.html_themesong
             })
         mediaPlayer.start()
