@@ -2,6 +2,7 @@ package com.nhlstenden.appdev
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -21,6 +22,9 @@ class TaskCompleteActivity : AppCompatActivity() {
 
         returnButton.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
+            var user: User? = this.intent.getParcelableExtra("USER_DATA", User::class.java)
+            Log.d("TaskComplete", user.toString())
+            intent.putExtra("USER_DATA", user)
             startActivity(intent)
             finish()
         }

@@ -103,6 +103,7 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
 
                 val intent = Intent(this, TaskCompleteActivity::class.java)
                 intent.putExtra("TOPIC_DATA", topicData)
+                intent.putExtra("USER_DATA", this.intent.getParcelableExtra("USER_DATA", User::class.java))
                 startActivity(intent)
                 finish()
                 return

@@ -29,6 +29,7 @@ class CourseTopicsFragment : Fragment() {
     private lateinit var courseTitle: TextView
     private lateinit var courseDescription: TextView
     private lateinit var backButton: ImageButton
+    private lateinit var user: User
     private val args: CourseTopicsFragmentArgs by navArgs()
     private lateinit var gestureDetector: GestureDetectorCompat
 
@@ -64,6 +65,8 @@ class CourseTopicsFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        this.user = activity?.intent?.getParcelableExtra("USER_DATA", User::class.java)!!
+
         return inflater.inflate(R.layout.fragment_course_topics, container, false)
     }
 
@@ -131,7 +134,7 @@ class CourseTopicsFragment : Fragment() {
             else -> emptyList()
         }
 
-        topicsList.adapter = TopicAdapter(requireContext(), topics)
+        topicsList.adapter = TopicAdapter(requireContext(), topics, user)
     }
 
     data class Topic(
@@ -143,7 +146,8 @@ class CourseTopicsFragment : Fragment() {
 
     class TopicAdapter(
         private val context: Context,
-        private val topics: List<Topic>
+        private val topics: List<Topic>,
+        private val user: User
     ) : RecyclerView.Adapter<TopicAdapter.TopicViewHolder>() {
         class TopicViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val card: MaterialCardView = view as MaterialCardView
@@ -165,6 +169,7 @@ class CourseTopicsFragment : Fragment() {
             holder.card.setOnClickListener {
                 val intent = Intent(context, TaskActivity::class.java)
                 intent.putExtra("TOPIC_DATA", topic)
+                intent.putExtra("USER_DATA", user)
                 context.startActivity(intent)
 
                 if (context is Activity)
