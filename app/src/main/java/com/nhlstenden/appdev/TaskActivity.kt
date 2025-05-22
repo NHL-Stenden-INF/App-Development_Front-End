@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.button.MaterialButton
 import com.nhlstenden.appdev.CourseTopicsFragment.Topic
 import com.nhlstenden.appdev.models.UserManager
 import java.io.Serializable
@@ -19,7 +20,7 @@ import java.io.Serializable
 class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
     private lateinit var taskName: TextView
     private lateinit var taskProgress: TextView
-    private lateinit var exitButton: TextView
+    private lateinit var exitButton: MaterialButton
     private var questions: List<Question> = listOf(
         Question.MultipleChoiceQuestion(
             "What does OOP stand for?",
@@ -76,7 +77,7 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
         updateTaskProgress()
 
         exitButton.setOnClickListener {
-            var dialog = EndTaskDialogFragment()
+            val dialog = EndTaskDialogFragment()
             dialog.show(supportFragmentManager, "popup")
         }
 
