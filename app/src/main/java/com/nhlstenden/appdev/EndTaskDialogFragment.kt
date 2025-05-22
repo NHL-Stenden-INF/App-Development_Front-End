@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
+import com.nhlstenden.appdev.models.UserManager
 
 class EndTaskDialogFragment : DialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -19,6 +20,13 @@ class EndTaskDialogFragment : DialogFragment() {
                     DialogInterface.OnClickListener { dialog, id ->
                         val context = requireContext()
                         val intent = Intent(context, MainActivity::class.java)
+                        
+                        // Get current user from UserManager singleton
+                        val currentUser = UserManager.getCurrentUser()
+                        if (currentUser != null) {
+                            intent.putExtra("USER_DATA", currentUser)
+                        }
+                        
                         context.startActivity(intent)
 
                         if (context is Activity)

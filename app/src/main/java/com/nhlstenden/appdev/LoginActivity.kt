@@ -186,6 +186,9 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun navigateToMain(loggedInUser: User?) {
+        // Store the user in the singleton
+        com.nhlstenden.appdev.models.UserManager.setCurrentUser(loggedInUser)
+        
         val intent = Intent(this, MainActivity::class.java)
         intent.putExtra("USER_DATA", loggedInUser)
         startActivity(intent)

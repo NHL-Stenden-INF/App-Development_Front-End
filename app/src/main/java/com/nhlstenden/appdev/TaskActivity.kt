@@ -13,6 +13,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.CourseTopicsFragment.Topic
+import com.nhlstenden.appdev.models.UserManager
 import java.io.Serializable
 
 class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
@@ -103,7 +104,12 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
 
                 val intent = Intent(this, TaskCompleteActivity::class.java)
                 intent.putExtra("TOPIC_DATA", topicData)
-                intent.putExtra("USER_DATA", this.intent.getParcelableExtra("USER_DATA", User::class.java))
+                
+                // Get user data from intent or UserManager singleton
+                val userData = this.intent.getParcelableExtra("USER_DATA", User::class.java) 
+                    ?: UserManager.getCurrentUser()
+                
+                intent.putExtra("USER_DATA", userData)
                 startActivity(intent)
                 finish()
                 return

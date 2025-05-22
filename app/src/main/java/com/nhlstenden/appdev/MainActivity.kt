@@ -15,6 +15,7 @@ import android.util.Log
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
+import com.nhlstenden.appdev.models.UserManager
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2
@@ -46,7 +47,14 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        // Get user data from intent or UserManager singleton
         userData = intent.getParcelableExtra("USER_DATA", User::class.java)
+        if (userData == null) {
+            userData = UserManager.getCurrentUser()
+        } else {
+            // Make sure UserManager is in sync
+            UserManager.setCurrentUser(userData)
+        }
 
         viewPager = findViewById(R.id.viewPager)
         bottomNavigation = findViewById(R.id.bottom_navigation)
