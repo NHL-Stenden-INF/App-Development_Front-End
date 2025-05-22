@@ -1,6 +1,9 @@
 package com.nhlstenden.appdev
 
 import android.media.MediaPlayer
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -18,12 +21,16 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
 import androidx.viewpager2.widget.ViewPager2
 import android.widget.FrameLayout
+import androidx.core.content.ContentProviderCompat.requireContext
+import androidx.core.content.ContextCompat.startActivity
+import java.io.Serializable
 
 class CourseTopicsFragment : Fragment() {
     private lateinit var topicsList: RecyclerView
     private lateinit var courseTitle: TextView
     private lateinit var courseDescription: TextView
     private lateinit var backButton: ImageButton
+    private lateinit var user: User
     private val args: CourseTopicsFragmentArgs by navArgs()
     private lateinit var gestureDetector: GestureDetectorCompat
     private lateinit var mediaPlayer: MediaPlayer
@@ -60,6 +67,8 @@ class CourseTopicsFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        this.user = activity?.intent?.getParcelableExtra("USER_DATA", User::class.java)!!
+
         return inflater.inflate(R.layout.fragment_course_topics, container, false)
     }
 
@@ -129,7 +138,7 @@ class CourseTopicsFragment : Fragment() {
             else -> emptyList()
         }
 
-        topicsList.adapter = TopicAdapter(topics)
+        topicsList.adapter = TopicAdapter(requireContext(), topics, user)
     }
 
     private fun playMusic() {
@@ -159,9 +168,13 @@ class CourseTopicsFragment : Fragment() {
         val difficulty: String,
         val description: String,
         val progress: Int
-    )
+    ) : Serializable
 
-    class TopicAdapter(private val topics: List<Topic>) : RecyclerView.Adapter<TopicAdapter.TopicViewHolder>() {
+    class TopicAdapter(
+        private val context: Context,
+        private val topics: List<Topic>,
+        private val user: User
+    ) : RecyclerView.Adapter<TopicAdapter.TopicViewHolder>() {
         class TopicViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val card: MaterialCardView = view as MaterialCardView
             val title: TextView = view.findViewById(R.id.topicTitle)
@@ -179,6 +192,17 @@ class CourseTopicsFragment : Fragment() {
 
         override fun onBindViewHolder(holder: TopicViewHolder, position: Int) {
             val topic = topics[position]
+            holder.card.setOnClickListener {
+                val intent = Intent(context, TaskActivity::class.java)
+                intent.putExtra("TOPIC_DATA", topic)
+                intent.putExtra("USER_DATA", user)
+                context.startActivity(intent)
+
+                if (context is Activity)
+                {
+                    context.finish()
+                }
+            }
             holder.title.text = topic.title
             holder.difficulty.text = topic.difficulty
             holder.description.text = topic.description
@@ -188,4 +212,4 @@ class CourseTopicsFragment : Fragment() {
 
         override fun getItemCount() = topics.size
     }
-} 
+}

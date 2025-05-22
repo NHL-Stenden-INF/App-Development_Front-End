@@ -46,11 +46,21 @@
             android:name=".QRScannerActivity"
             android:exported="false">
         </activity>
-        
+
         <activity
             android:name=".ImageCropActivity"
             android:exported="false"
             android:theme="@style/Theme.AppdevNHL.NoActionBar">
+        </activity>
+
+        <activity
+            android:name=".TaskActivity"
+            android:exported="true">
+        </activity>
+
+        <activity
+            android:name=".TaskCompleteActivity"
+            android:exported="true">
         </activity>
 
     </application>
