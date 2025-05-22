@@ -35,6 +35,7 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>) : RecyclerView.Ad
         val courseTitle: TextView = view.findViewById(R.id.courseTitle)
         val courseProgress: TextView = view.findViewById(R.id.courseProgress)
         val courseProgressBar: ProgressBar = view.findViewById(R.id.courseProgressBar)
+        val coursePlayButton: ImageButton = view.findViewById(R.id.coursePlayButton)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -52,8 +53,34 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>) : RecyclerView.Ad
         holder.courseProgressBar.max = 100
         holder.courseProgressBar.progress = course.progressPercent
         holder.courseProgressBar.progressTintList = ColorStateList.valueOf(course.accentColor)
-        holder.itemView.findViewById<ImageButton>(R.id.coursePlayButton)
-            .backgroundTintList = ColorStateList.valueOf(course.accentColor)
+        holder.coursePlayButton.backgroundTintList = ColorStateList.valueOf(course.accentColor)
+        
+        // Add click listener for the entire card
+        holder.itemView.setOnClickListener {
+            navigateToCourse(holder.itemView.context, course.title)
+        }
+        
+        // Add click listener for the play button
+        holder.coursePlayButton.setOnClickListener {
+            navigateToCourse(holder.itemView.context, course.title)
+        }
+    }
+    
+    private fun navigateToCourse(context: android.content.Context, courseName: String) {
+        val fragment = CourseTopicsFragment().apply {
+            arguments = Bundle().apply {
+                putString("courseName", courseName)
+            }
+        }
+
+        val activity = context as androidx.fragment.app.FragmentActivity
+        activity.findViewById<FrameLayout>(R.id.fragment_container).visibility = View.VISIBLE
+        activity.findViewById<ViewPager2>(R.id.viewPager).visibility = View.GONE
+        
+        activity.supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
     }
 
     override fun getItemCount() = courses.size

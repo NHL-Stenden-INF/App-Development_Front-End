@@ -16,7 +16,6 @@ import android.widget.TextView
 import androidx.core.view.GestureDetectorCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
 import androidx.viewpager2.widget.ViewPager2
@@ -31,9 +30,9 @@ class CourseTopicsFragment : Fragment() {
     private lateinit var courseDescription: TextView
     private lateinit var backButton: ImageButton
     private lateinit var user: User
-    private val args: CourseTopicsFragmentArgs by navArgs()
     private lateinit var gestureDetector: GestureDetectorCompat
     private lateinit var mediaPlayer: MediaPlayer
+    private var courseName: String = ""
 
     private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onFling(
@@ -68,6 +67,7 @@ class CourseTopicsFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         this.user = activity?.intent?.getParcelableExtra("USER_DATA", User::class.java)!!
+        this.courseName = arguments?.getString("courseName") ?: ""
 
         return inflater.inflate(R.layout.fragment_course_topics, container, false)
     }
@@ -95,8 +95,8 @@ class CourseTopicsFragment : Fragment() {
     }
 
     private fun setupCourseInfo() {
-        courseTitle.text = args.courseName
-        courseDescription.text = when (args.courseName) {
+        courseTitle.text = courseName
+        courseDescription.text = when (courseName) {
             "HTML" -> "Learn the fundamentals of HTML markup language and web structure"
             "CSS" -> "Master CSS styling, layout techniques, and responsive design"
             "SQL" -> "Learn database management, queries, and data manipulation"
@@ -116,7 +116,7 @@ class CourseTopicsFragment : Fragment() {
     }
 
     private fun setupTopicsList() {
-        val topics = when (args.courseName) {
+        val topics = when (courseName) {
             "HTML" -> listOf(
                 Topic("HTML Basics", "Beginner", "Learn the fundamentals of HTML markup language", 75),
                 Topic("HTML Structure", "Beginner", "Learn about the basic structure of HTML documents", 50),
@@ -143,7 +143,7 @@ class CourseTopicsFragment : Fragment() {
 
     private fun playMusic() {
         mediaPlayer = MediaPlayer.create(context,
-            when(args.courseName) {
+            when(courseName) {
                 "HTML" -> R.raw.html_themesong
                 "CSS" -> R.raw.css_themesong
                 "SQL" -> R.raw.sql_themesong

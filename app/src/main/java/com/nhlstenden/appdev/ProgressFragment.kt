@@ -6,10 +6,12 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
@@ -119,8 +121,26 @@ class ProgressFragment : Fragment() {
 
         courseProgressList.apply {
             layoutManager = LinearLayoutManager(context)
-            adapter = CourseProgressAdapter(courses)
+            adapter = CourseProgressAdapter(courses) { courseName ->
+                navigateToCourse(courseName)
+            }
         }
+    }
+    
+    private fun navigateToCourse(courseName: String) {
+        val fragment = CourseTopicsFragment().apply {
+            arguments = Bundle().apply {
+                putString("courseName", courseName)
+            }
+        }
+
+        requireActivity().findViewById<FrameLayout>(R.id.fragment_container).visibility = View.VISIBLE
+        requireActivity().findViewById<ViewPager2>(R.id.viewPager).visibility = View.GONE
+        
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
     }
 }
 
@@ -131,8 +151,10 @@ data class CourseProgress(
     val imageResId: Int
 )
 
-class CourseProgressAdapter(private val courses: List<CourseProgress>) : 
-    RecyclerView.Adapter<CourseProgressAdapter.ViewHolder>() {
+class CourseProgressAdapter(
+    private val courses: List<CourseProgress>,
+    private val onCourseClick: (String) -> Unit
+) : RecyclerView.Adapter<CourseProgressAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val courseImage: ImageView = view.findViewById(R.id.courseImage)
@@ -161,6 +183,11 @@ class CourseProgressAdapter(private val courses: List<CourseProgress>) :
             progressBar.setIndicatorColor(Color.rgb(76, 175, 80)) // Set progress color to green
             progressBar.setTrackColor(Color.rgb(158, 158, 158)) // Set track color to gray
             progressPercentage.text = "${course.progressPercentage}%"
+            
+            // Add click listener for the entire course row
+            itemView.setOnClickListener {
+                onCourseClick(course.title)
+            }
         }
     }
 
