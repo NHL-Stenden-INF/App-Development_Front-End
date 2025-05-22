@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which tag is used as the root element of an HTML document?</question_text>
+        <option correct="true">&lt;html&gt;</option>
+        <option correct="false">&lt;root&gt;</option>
+        <option correct="false">&lt;document&gt;</option>
+        <option correct="false">&lt;webpage&gt;</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What are the two main sections of an HTML document?</question_text>
+        <option correct="true">head and body</option>
+        <option correct="false">header and footer</option>
+        <option correct="false">title and content</option>
+        <option correct="false">top and bottom</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which HTML tag is used to create a section header?</question_text>
+        <option correct="true">&lt;h1&gt; through &lt;h6&gt;</option>
+        <option correct="false">&lt;header&gt;</option>
+        <option correct="false">&lt;heading&gt;</option>
+        <option correct="false">&lt;section&gt;</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which HTML tag is used to define the main content area?</question_text>
+        <option correct="true">&lt;main&gt;</option>
+        <option correct="false">&lt;content&gt;</option>
+        <option correct="false">&lt;body&gt;</option>
+        <option correct="false">&lt;article&gt;</option>
+    </multiple_choice_question>
+</questions> 

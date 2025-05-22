@@ -14,6 +14,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.button.MaterialButton
 import com.nhlstenden.appdev.CourseTopicsFragment.Topic
+import com.nhlstenden.appdev.models.QuestionParser
 import com.nhlstenden.appdev.models.UserManager
 import java.io.Serializable
 
@@ -21,26 +22,7 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
     private lateinit var taskName: TextView
     private lateinit var taskProgress: TextView
     private lateinit var exitButton: MaterialButton
-    private var questions: List<Question> = listOf(
-        Question.MultipleChoiceQuestion(
-            "What does OOP stand for?",
-            listOf<Option>(
-                Option("Object Oriented Programming", true),
-                Option("Omg Obviously Porkchops", false),
-                Option("OOP", false),
-                Option("Obstructive Obedient People", false)
-            ),
-        ),
-        Question.MultipleChoiceQuestion(
-            "What does HTML stand for?",
-            listOf<Option>(
-                Option("Hyper-Text Markup Language", true),
-                Option("Heiko, Theo, Mayo and Leo", false),
-                Option("High-Transfer Marking Language", false),
-                Option("High-Temperature Machine Learning", false)
-            )
-        )
-    )
+    private var questions: List<Question> = listOf()
     private var failedQuestions: MutableList<Question> = mutableListOf()
     
     // Track correctly answered questions and points
@@ -64,7 +46,63 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
         viewPager = findViewById(R.id.questionViewPager)
         exitButton = findViewById(R.id.exitButton)
 
+        topicData = (intent.getSerializableExtra("TOPIC_DATA") as? Topic)!!
+        taskName.text = topicData.title
+        
+        // Load questions from XML based on topic
+        loadQuestionsForTopic(topicData.title)
+        
+        // Configure ViewPager after questions are loaded
+        setupViewPager()
+        
+        updateTaskProgress()
 
+        exitButton.setOnClickListener {
+            val dialog = EndTaskDialogFragment()
+            dialog.show(supportFragmentManager, "popup")
+        }
+
+        // Reset correct answers count
+        correctAnswersCount = 0
+    }
+    
+    private fun loadQuestionsForTopic(topicTitle: String) {
+        val questionParser = QuestionParser(this)
+        questions = questionParser.loadQuestionsForTopic(topicTitle)
+        
+        // If no questions were loaded, use fallback hardcoded questions
+        if (questions.isEmpty()) {
+            Log.w("TaskActivity", "No questions found for topic $topicTitle, using fallback questions")
+            questions = getFallbackQuestions()
+        }
+        
+        Log.d("TaskActivity", "Loaded ${questions.size} questions for topic $topicTitle")
+    }
+    
+    private fun getFallbackQuestions(): List<Question> {
+        return listOf(
+            Question.MultipleChoiceQuestion(
+                "What does HTML stand for?",
+                listOf(
+                    Option("Hyper Text Markup Language", true),
+                    Option("High Tech Modern Language", false),
+                    Option("Hyperlinks Text Mode Language", false),
+                    Option("Home Tool Markup Language", false)
+                )
+            ),
+            Question.MultipleChoiceQuestion(
+                "Which HTML tag is used to define an unordered list?",
+                listOf(
+                    Option("<ul>", true),
+                    Option("<ol>", false),
+                    Option("<li>", false),
+                    Option("<list>", false)
+                )
+            )
+        )
+    }
+    
+    private fun setupViewPager() {
         taskPagerAdapter = TaskPagerAdapter(this)
         viewPager.adapter = taskPagerAdapter
         viewPager.offscreenPageLimit = 1
@@ -76,18 +114,6 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
             page.scaleX = scale
             page.scaleY = scale
         }
-
-        topicData = (intent.getSerializableExtra("TOPIC_DATA") as? Topic)!!
-        taskName.text = topicData.title
-        updateTaskProgress()
-
-        exitButton.setOnClickListener {
-            val dialog = EndTaskDialogFragment()
-            dialog.show(supportFragmentManager, "popup")
-        }
-
-        // Reset correct answers count
-        correctAnswersCount = 0
     }
 
     override fun onTaskCompleted(question: Question, hasSucceeded: Boolean) {
@@ -184,9 +210,17 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
     }
 
     private var fragmentIdSeed = 0L
-    private var questionIds: List<Long> = questions.map { fragmentIdSeed++ }
+    private var questionIds: List<Long> = mutableListOf()
+    
+    private fun updateQuestionIds() {
+        questionIds = questions.map { fragmentIdSeed++ }
+    }
 
     private inner class TaskPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {
+        init {
+            updateQuestionIds()
+        }
+        
         override fun getItemCount(): Int = questions.size
 
         override fun createFragment(position: Int): Fragment {
