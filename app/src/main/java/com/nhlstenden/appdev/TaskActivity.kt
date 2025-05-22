@@ -1,6 +1,7 @@
 package com.nhlstenden.appdev
 
 import android.app.Dialog
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -43,7 +44,7 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
     private lateinit var viewPager: ViewPager2
     private lateinit var taskPagerAdapter: TaskPagerAdapter
 
-
+    private lateinit var topicData: Topic
     private var activeQuestion: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,6 +56,7 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
         taskProgress = findViewById(R.id.taskProgress)
         viewPager = findViewById(R.id.questionViewPager)
         exitButton = findViewById(R.id.exitButton)
+
 
         taskPagerAdapter = TaskPagerAdapter(this)
         viewPager.adapter = taskPagerAdapter
@@ -68,8 +70,8 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
             page.scaleY = scale
         }
 
-        val topic = intent.getSerializableExtra("TOPIC_DATA") as? Topic
-        taskName.text = topic?.title
+        topicData = (intent.getSerializableExtra("TOPIC_DATA") as? Topic)!!
+        taskName.text = topicData.title
         updateTaskProgress()
 
         exitButton.setOnClickListener {
@@ -97,7 +99,12 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
                 viewPager.setCurrentItem(0, false)
             }
             else {
-                // TODO: Make it open a results screen
+                // TODO: Make it save completion in the database
+
+                val intent = Intent(this, TaskCompleteActivity::class.java)
+                intent.putExtra("TOPIC_DATA", topicData)
+                startActivity(intent)
+                finish()
                 return
             }
 
