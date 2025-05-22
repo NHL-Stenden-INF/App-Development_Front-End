@@ -7,30 +7,18 @@ import android.os.Handler
 import android.os.Looper
 import android.view.GestureDetector
 import android.view.MotionEvent
-import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GestureDetectorCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import com.nhlstenden.appdev.databinding.ActivityLoginBinding
-import android.widget.Button
-import android.widget.EditText
 import android.widget.Toast
-import android.util.Base64
 import android.util.Log
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.Dispatcher
 import org.json.JSONException
 import org.json.JSONObject
-import retrofit2.HttpException
-import java.io.IOException
 import java.lang.RuntimeException
 
 class LoginActivity : AppCompatActivity() {

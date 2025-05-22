@@ -24,7 +24,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
-import org.json.JSONObject
 import qrcode.QRCodeBuilder
 import qrcode.QRCodeShapesEnum
 import qrcode.color.Colors
@@ -76,6 +75,7 @@ class FriendsFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_friends, container, false)
 
         friendsList = view.findViewById(R.id.friendList)
+
         // Initialize with empty list, will be populated in onViewCreated
         val emptyFriends = listOf<Friend>()
         friendAdapter = FriendAdapter(emptyFriends.toMutableList())
@@ -117,6 +117,7 @@ class FriendsFragment : Fragment() {
     
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         // Add debug logging for user data
         Log.d(TAG, "User data loaded: ${user.username}, ID: ${user.id}, Friends count: ${user.friends.size}")
         fetchFriends()
@@ -242,11 +243,13 @@ class FriendAdapter(private val friends: MutableList<Friend>) :
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_friend, parent, false)
+
         return ViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val friend = friends[position]
+
         holder.apply {
             friendName.text = friend.name
             friendPoints.text = "${friend.points} pts"
