@@ -33,6 +33,8 @@ import java.util.UUID
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.viewpager2.widget.ViewPager2
 import android.widget.FrameLayout
+import android.os.Handler
+import android.os.Looper
 
 /**
  * A simple [Fragment] subclass.
@@ -70,6 +72,16 @@ class FriendsFragment : Fragment() {
             Log.d(TAG, "Fragment not ready for refresh")
         }
     }
+    
+    // Utility function to validate UUID
+    private fun isValidUUID(uuidString: String): Boolean {
+        return try {
+            UUID.fromString(uuidString)
+            true
+        } catch (e: IllegalArgumentException) {
+            false
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,6 +91,9 @@ class FriendsFragment : Fragment() {
             if (result.resultCode == Activity.RESULT_OK) {
                 val data: Intent? = result.data
                 val scannedData = data?.getStringExtra("SCANNED_UUID").toString()
+                
+                // Check if the data is outside scan
+                val outsideScan = data?.getBooleanExtra("OUTSIDE_SCAN", false) ?: false
 
                 // Before any async work, immediately try to navigate to Friends tab
                 activity?.let { mainActivity ->
@@ -105,7 +120,7 @@ class FriendsFragment : Fragment() {
                         }
                         
                         // Schedule another navigation attempt after a short delay
-                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        Handler(Looper.getMainLooper()).postDelayed({
                             try {
                                 if (isAdded && !isDetached) {
                                     Log.d(TAG, "Delayed navigation to Friends tab")
@@ -117,38 +132,73 @@ class FriendsFragment : Fragment() {
                         }, 300) // Wait 300ms to ensure UI has stabilized
                     }
                 }
-
-                GlobalScope.launch(Dispatchers.Main) {
-                    val response = supabaseClient.addFriend(scannedData, user.authToken)
-                    if (response.isSuccessful) {
-                        Toast.makeText(activity, "Added a new friend!", Toast.LENGTH_LONG).show()
+                
+                // Check if the scanned data is a valid UUID
+                if (isValidUUID(scannedData)) {
+                    // First, check if this friend is already in the user's friend list
+                    val friendUuid = UUID.fromString(scannedData)
+                    if (user.friends.contains(friendUuid)) {
+                        Toast.makeText(activity, "This friend is already in your list!", Toast.LENGTH_LONG).show()
+                        return@registerForActivityResult
+                    }
+                    
+                    // Handle the case where the QR code was scanned from outside
+                    if (outsideScan) {
+                        Log.d(TAG, "Handling scan from outside FriendsFragment")
                         
-                        // Update user object with the new friend
-                        updateUserWithNewFriend(scannedData)
-                        
-                        // Refresh friends list after adding a new friend
-                        fetchFriends()
-                        
-                        // Make sure we navigate to the Friends tab
+                        // Make sure we're on the Friends tab
                         activity?.let { mainActivity ->
-                            // Force navigation to Friends tab
-                            val bottomNav = mainActivity.findViewById<BottomNavigationView>(R.id.bottom_navigation)
-                            Log.d(TAG, "Setting selected nav item to Friends")
-                            bottomNav?.selectedItemId = R.id.nav_friends
-                            
-                            // Ensure ViewPager is set to Friends tab (position 3)
                             if (mainActivity is MainActivity) {
-                                Log.d(TAG, "Explicitly navigating to Friends tab via MainActivity")
-                                mainActivity.navigateToTab("friends")
-                                
-                                // Ensure fragment container is hidden and ViewPager is visible
-                                mainActivity.findViewById<ViewPager2>(R.id.viewPager).visibility = View.VISIBLE
-                                mainActivity.findViewById<FrameLayout>(R.id.fragment_container).visibility = View.GONE
+                                // Set up delayed execution to ensure UI is ready
+                                Handler(Looper.getMainLooper()).postDelayed({
+                                    try {
+                                        // Check that we're still valid
+                                        if (isAdded && !isDetached) {
+                                            Log.d(TAG, "Delayed navigation to Friends tab")
+                                            mainActivity.navigateToTab("friends")
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "Error in delayed navigation", e)
+                                    }
+                                }, 300) // Wait 300ms to ensure UI has stabilized
                             }
                         }
-                    } else {
-                        Toast.makeText(activity, "Failed to add new friend :<", Toast.LENGTH_LONG).show()
                     }
+
+                    GlobalScope.launch(Dispatchers.Main) {
+                        val response = supabaseClient.addFriend(scannedData, user.authToken)
+                        if (response.isSuccessful) {
+                            Toast.makeText(activity, "Added a new friend!", Toast.LENGTH_LONG).show()
+                            
+                            // Update user object with the new friend
+                            updateUserWithNewFriend(scannedData)
+                            
+                            // Refresh friends list after adding a new friend
+                            fetchFriends()
+                            
+                            // Make sure we navigate to the Friends tab
+                            activity?.let { mainActivity ->
+                                // Force navigation to Friends tab
+                                val bottomNav = mainActivity.findViewById<BottomNavigationView>(R.id.bottom_navigation)
+                                Log.d(TAG, "Setting selected nav item to Friends")
+                                bottomNav?.selectedItemId = R.id.nav_friends
+                                
+                                // Ensure ViewPager is set to Friends tab (position 3)
+                                if (mainActivity is MainActivity) {
+                                    Log.d(TAG, "Explicitly navigating to Friends tab via MainActivity")
+                                    mainActivity.navigateToTab("friends")
+                                    
+                                    // Ensure fragment container is hidden and ViewPager is visible
+                                    mainActivity.findViewById<ViewPager2>(R.id.viewPager).visibility = View.VISIBLE
+                                    mainActivity.findViewById<FrameLayout>(R.id.fragment_container).visibility = View.GONE
+                                }
+                            }
+                        } else {
+                            Toast.makeText(activity, "Failed to add new friend :<", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                } else {
+                    Toast.makeText(activity, "Not a valid QR code", Toast.LENGTH_LONG).show()
                 }
             } else {
                 Toast.makeText(activity, "Not a valid QR code", Toast.LENGTH_LONG).show()
