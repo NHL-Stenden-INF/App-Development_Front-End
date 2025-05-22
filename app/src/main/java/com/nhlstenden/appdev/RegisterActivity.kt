@@ -12,8 +12,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GestureDetectorCompat
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
-import com.nhlstenden.appdev.LoginActivity
 import com.nhlstenden.appdev.databinding.ActivityRegisterBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,8 +19,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONException
 import org.json.JSONObject
-import retrofit2.HttpException
-import java.io.IOException
 
 class RegisterActivity : AppCompatActivity() {
 
@@ -37,6 +33,7 @@ class RegisterActivity : AppCompatActivity() {
     private val sleepRunnable = Runnable {
         if (!isFinishing) {
             isMascotSleeping = true
+
             // Switch to sleeping mascot with crossfade
             Glide.with(this@RegisterActivity)
                 .asGif()
@@ -79,11 +76,13 @@ class RegisterActivity : AppCompatActivity() {
                     }
                 }
             }
+
             return false
         }
 
         override fun onDown(e: MotionEvent): Boolean {
             resetSleepTimer()
+
             return true
         }
     }

@@ -96,6 +96,7 @@ class CourseTopicsFragment : Fragment() {
         backButton.setOnClickListener {
             // Pop the back stack to return to the previous fragment
             parentFragmentManager.popBackStack()
+
             // Restore the main menu visibility
             requireActivity().findViewById<ViewPager2>(R.id.viewPager).visibility = View.VISIBLE
             requireActivity().findViewById<FrameLayout>(R.id.fragment_container).visibility = View.GONE

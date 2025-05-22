@@ -15,7 +15,6 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -165,7 +164,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateMotivationalMessage(user: User) {
-        // TODO: Replace with actual friend data from your backend
+        // TODO: Replace with actual friend data from the backend
         val friendName = "John"
         val tasksAhead = 5
         motivationalMessage.text = getString(R.string.motivational_message, friendName, tasksAhead)
@@ -178,7 +177,7 @@ class HomeFragment : Fragment() {
         val container = view.findViewById<LinearLayout>(R.id.daysContainer)
         container.removeAllViews()
 
-        // Use a solid color that's visible in both light and dark modes
+        // Using a solid color that's visible in both light and dark modes
         val textColor = if (isNightMode()) {
             Color.WHITE
         } else {

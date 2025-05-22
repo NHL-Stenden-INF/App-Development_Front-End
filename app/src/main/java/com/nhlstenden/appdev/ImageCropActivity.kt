@@ -14,8 +14,6 @@ import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 
