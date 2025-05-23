@@ -14,6 +14,32 @@
         android:layout_height="wrap_content"
         android:padding="12dp">
 
+        <FrameLayout
+            android:id="@+id/comingSoonSticker"
+            android:layout_width="48dp"
+            android:layout_height="20dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="4dp"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_coming_soon"
+                android:contentDescription="Coming soon background" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="Soon"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:textSize="10sp"/>
+        </FrameLayout>
+
         <ImageView
             android:id="@+id/rewardIcon"
             android:layout_width="80dp"

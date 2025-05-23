@@ -24,6 +24,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.util.concurrent.TimeUnit
 import com.nhlstenden.appdev.models.RewardsManager
+import android.widget.FrameLayout
 
 class RewardsFragment : Fragment() {
     private lateinit var pointsValue: TextView
@@ -459,6 +460,13 @@ class RewardShopAdapter(
             rewardIcon.setImageResource(reward.iconResId)
             rewardTitle.text = reward.title
             rewardDescription.text = reward.description
+            // Show coming soon sticker for all except the music reward
+            val comingSoonSticker = itemView.findViewById<FrameLayout>(R.id.comingSoonSticker)
+            if (!reward.title.equals("Course Lobby Music", ignoreCase = true)) {
+                comingSoonSticker.visibility = View.VISIBLE
+            } else {
+                comingSoonSticker.visibility = View.GONE
+            }
             if (reward.isUnlocked) {
                 // Show strikethrough text for unlocked items
                 val pointsText = "${reward.pointsCost} pts"
