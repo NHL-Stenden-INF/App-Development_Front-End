@@ -15,11 +15,6 @@ import androidx.viewpager2.widget.ViewPager2
 import android.widget.FrameLayout
 import com.nhlstenden.appdev.models.CourseParser
 
-/**
- * A simple [Fragment] subclass.
- * Use the [TasksFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class CoursesFragment : Fragment() {
     private lateinit var coursesList: RecyclerView
     private lateinit var filterChipGroup: ChipGroup
@@ -43,14 +38,11 @@ class CoursesFragment : Fragment() {
     }
 
     private fun setupCoursesList() {
-        // Try to load courses from XML first
         val courseParser = CourseParser(requireContext())
         val parsedCourses = courseParser.loadAllCourses()
         
-        // If XML parsing failed, use hardcoded courses as fallback
         val courses = if (parsedCourses.isNotEmpty()) {
             parsedCourses.map { parsedCourse ->
-                // Map the CourseParser.Course to the Course model used by the adapter
                 val difficulty = when {
                     parsedCourse.title.contains("HTML", ignoreCase = true) -> "Beginner"
                     parsedCourse.title.contains("CSS", ignoreCase = true) -> "Intermediate"
@@ -73,7 +65,6 @@ class CoursesFragment : Fragment() {
                 )
             }
         } else {
-            // Fallback to hardcoded courses
             listOf(
                 Course(
                     "HTML",

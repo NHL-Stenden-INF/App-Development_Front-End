@@ -5,16 +5,8 @@ import android.content.res.Resources
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.Reward
 
-/**
- * Manager class for handling rewards data
- * Provides a cleaner way to load rewards from resources
- */
 class RewardsManager(private val context: Context, private val resources: Resources) {
 
-    /**
-     * Load all rewards from XML resources
-     * @return List of Reward objects
-     */
     fun loadRewards(): List<Reward> {
         val titles = resources.getStringArray(R.array.reward_titles)
         val descriptions = resources.getStringArray(R.array.reward_descriptions)
@@ -32,11 +24,6 @@ class RewardsManager(private val context: Context, private val resources: Resour
         }
     }
     
-    /**
-     * Get a specific reward by its index
-     * @param index The index of the reward
-     * @return The Reward object at the specified index
-     */
     fun getReward(index: Int): Reward {
         val titles = resources.getStringArray(R.array.reward_titles)
         val descriptions = resources.getStringArray(R.array.reward_descriptions)
@@ -56,20 +43,10 @@ class RewardsManager(private val context: Context, private val resources: Resour
         )
     }
     
-    /**
-     * Get the total number of available rewards
-     * @return The number of rewards
-     */
     fun getRewardCount(): Int {
         return resources.getStringArray(R.array.reward_titles).size
     }
     
-    /**
-     * Update rewards with unlocked status from server
-     * @param rewards The list of rewards to update
-     * @param unlockedRewardIds List of IDs (or titles) of unlocked rewards
-     * @return Updated list of rewards with correct unlock status
-     */
     fun updateUnlockedStatus(rewards: List<Reward>, unlockedRewardIds: List<String>): List<Reward> {
         android.util.Log.d("RewardsManager", "Updating unlocked status with IDs: $unlockedRewardIds")
         

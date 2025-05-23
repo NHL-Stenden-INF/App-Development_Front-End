@@ -25,32 +25,26 @@ class AnimatedButton @JvmOverloads constructor(
         animationView = view.findViewById(R.id.buttonAnimation)
         textView = view.findViewById(R.id.buttonText)
         
-        // Set up default animation file
         animationView.setAnimation(R.raw.button_animation)
         
-        // Handle touch events for animation
         setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    // Load press animation
                     animationView.setAnimation(R.raw.button_press)
                     animationView.playAnimation()
                     false
                 }
 
                 MotionEvent.ACTION_UP -> {
-                    // If pressed within bounds, trigger click
                     if (event.x >= 0 && event.x <= width &&
                         event.y >= 0 && event.y <= height) {
                         
-                        // Pass the click event to the original onClick implementation
                         performClick()
                     }
                     
-                    // Reset animation back to idle state but don't play it
                     animationView.setAnimation(R.raw.button_animation)
-                    animationView.progress = 0f // Reset to first frame
-                    animationView.pauseAnimation() // Make sure it's not playing
+                    animationView.progress = 0f 
+                    animationView.pauseAnimation() 
                     
                     false
                 }
@@ -78,24 +72,20 @@ class AnimatedButton @JvmOverloads constructor(
             }
         }
         
-        // Set button text
         textView.text = buttonText
     }
     
-    // Set button text programmatically
     fun setButtonText(text: String) {
         buttonText = text
         textView.text = text
     }
     
     fun startIdleAnimation() {
-        // Only start animation if animateOnLoop is true
         if (animateOnLoop) {
             animationView.setAnimation(R.raw.button_animation)
             animationView.playAnimation()
             animationView.repeatCount = -1 // Infinite loop
         } else {
-            // Just set the animation but don't play it
             animationView.setAnimation(R.raw.button_animation)
             animationView.progress = 0f // Set to first frame
             animationView.pauseAnimation() // Make sure it's stopped
@@ -104,7 +94,6 @@ class AnimatedButton @JvmOverloads constructor(
     
     override fun setOnClickListener(listener: OnClickListener?) {
         this.clickListener = listener
-        // Don't call super here, we handle the click in performClick
     }
     
     override fun performClick(): Boolean {

@@ -2,9 +2,6 @@ package com.nhlstenden.appdev.models
 
 import com.nhlstenden.appdev.User
 
-/**
- * Singleton class for managing user state throughout the application
- */
 object UserManager {
     private var currentUser: User? = null
     

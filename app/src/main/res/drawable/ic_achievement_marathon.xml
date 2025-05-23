@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Shoe body -->
+    <path android:fillColor="#009688" android:pathData="M3,17c0,2 2,3 4,3h10c2,0 4,-1 4,-3v-2H3v2z"/>
+    <!-- Sole -->
+    <path android:fillColor="#B2DFDB" android:pathData="M3,19h18c0,1 -2,2 -4,2H7c-2,0 -4,-1 -4,-2z"/>
+    <!-- Laces -->
+    <path android:strokeColor="#FFF" android:strokeWidth="0.7" android:pathData="M7,18h2M11,18h2M15,18h2"/>
+</vector> 

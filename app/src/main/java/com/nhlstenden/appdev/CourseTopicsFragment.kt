@@ -54,7 +54,6 @@ class CourseTopicsFragment : Fragment() {
             if (Math.abs(diffX) > Math.abs(diffY)) {
                 if (Math.abs(diffX) > 100 && Math.abs(velocityX) > 100) {
                     if (diffX > 0) {
-                        // Swipe right - go back
                         findNavController().navigateUp()
                         return true
                     }
@@ -76,7 +75,6 @@ class CourseTopicsFragment : Fragment() {
         this.user = activity?.intent?.getParcelableExtra("USER_DATA", User::class.java)!!
         this.courseName = arguments?.getString("courseName") ?: ""
         
-        // Load course data from XML
         val courseParser = CourseParser(requireContext())
         this.courseData = courseParser.loadCourseByTitle(courseName)
 
@@ -91,10 +89,8 @@ class CourseTopicsFragment : Fragment() {
         courseDescription = view.findViewById(R.id.courseDescription)
         backButton = view.findViewById(R.id.backButton)
 
-        // Set up gesture detector
         gestureDetector = GestureDetectorCompat(requireContext(), SwipeGestureListener())
 
-        // Set up touch listener for the root view
         view.setOnTouchListener { _, event ->
             gestureDetector.onTouchEvent(event)
         }
@@ -117,17 +113,14 @@ class CourseTopicsFragment : Fragment() {
 
     private fun setupBackButton() {
         backButton.setOnClickListener {
-            // Pop the back stack to return to the previous fragment
             parentFragmentManager.popBackStack()
 
-            // Restore the main menu visibility
             requireActivity().findViewById<ViewPager2>(R.id.viewPager).visibility = View.VISIBLE
             requireActivity().findViewById<FrameLayout>(R.id.fragment_container).visibility = View.GONE
         }
     }
 
     private fun setupTopicsList() {
-        // Try to use topics from XML, fall back to hardcoded topics if needed
         val topics = courseData?.topics ?: when (courseName) {
             "HTML" -> listOf(
                 Topic("HTML Basics", "Beginner", "Learn the fundamentals of HTML markup language", 75),

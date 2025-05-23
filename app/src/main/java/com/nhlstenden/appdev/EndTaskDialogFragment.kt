@@ -20,7 +20,6 @@ class EndTaskDialogFragment : DialogFragment() {
     
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return super.onCreateDialog(savedInstanceState).apply {
-            // Make dialog background transparent to use our custom background
             window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         }
     }
@@ -36,13 +35,10 @@ class EndTaskDialogFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        // Add buttons programmatically to the LinearLayout
         val buttonContainer = view.findViewById<LinearLayout>(R.id.buttonContainer)
         
-        // Clear any existing views first
         buttonContainer.removeAllViews()
         
-        // Add cancel button
         val cancelButton = MaterialButton(requireContext()).apply {
             text = "Cancel"
             setOnClickListener {
@@ -56,15 +52,12 @@ class EndTaskDialogFragment : DialogFragment() {
             )
         }
         
-        // Add confirm button
         val confirmButton = MaterialButton(requireContext()).apply {
             text = "Confirm"
             setOnClickListener {
-                // Exit to main activity
                 val context = requireContext()
                 val intent = Intent(context, MainActivity::class.java)
                 
-                // Get current user from UserManager singleton
                 val currentUser = UserManager.getCurrentUser()
                 if (currentUser != null) {
                     intent.putExtra("USER_DATA", currentUser)
@@ -85,7 +78,6 @@ class EndTaskDialogFragment : DialogFragment() {
             )
         }
         
-        // Add buttons to container
         buttonContainer.addView(cancelButton)
         buttonContainer.addView(confirmButton)
     }
