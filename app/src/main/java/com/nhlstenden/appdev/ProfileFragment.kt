@@ -178,13 +178,23 @@ class ProfileFragment : Fragment() {
                     
                     withContext(Dispatchers.Main) {
                         if (response.isSuccessful) {
-                            Toast.makeText(context, "Profile picture updated", Toast.LENGTH_SHORT).show()
-                            
                             // Update the User object with the new profile picture
-                            userData = user.copy(profilePicture = base64Image)
+                            val updatedUser = user.copy(profilePicture = base64Image)
+                            userData = updatedUser
                             
-                            // Notify the parent activity/fragment that the user data has changed
-                            (activity as? MainActivity)?.updateUserData(userData)
+                            // Update the UI immediately
+                            profilePictureView.setImageBitmap(
+                                BitmapFactory.decodeByteArray(
+                                    Base64.decode(base64Image, Base64.DEFAULT),
+                                    0,
+                                    Base64.decode(base64Image, Base64.DEFAULT).size
+                                )
+                            )
+                            
+                            // Notify the parent activity that the user data has changed
+                            (activity as? MainActivity)?.updateUserData(updatedUser)
+                            
+                            Toast.makeText(context, "Profile picture updated", Toast.LENGTH_SHORT).show()
                         } else {
                             val errorBody = response.body?.string() ?: "Unknown error"
                             val errorCode = response.code

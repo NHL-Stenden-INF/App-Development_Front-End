@@ -250,21 +250,24 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             
-            // Update the currently visible fragment in ViewPager if it's FriendsFragment
-            if (viewPagerView.visibility == View.VISIBLE) {
-                val currentItem = viewPagerView.currentItem
-                if (currentItem == 3) { // Index 3 is the FriendsFragment
-                    Log.d(TAG, "FriendsFragment is currently visible, refreshing it directly")
-                    
-                    // Try to find the FriendsFragment in the FragmentManager
-                    val fragmentManager = supportFragmentManager
-                    fragmentManager.fragments.forEach { fragment ->
-                        if (fragment is FriendsFragment && fragment.isVisible) {
-                            Log.d(TAG, "Found visible FriendsFragment, triggering refresh")
-                            // Force refresh by calling fetchFriends
-                            fragment.fetchFriendsNow()
-                            return@forEach // Exit after first match
+            // Update the currently visible fragment in ViewPager
+            val currentItem = viewPagerView.currentItem
+            when (currentItem) {
+                0 -> { // Home tab
+                    val homeFragment = supportFragmentManager.fragments.find { it is HomeFragment }
+                    if (homeFragment is HomeFragment) {
+                        Log.d(TAG, "Refreshing HomeFragment")
+                        homeFragment.arguments = Bundle().apply {
+                            putParcelable("USER_DATA", userData)
                         }
+                        homeFragment.setupUI(homeFragment.requireView())
+                    }
+                }
+                1 -> { // Friends tab
+                    val friendsFragment = supportFragmentManager.fragments.find { it is FriendsFragment }
+                    if (friendsFragment is FriendsFragment) {
+                        Log.d(TAG, "Refreshing FriendsFragment")
+                        friendsFragment.fetchFriendsNow()
                     }
                 }
             }

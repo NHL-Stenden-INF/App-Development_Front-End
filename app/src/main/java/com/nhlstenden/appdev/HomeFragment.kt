@@ -135,7 +135,7 @@ class HomeFragment : Fragment() {
         }
     }
     
-    private fun setupUI(view: View) {
+    fun setupUI(view: View) {
         // Get user data from arguments
         val userData = arguments?.getParcelable<User>("USER_DATA")
         userData?.let { user ->

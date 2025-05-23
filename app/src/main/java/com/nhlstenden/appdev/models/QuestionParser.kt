@@ -80,6 +80,8 @@ class QuestionParser(private val context: Context) {
                 
                 val options = parseOptions(optionsNodeList)
                 if (options.isNotEmpty()) {
+                    // Shuffle options to randomize answer order
+                    options.shuffle()
                     questions.add(Question.MultipleChoiceQuestion(questionText, options))
                 }
             }
@@ -130,17 +132,14 @@ class QuestionParser(private val context: Context) {
         return questions
     }
     
-    private fun parseOptions(optionsNodeList: NodeList): List<Option> {
+    private fun parseOptions(optionsNodeList: NodeList): MutableList<Option> {
         val options = mutableListOf<Option>()
-        
         for (j in 0 until optionsNodeList.length) {
             val optionElement = optionsNodeList.item(j) as Element
             val optionText = optionElement.textContent
             val isCorrect = optionElement.getAttribute("correct").equals("true", ignoreCase = true)
-            
             options.add(Option(optionText, isCorrect))
         }
-        
         return options
     }
 } 

@@ -17,6 +17,7 @@ import com.nhlstenden.appdev.CourseTopicsFragment.Topic
 import com.nhlstenden.appdev.models.QuestionParser
 import com.nhlstenden.appdev.models.UserManager
 import java.io.Serializable
+import org.json.JSONArray
 
 class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
     private lateinit var taskName: TextView
@@ -129,8 +130,19 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
         {
             if (failedQuestions.isNotEmpty()) {
                 activeQuestion = 0
-                questions = failedQuestions
+                // Reshuffle options for each failed question
+                questions = failedQuestions.map { q ->
+                    when (q) {
+                        is Question.MultipleChoiceQuestion -> {
+                            val shuffledOptions = q.options.shuffled()
+                            Question.MultipleChoiceQuestion(q.question, shuffledOptions)
+                        }
+                        else -> q
+                    }
+                }
                 failedQuestions = mutableListOf()
+                // Reset correct answers count for the new round
+                correctAnswersCount = 0
                 // Randomize id list to ensure new views
                 questionIds = questions.map { fragmentIdSeed++ }
                 taskPagerAdapter.notifyDataSetChanged()
@@ -147,10 +159,8 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
                 intent.putExtra("TOPIC_DATA", topicData)
                 intent.putExtra("POINTS_EARNED", pointsEarned)
                 
-                // Get user data from intent or UserManager singleton
-                val userData = this.intent.getParcelableExtra("USER_DATA", User::class.java) 
-                    ?: UserManager.getCurrentUser()
-                
+                // Get user data from UserManager singleton (always up-to-date)
+                val userData = UserManager.getCurrentUser()
                 intent.putExtra("USER_DATA", userData)
                 startActivity(intent)
                 finish()
@@ -198,6 +208,15 @@ class TaskActivity : AppCompatActivity(), OnTaskCompleteListener {
                     Log.e("TaskActivity", "Failed to update points: ${response.code}")
                 } else {
                     Log.d("TaskActivity", "Points updated successfully! New value: $updatedPoints")
+                    // Refresh local user data from Supabase to ensure consistency
+                    val refreshResponse = supabaseClient.getUserAttributes(currentUser.id.toString())
+                    if (refreshResponse.code == 200) {
+                        val userResponse = JSONArray(refreshResponse.body?.string())
+                        val refreshedPoints = userResponse.getJSONObject(0).getInt("points")
+                        val refreshedUser = currentUser.copy(points = refreshedPoints)
+                        UserManager.setCurrentUser(refreshedUser)
+                        Log.d("TaskActivity", "Local user data refreshed from Supabase. New points: $refreshedPoints")
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("TaskActivity", "Error updating points: ${e.message}")
