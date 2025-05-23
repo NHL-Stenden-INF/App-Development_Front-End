@@ -38,6 +38,11 @@ import android.os.Looper
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import okhttp3.Request
 import okhttp3.OkHttpClient
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.core.content.FileProvider
+import java.io.File
+import java.io.FileOutputStream
 
 /**
  * A simple [Fragment] subclass.
@@ -51,6 +56,8 @@ class FriendsFragment : Fragment() {
     private lateinit var friendAdapter: FriendAdapter
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var pullToRefreshText: TextView
+    private lateinit var qrCodeImage: ImageView
+    private var qrCodeBitmap: Bitmap? = null
     private val supabaseClient = SupabaseClient()
     private val TAG = "FriendsFragment"
     
@@ -247,6 +254,10 @@ class FriendsFragment : Fragment() {
         friendsList = view.findViewById(R.id.friendList)
         swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout)
         pullToRefreshText = view.findViewById(R.id.pullToRefreshText)
+        qrCodeImage = view.findViewById(R.id.qrImage)
+
+        // Generate QR code immediately
+        generateQRCode()
 
         // Set up the SwipeRefreshLayout
         swipeRefreshLayout.setOnRefreshListener {
@@ -286,27 +297,11 @@ class FriendsFragment : Fragment() {
         }
 
         val shareButton: Button = view.findViewById(R.id.shareCodeButton)
-        val uuid = this.user.id
-
         shareButton.setOnClickListener {
-            val qrCode = QRCodeBuilder(QRCodeShapesEnum.SQUARE)
-                .withErrorCorrectionLevel(ErrorCorrectionLevel.LOW)
-                .withBackgroundColor(Colors.WHITE_SMOKE)
-                .build(uuid.toString())
-                .renderToBytes()
-            val qrCodeImage: ImageView = view.findViewById(R.id.qrImage)
-
-            qrCodeImage.setImageBitmap(
-                BitmapFactory.decodeByteArray(
-                    qrCode,
-                    0,
-                    qrCode.size
-                )
-            )
+            shareQRCode()
         }
 
         val scanButton: Button = view.findViewById(R.id.scanCodeButton)
-
         scanButton.setOnClickListener {
             val intent = Intent(activity, QRScannerActivity::class.java)
             // Add a flag to remember we should return to the Friends tab
@@ -540,6 +535,52 @@ class FriendsFragment : Fragment() {
                     // Show error toast
                     Toast.makeText(context, "Failed to refresh friends list", Toast.LENGTH_SHORT).show()
                 }
+            }
+        }
+    }
+
+    private fun generateQRCode() {
+        val uuid = this.user.id
+        val qrCode = QRCodeBuilder(QRCodeShapesEnum.SQUARE)
+            .withErrorCorrectionLevel(ErrorCorrectionLevel.LOW)
+            .withBackgroundColor(Colors.WHITE_SMOKE)
+            .build(uuid.toString())
+            .renderToBytes()
+        
+        qrCodeBitmap = BitmapFactory.decodeByteArray(qrCode, 0, qrCode.size)
+        qrCodeImage.setImageBitmap(qrCodeBitmap)
+    }
+
+    private fun shareQRCode() {
+        qrCodeBitmap?.let { bitmap ->
+            try {
+                // Create a temporary file to store the QR code image
+                val imagesFolder = File(requireContext().cacheDir, "images")
+                imagesFolder.mkdirs()
+                val imageFile = File(imagesFolder, "qr_code.png")
+                
+                // Save the bitmap to the file
+                val stream = FileOutputStream(imageFile)
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                stream.flush()
+                stream.close()
+                
+                // Create the share intent
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "image/png"
+                    putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(
+                        requireContext(),
+                        "${requireContext().packageName}.fileprovider",
+                        imageFile
+                    ))
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                
+                // Start the share activity
+                startActivity(Intent.createChooser(shareIntent, "Share QR Code"))
+            } catch (e: Exception) {
+                Log.e(TAG, "Error sharing QR code: ${e.message}")
+                Toast.makeText(context, "Failed to share QR code", Toast.LENGTH_SHORT).show()
             }
         }
     }
