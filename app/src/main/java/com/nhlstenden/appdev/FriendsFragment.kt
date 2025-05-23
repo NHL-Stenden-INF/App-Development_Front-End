@@ -323,14 +323,17 @@ class FriendsFragment : Fragment() {
     
     override fun onStart() {
         super.onStart()
-        
-        // One more check to ensure we're on the Friends tab
         activity?.let { mainActivity ->
             if (mainActivity is MainActivity) {
-                // Don't switch immediately, give the UI time to set up
-                view?.post {
-                    Log.d(TAG, "onStart: Post-delayed navigation to Friends tab")
-                    mainActivity.navigateToTab("friends")
+                // Only navigate if NAVIGATE_TO_FRIENDS flag is set
+                val shouldNavigate = mainActivity.intent.getBooleanExtra("NAVIGATE_TO_FRIENDS", false)
+                if (shouldNavigate) {
+                    view?.post {
+                        Log.d(TAG, "onStart: Conditional navigation to Friends tab")
+                        mainActivity.navigateToTab("friends")
+                        // Clear the flag so it doesn't trigger again
+                        mainActivity.intent.putExtra("NAVIGATE_TO_FRIENDS", false)
+                    }
                 }
             }
         }
@@ -342,26 +345,16 @@ class FriendsFragment : Fragment() {
         // Refresh the friends list in case it was updated elsewhere
         fetchFriends()
         
-        // Ensure we're on the Friends tab when this fragment is resumed
         activity?.let { mainActivity ->
-            Log.d(TAG, "onResume: Setting selected nav item to Friends")
-            val bottomNav = mainActivity.findViewById<BottomNavigationView>(R.id.bottom_navigation)
-            bottomNav?.selectedItemId = R.id.nav_friends
-            
-            if (mainActivity is MainActivity) {
-                Log.d(TAG, "onResume: Explicitly navigating to Friends tab")
-                mainActivity.navigateToTab("friends")
-                
-                // If FriendsFragment is being displayed directly (not in ViewPager),
-                // we need to make sure we switch back to ViewPager mode
-                if (mainActivity.findViewById<FrameLayout>(R.id.fragment_container).visibility == View.VISIBLE) {
-                    val currentFragment = mainActivity.supportFragmentManager.findFragmentById(R.id.fragment_container)
-                    // Only switch if the current fragment isn't something important like profile
-                    if (currentFragment is FriendsFragment) {
-                        Log.d(TAG, "onResume: Switching from direct fragment to ViewPager")
-                        mainActivity.findViewById<ViewPager2>(R.id.viewPager).visibility = View.VISIBLE
-                        mainActivity.findViewById<FrameLayout>(R.id.fragment_container).visibility = View.GONE
-                    }
+            val shouldNavigate = mainActivity.intent.getBooleanExtra("NAVIGATE_TO_FRIENDS", false)
+            if (shouldNavigate) {
+                Log.d(TAG, "onResume: Conditional navigation to Friends tab")
+                val bottomNav = mainActivity.findViewById<BottomNavigationView>(R.id.bottom_navigation)
+                bottomNav?.selectedItemId = R.id.nav_friends
+                if (mainActivity is MainActivity) {
+                    mainActivity.navigateToTab("friends")
+                    // Clear the flag so it doesn't trigger again
+                    mainActivity.intent.putExtra("NAVIGATE_TO_FRIENDS", false)
                 }
             }
         }
