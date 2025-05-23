@@ -5,8 +5,8 @@
         android:id="@+id/nav_home"
         android:icon="@drawable/home_icon_24"/>
 
-    <item android:title="Tasks"
-        android:id="@+id/nav_tasks"
+    <item android:title="Courses"
+        android:id="@+id/nav_courses"
         android:icon="@drawable/task_icon_24"/>
 
     <item android:title="Rewards"

@@ -1,20 +1,33 @@
 # AppDev NHL - Frontend (Android)
 
-This is the Android frontend application for the AppDev NHL project. It allows users to register, log in, and interact with the application's features (once logged in).
+This is the Android frontend application for the AppDev NHL project. It allows users to register, log in, and interact with the application's features through a comprehensive interface with multiple sections and functionalities.
 
 ## Project Structure
 
--   `/app/src/main/java/com/nhlstenden/appdev/`: Contains the Kotlin source code for the Android activities, services, and data models.
+-   `/app/src/main/java/com/nhlstenden/appdev/`: Contains the Kotlin source code for the Android activities, fragments, and UI components.
     -   `LoginActivity.kt`: Handles user login.
     -   `RegisterActivity.kt`: Handles new user registration.
-    -   `MainActivity.kt`: The main screen after a user logs in. (Placeholder for further features)
-    -   `ApiService.kt`: Defines the Retrofit interface for communicating with the backend API.
-    -   `RetrofitClient.kt`: Configures the Retrofit instance, including the backend's base URL.
-    -   `NetworkModels.kt`: Contains data classes for network requests and responses.
+    -   `MainActivity.kt`: The main container activity housing navigation between fragments.
+    -   `SupabaseClient.kt`: Configures and manages communication with Supabase backend services.
+    -   `AnimatedButton.kt`: Custom UI component for interactive buttons.
+    -   `HomeFragment.kt`: Home screen display.
+    -   `ProfileFragment.kt`: User profile management.
+    -   `FriendsFragment.kt`: Friends list and social features.
+    -   `TasksFragment.kt`: Task management interface.
+    -   `CoursesFragment.kt`: Courses overview.
+    -   `CourseTopicsFragment.kt`: Individual course topic details.
+    -   `ProgressFragment.kt`: User progress tracking and visualization.
+    -   `RewardsFragment.kt`: User rewards and achievements.
+    -   `QRScannerActivity.kt`: QR code scanning functionality.
+    -   `ImageCropActivity.kt`: Image editing for profile pictures or uploads.
+    -   `models/`: Data models and managers.
+        -   `CourseModels.kt`: Data classes for course-related information.
+        -   `RewardsManager.kt`: Logic for managing user rewards.
 -   `/app/src/main/res/`: Contains Android resources.
-    -   `layout/`: XML layout files for activities.
+    -   `layout/`: XML layout files for activities and fragments.
     -   `drawable/`: Image assets and custom drawables.
     -   `values/`: XML files for strings, colors, styles, and themes.
+    -   `navigation/`: Navigation graphs for the application.
     -   `animator/`, `anim/`: Animation resources.
 -   `/app/build.gradle.kts`: Gradle build script for the application module.
 
@@ -23,7 +36,7 @@ This is the Android frontend application for the AppDev NHL project. It allows u
 -   Android Studio (latest stable version recommended)
 -   Android SDK (target SDK is 33, min SDK is 33 - ensure these are installed via Android Studio's SDK Manager)
 -   An Android Emulator (configured in Android Studio) or a physical Android device (with USB debugging enabled)
--   The [AppDev NHL Backend](https://github.com/NHL-Stenden-INF/App-Development_Back-End) must be running and accessible from the Android device/emulator.
+-   The backend services (Supabase) must be properly configured and accessible.
 
 ## Setup and Running the Application
 
@@ -40,18 +53,8 @@ This is the Android frontend application for the AppDev NHL project. It allows u
     *   Navigate to the `App-Development_Front-End` directory and open it.
     *   Android Studio will sync the Gradle project. This might take a few minutes.
 
-3.  **Configure Backend IP Address (Important!):**
-    *   Open the file `app/src/main/java/com/nhlstenden/appdev/RetrofitClient.kt`.
-    *   Locate the `BASE_URL` constant:
-        ```kotlin
-        private const val BASE_URL = "http://10.0.2.2:3000/" // Emulator default
-        ```
-    *   **If using an Android Emulator:** `http://10.0.2.2:3000/` is usually correct if your backend is running on the same machine (localhost) as the emulator. `10.0.2.2` is a special alias to the host loopback interface.
-    *   **If using a Physical Device:**
-        *   Ensure your physical device and the machine running the backend are on the **same Wi-Fi network**.
-        *   Find the local IP address of the machine running the backend (e.g., by using `ipconfig` on Windows or `ifconfig`/`ip addr` on Linux/macOS).
-        *   Change `BASE_URL` to this IP address, e.g., `http://192.168.1.100:3000/` (replace `192.168.1.100` with your backend machine's actual local IP).
-    *   **If your backend runs on a different port**, update the port number accordingly.
+3.  **Configure Backend Connection:**
+    *   The application uses Supabase as a backend service. Ensure that the `SupabaseClient.kt` file has the correct configuration for connecting to your Supabase instance.
 
 4.  **Build the Application:**
     *   In Android Studio, select "Build" > "Make Project" or click the "Make Project" button (often a hammer icon).
@@ -63,15 +66,30 @@ This is the Android frontend application for the AppDev NHL project. It allows u
 
 ## Features
 
--   User registration with username, email, and password.
--   User login with email and password using Basic Authentication.
--   Swipe gestures to navigate between Login and Register screens.
--   (Future features will be added to `MainActivity` and other parts of the app.)
+-   User registration and authentication
+-   Home dashboard with activity overview
+-   Course browsing and topic exploration
+-   Task management
+-   Progress tracking with visual charts
+-   Social features including friends management
+-   Rewards and achievements system
+-   QR code scanning functionality
+-   Profile management and customization
 
-## Interacting with the Backend
+## Libraries Used
 
--   The application uses [Retrofit](https://square.github.io/retrofit/) for making HTTP requests to the backend API.
--   The `ApiService.kt` interface defines the API endpoints.
--   Authentication is handled by sending a Basic Auth header with user credentials.
+The application uses several key libraries and frameworks:
+
+-   **Navigation Component**: For fragment-based navigation
+-   **Retrofit & Gson**: For API communication
+-   **Glide**: For image loading and processing
+-   **Lottie**: For advanced animations
+-   **MPAndroidChart**: For data visualization
+-   **QRCode-Kotlin & ZXing**: For QR code generation and scanning
+-   **Supabase SDK**: For backend communication
+
+## Development Guidelines
+
+When contributing to this project, please adhere to the existing code style and patterns. The application follows a fragment-based architecture with a single main activity serving as the container for most UI components.
 
 ---

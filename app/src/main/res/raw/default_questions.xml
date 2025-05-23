@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>What language is primarily used for Android app development?</question_text>
+        <option correct="true">Kotlin</option>
+        <option correct="false">Swift</option>
+        <option correct="false">Ruby</option>
+        <option correct="false">C#</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which of these is not a programming language?</question_text>
+        <option correct="true">Photoshop</option>
+        <option correct="false">Python</option>
+        <option correct="false">JavaScript</option>
+        <option correct="false">PHP</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What does API stand for?</question_text>
+        <option correct="true">Application Programming Interface</option>
+        <option correct="false">Advanced Programming Interface</option>
+        <option correct="false">Application Process Integration</option>
+        <option correct="false">Automated Programming Interface</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which of these is a version control system?</question_text>
+        <option correct="true">Git</option>
+        <option correct="false">Java</option>
+        <option correct="false">Docker</option>
+        <option correct="false">Linux</option>
+    </multiple_choice_question>
+</questions> 

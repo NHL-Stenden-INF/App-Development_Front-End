@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Flame body -->
+    <path android:fillColor="#FFB300" android:pathData="M12,2C10,6 7,9 7,13c0,3.31 2.69,6 5,6s5,-2.69 5,-6c0,-4 -3,-7 -5,-11z"/>
+    <!-- Eyes -->
+    <path android:fillColor="#FFF" android:pathData="M10,15a1,1 0 1,1 2,0a1,1 0 1,1 -2,0zM14,15a1,1 0 1,1 2,0a1,1 0 1,1 -2,0z"/>
+    <!-- Smile -->
+    <path android:strokeColor="#FFF" android:strokeWidth="1" android:pathData="M11,17c0.5,0.5 1.5,0.5 2,0"/>
+</vector> 

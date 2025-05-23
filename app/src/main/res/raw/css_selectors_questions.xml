@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which CSS selector selects all elements with a specific class?</question_text>
+        <option correct="true">.classname</option>
+        <option correct="false">#classname</option>
+        <option correct="false">*classname</option>
+        <option correct="false">@classname</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which CSS selector selects an element with a specific ID?</question_text>
+        <option correct="true">#idname</option>
+        <option correct="false">.idname</option>
+        <option correct="false">@idname</option>
+        <option correct="false">*idname</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which CSS selector selects all paragraph elements?</question_text>
+        <option correct="true">p</option>
+        <option correct="false">.p</option>
+        <option correct="false">#p</option>
+        <option correct="false">@p</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which CSS selector selects all direct children of an element?</question_text>
+        <option correct="true">parent > child</option>
+        <option correct="false">parent + child</option>
+        <option correct="false">parent ~ child</option>
+        <option correct="false">parent child</option>
+    </multiple_choice_question>
+</questions> 

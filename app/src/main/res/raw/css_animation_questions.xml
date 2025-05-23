@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which CSS property is used to specify the animation name?</question_text>
+        <option correct="true">animation-name</option>
+        <option correct="false">animation-title</option>
+        <option correct="false">animation-id</option>
+        <option correct="false">animation-type</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which CSS rule is used to specify the animation code?</question_text>
+        <option correct="true">@keyframes</option>
+        <option correct="false">@animation</option>
+        <option correct="false">@motion</option>
+        <option correct="false">@animate</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which CSS property is used to specify how long an animation should take to complete?</question_text>
+        <option correct="true">animation-duration</option>
+        <option correct="false">animation-time</option>
+        <option correct="false">animation-length</option>
+        <option correct="false">animation-speed</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which CSS property specifies the speed curve of an animation?</question_text>
+        <option correct="true">animation-timing-function</option>
+        <option correct="false">animation-speed-curve</option>
+        <option correct="false">animation-easing</option>
+        <option correct="false">animation-curve</option>
+    </multiple_choice_question>
+</questions> 

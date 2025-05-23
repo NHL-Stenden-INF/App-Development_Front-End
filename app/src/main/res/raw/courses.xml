@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<courses>
+    <course>
+        <title>HTML</title>
+        <description>Learn the fundamentals of HTML markup language and web structure</description>
+        <topics>
+            <topic>
+                <title>HTML Basics</title>
+                <difficulty>Beginner</difficulty>
+                <description>Learn the fundamentals of HTML markup language</description>
+                <default_progress>75</default_progress>
+            </topic>
+            <topic>
+                <title>HTML Structure</title>
+                <difficulty>Beginner</difficulty>
+                <description>Learn about the basic structure of HTML documents</description>
+                <default_progress>50</default_progress>
+            </topic>
+            <topic>
+                <title>HTML Forms</title>
+                <difficulty>Intermediate</difficulty>
+                <description>Create interactive forms with HTML</description>
+                <default_progress>25</default_progress>
+            </topic>
+            <topic>
+                <title>HTML Tables</title>
+                <difficulty>Intermediate</difficulty>
+                <description>Organize data with HTML tables</description>
+                <default_progress>0</default_progress>
+            </topic>
+        </topics>
+    </course>
+    <course>
+        <title>CSS</title>
+        <description>Master CSS styling, layout techniques, and responsive design</description>
+        <topics>
+            <topic>
+                <title>CSS Basics</title>
+                <difficulty>Beginner</difficulty>
+                <description>Learn the fundamentals of CSS styling</description>
+                <default_progress>100</default_progress>
+            </topic>
+            <topic>
+                <title>CSS Layout</title>
+                <difficulty>Intermediate</difficulty>
+                <description>Master CSS layout techniques</description>
+                <default_progress>75</default_progress>
+            </topic>
+            <topic>
+                <title>CSS Flexbox</title>
+                <difficulty>Advanced</difficulty>
+                <description>Create flexible layouts with CSS Flexbox</description>
+                <default_progress>50</default_progress>
+            </topic>
+            <topic>
+                <title>CSS Grid</title>
+                <difficulty>Advanced</difficulty>
+                <description>Build complex layouts with CSS Grid</description>
+                <default_progress>25</default_progress>
+            </topic>
+        </topics>
+    </course>
+    <course>
+        <title>SQL</title>
+        <description>Learn database management, queries, and data manipulation</description>
+        <topics>
+            <topic>
+                <title>SQL Basics</title>
+                <difficulty>Beginner</difficulty>
+                <description>Learn the fundamentals of SQL</description>
+                <default_progress>100</default_progress>
+            </topic>
+            <topic>
+                <title>SQL Queries</title>
+                <difficulty>Intermediate</difficulty>
+                <description>Write complex SQL queries</description>
+                <default_progress>75</default_progress>
+            </topic>
+            <topic>
+                <title>SQL Joins</title>
+                <difficulty>Advanced</difficulty>
+                <description>Combine data from multiple tables</description>
+                <default_progress>50</default_progress>
+            </topic>
+            <topic>
+                <title>SQL Optimization</title>
+                <difficulty>Advanced</difficulty>
+                <description>Optimize your SQL queries</description>
+                <default_progress>25</default_progress>
+            </topic>
+        </topics>
+    </course>
+</courses> 

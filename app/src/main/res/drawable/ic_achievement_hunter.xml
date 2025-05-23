@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Trophy body -->
+    <path android:fillColor="#43A047" android:pathData="M17,3H7v4c0,3.31 2.69,6 5,6s5,-2.69 5,-6V3z"/>
+    <!-- Trophy base -->
+    <path android:fillColor="#388E3C" android:pathData="M9,19h6v2H9z"/>
+    <!-- Handles -->
+    <path android:strokeColor="#43A047" android:strokeWidth="1" android:pathData="M5,7c-2,2 0,6 2,6M19,7c2,2 0,6 -2,6"/>
+    <!-- Star -->
+    <path android:fillColor="#FFD600" android:pathData="M12,8.5l0.95,1.91l2.11,0.31l-1.53,1.49l0.36,2.09L12,13.25l-1.89,0.99l0.36,-2.09l-1.53,-1.49l2.11,-0.31z"/>
+</vector> 
