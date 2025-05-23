@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which SQL statement is used to create a database?</question_text>
+        <option correct="true">CREATE DATABASE</option>
+        <option correct="false">NEW DATABASE</option>
+        <option correct="false">ADD DATABASE</option>
+        <option correct="false">MAKE DATABASE</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which SQL statement is used to create a table?</question_text>
+        <option correct="true">CREATE TABLE</option>
+        <option correct="false">NEW TABLE</option>
+        <option correct="false">ADD TABLE</option>
+        <option correct="false">MAKE TABLE</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which SQL statement is used to add a column to a table?</question_text>
+        <option correct="true">ALTER TABLE</option>
+        <option correct="false">MODIFY TABLE</option>
+        <option correct="false">CHANGE TABLE</option>
+        <option correct="false">UPDATE TABLE</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which constraint is used to uniquely identify each record in a database table?</question_text>
+        <option correct="true">PRIMARY KEY</option>
+        <option correct="false">UNIQUE</option>
+        <option correct="false">INDEX</option>
+        <option correct="false">IDENTITY</option>
+    </multiple_choice_question>
+</questions> 

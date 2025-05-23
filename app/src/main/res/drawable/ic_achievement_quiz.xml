@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Purple circle background -->
+    <path android:fillColor="#9C27B0" android:pathData="M12,2a10,10 0 1,0 0,20a10,10 0 1,0 0,-20z"/>
+    <!-- Question mark -->
+    <path android:fillColor="#FFF" android:pathData="M12,7c1.5,0 2.5,1 2.5,2.25c0,1.5 -2,2 -2,4"/>
+    <path android:fillColor="#FFF" android:pathData="M12,16.5a1,1 0 1,1 0,2a1,1 0 1,1 0,-2z"/>
+    <!-- Smile under dot -->
+    <path android:strokeColor="#FFF" android:strokeWidth="0.5" android:pathData="M11.5,18c0.5,0.5 1,0.5 1.5,0"/>
+</vector> 

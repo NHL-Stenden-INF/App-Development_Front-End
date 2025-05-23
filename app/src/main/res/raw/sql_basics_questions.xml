@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>What does SQL stand for?</question_text>
+        <option correct="true">Structured Query Language</option>
+        <option correct="false">Standard Query Language</option>
+        <option correct="false">Simple Query Language</option>
+        <option correct="false">Structured Question Language</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which SQL statement is used to extract data from a database?</question_text>
+        <option correct="true">SELECT</option>
+        <option correct="false">EXTRACT</option>
+        <option correct="false">GET</option>
+        <option correct="false">OPEN</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which SQL statement is used to update data in a database?</question_text>
+        <option correct="true">UPDATE</option>
+        <option correct="false">MODIFY</option>
+        <option correct="false">SAVE</option>
+        <option correct="false">CHANGE</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which SQL statement is used to delete data from a database?</question_text>
+        <option correct="true">DELETE</option>
+        <option correct="false">REMOVE</option>
+        <option correct="false">ERASE</option>
+        <option correct="false">DROP</option>
+    </multiple_choice_question>
+</questions> 

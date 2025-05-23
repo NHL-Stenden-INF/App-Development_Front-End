@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which SQL JOIN returns rows when there is at least one match in both tables?</question_text>
+        <option correct="true">INNER JOIN</option>
+        <option correct="false">OUTER JOIN</option>
+        <option correct="false">FULL JOIN</option>
+        <option correct="false">CROSS JOIN</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which SQL JOIN returns all rows from the left table and matching rows from the right table?</question_text>
+        <option correct="true">LEFT JOIN</option>
+        <option correct="false">RIGHT JOIN</option>
+        <option correct="false">FULL JOIN</option>
+        <option correct="false">INNER JOIN</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which SQL JOIN returns all rows from the right table and matching rows from the left table?</question_text>
+        <option correct="true">RIGHT JOIN</option>
+        <option correct="false">LEFT JOIN</option>
+        <option correct="false">FULL JOIN</option>
+        <option correct="false">INNER JOIN</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which SQL JOIN returns all rows when there is a match in either left or right table?</question_text>
+        <option correct="true">FULL JOIN</option>
+        <option correct="false">LEFT JOIN</option>
+        <option correct="false">RIGHT JOIN</option>
+        <option correct="false">INNER JOIN</option>
+    </multiple_choice_question>
+</questions> 

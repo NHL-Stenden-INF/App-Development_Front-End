@@ -24,6 +24,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.util.concurrent.TimeUnit
 import com.nhlstenden.appdev.models.RewardsManager
+import android.widget.FrameLayout
 
 class RewardsFragment : Fragment() {
     private lateinit var pointsValue: TextView
@@ -182,34 +183,27 @@ class RewardsFragment : Fragment() {
     }
 
     private fun setupAchievements(view: View) {
-        val achievements = listOf(
-            Achievement("HTML Master", "Complete all HTML challenges", R.drawable.ic_medal_gold, true),
-            Achievement("CSS Wizard", "Create 10 custom styles", R.drawable.ic_medal_silver, false),
-            Achievement("SQL Expert", "Write 20 complex queries", R.drawable.ic_medal_bronze, false),
-            Achievement("Code Ninja", "Complete 50 coding tasks", R.drawable.ic_medal_gold, true),
-            Achievement("Style Guru", "Master all CSS properties", R.drawable.ic_medal_silver, false),
-            Achievement("Database Pro", "Design 5 database schemas", R.drawable.ic_medal_bronze, true),
-            Achievement("HTML Hero", "Create 15 responsive layouts", R.drawable.ic_medal_gold, false),
-            Achievement("CSS Artist", "Design 20 animations", R.drawable.ic_medal_silver, false),
-            Achievement("SQL Master", "Optimize 10 queries", R.drawable.ic_medal_bronze, false),
-            Achievement("Debug Pro", "Fix 25 bugs", R.drawable.ic_medal_gold, true),
-            Achievement("Git Expert", "Make 100 commits", R.drawable.ic_medal_silver, false),
-            Achievement("Team Player", "Complete 5 group projects", R.drawable.ic_medal_bronze, true)
-        )
+        val titles = resources.getStringArray(R.array.achievement_titles)
+        val descriptions = resources.getStringArray(R.array.achievement_descriptions)
+        val iconNames = resources.getStringArray(R.array.achievement_icons)
+        val achievements = titles.indices.map { i ->
+            val iconResId = resources.getIdentifier(iconNames[i], "drawable", requireContext().packageName)
+            Achievement(titles[i], descriptions[i], if (iconResId != 0) iconResId else R.drawable.ic_achievement, false)
+        }
 
-        // Set up first row of achievements
-        val firstRow = view.findViewById<ViewGroup>(R.id.achievement1)
-        setupAchievementItem(firstRow, achievements[0])
-        val secondRow = view.findViewById<ViewGroup>(R.id.achievement2)
-        setupAchievementItem(secondRow, achievements[1])
-        val thirdRow = view.findViewById<ViewGroup>(R.id.achievement3)
-        setupAchievementItem(thirdRow, achievements[2])
-        val fourthRow = view.findViewById<ViewGroup>(R.id.achievement4)
-        setupAchievementItem(fourthRow, achievements[3])
-        val fifthRow = view.findViewById<ViewGroup>(R.id.achievement5)
-        setupAchievementItem(fifthRow, achievements[4])
-        val sixthRow = view.findViewById<ViewGroup>(R.id.achievement6)
-        setupAchievementItem(sixthRow, achievements[5])
+        // Set up achievement items dynamically (up to 12)
+        val achievementIds = listOf(
+            R.id.achievement1, R.id.achievement2, R.id.achievement3, R.id.achievement4, R.id.achievement5, R.id.achievement6,
+            R.id.achievement7, R.id.achievement8, R.id.achievement9, R.id.achievement10, R.id.achievement11, R.id.achievement12
+        )
+        for (i in achievementIds.indices) {
+            val container = view.findViewById<ViewGroup>(achievementIds[i])
+            if (i < achievements.size) {
+                setupAchievementItem(container, achievements[i])
+            } else {
+                container.visibility = View.GONE
+            }
+        }
     }
 
     private fun setupAchievementItem(container: ViewGroup, achievement: Achievement) {
@@ -230,7 +224,7 @@ class RewardsFragment : Fragment() {
 
     private fun setupRewardShop() {
         // Use RewardsManager to load rewards from resources
-        val rewardsManager = RewardsManager(resources)
+        val rewardsManager = RewardsManager(requireContext(), resources)
         val rewards = rewardsManager.loadRewards()
 
         // Initialize adapter with rewards but don't load unlocked status yet
@@ -328,7 +322,7 @@ class RewardsFragment : Fragment() {
     private fun refreshRewardsList() {
         android.util.Log.d("RewardsFragment", "Refreshing rewards list from server")
         // Use RewardsManager to load rewards from resources
-        val rewardsManager = RewardsManager(resources)
+        val rewardsManager = RewardsManager(requireContext(), resources)
         val rewards = rewardsManager.loadRewards()
 
         // Fetch unlocked rewards from Supabase
@@ -459,6 +453,13 @@ class RewardShopAdapter(
             rewardIcon.setImageResource(reward.iconResId)
             rewardTitle.text = reward.title
             rewardDescription.text = reward.description
+            // Show coming soon sticker for all except the music reward
+            val comingSoonSticker = itemView.findViewById<FrameLayout>(R.id.comingSoonSticker)
+            if (!reward.title.equals("Course Lobby Music", ignoreCase = true)) {
+                comingSoonSticker.visibility = View.VISIBLE
+            } else {
+                comingSoonSticker.visibility = View.GONE
+            }
             if (reward.isUnlocked) {
                 // Show strikethrough text for unlocked items
                 val pointsText = "${reward.pointsCost} pts"

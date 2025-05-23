@@ -15,10 +15,10 @@ import org.json.JSONObject
 import java.util.UUID
 
 class SupabaseClient() {
-    private val client = OkHttpClient()
+    val client = OkHttpClient()
 
-    private val supabaseUrl = "https://ggpdstbylyiwkfcucoxd.supabase.co"
-    private val supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdncGRzdGJ5bHlpd2tmY3Vjb3hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczMDg4MzYsImV4cCI6MjA2Mjg4NDgzNn0.2ZGOttYWxBJkNcPmAtJh6dzlm3G6vwpIonEtRvtNNa8"
+    val supabaseUrl = "https://ggpdstbylyiwkfcucoxd.supabase.co"
+    val supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdncGRzdGJ5bHlpd2tmY3Vjb3hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczMDg4MzYsImV4cCI6MjA2Mjg4NDgzNn0.2ZGOttYWxBJkNcPmAtJh6dzlm3G6vwpIonEtRvtNNa8"
 
     fun createNewUser(email: String, password: String, username: String) {
         val signupRequest = this.signup(email, password, username)
@@ -363,6 +363,93 @@ class SupabaseClient() {
             .build()
             
         return client.newCall(request).execute()
+    }
+
+    // Get all friends for a user with forced refresh
+    suspend fun getAllFriends(authToken: String): Response {
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/get_all_friends")
+            .post("{}".toRequestBody("application/json".toMediaType()))
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Cache-Control", "no-cache, no-store")
+            .addHeader("Pragma", "no-cache")
+            .build()
+            
+        return withContext(Dispatchers.IO) {
+            // Create a new client with no cache to ensure we get fresh data
+            val freshClient = OkHttpClient.Builder()
+                .cache(null)
+                .build()
+                
+            freshClient.newCall(request).execute()
+        }
+    }
+
+    // Simple direct query to get friendships
+    suspend fun queryFriendships(authToken: String): Response {
+        // Get user ID from token claim
+        val userIdFromToken = getUserIdFromToken(authToken)
+        
+        // Add timestamp to prevent caching
+        val timestamp = System.currentTimeMillis()
+        
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/friendships?select=friend_id&user_id=eq.$userIdFromToken&order=created_at.desc&_=$timestamp")
+            .get()
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Cache-Control", "no-cache, no-store")
+            .addHeader("Pragma", "no-cache")
+            .build()
+            
+        return withContext(Dispatchers.IO) {
+            val freshClient = OkHttpClient.Builder()
+                .cache(null)
+                .build()
+                
+            freshClient.newCall(request).execute()
+        }
+    }
+    
+    // Extract user ID from JWT token
+    private fun getUserIdFromToken(token: String): String {
+        val parts = token.split(".")
+        if (parts.size != 3) return ""
+        
+        try {
+            val payload = parts[1]
+            val decoded = android.util.Base64.decode(payload, android.util.Base64.URL_SAFE)
+            val payloadJson = String(decoded)
+            val jsonObject = JSONObject(payloadJson)
+            return jsonObject.optString("sub", "")
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Error decoding token: ${e.message}")
+            return ""
+        }
+    }
+
+    // Get friend IDs for the current user
+    suspend fun getUserFriendIds(authToken: String): Response {
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/get_user_friends")
+            .post("{}".toRequestBody("application/json".toMediaType()))
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Cache-Control", "no-cache, no-store")
+            .addHeader("Pragma", "no-cache")
+            .build()
+            
+        return withContext(Dispatchers.IO) {
+            val freshClient = OkHttpClient.Builder()
+                .cache(null)
+                .build()
+                
+            freshClient.newCall(request).execute()
+        }
     }
 }
 

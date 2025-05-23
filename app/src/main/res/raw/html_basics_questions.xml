@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>What does HTML stand for?</question_text>
+        <option correct="true">Hyper Text Markup Language</option>
+        <option correct="false">Hyperlinks and Text Markup Language</option>
+        <option correct="false">Home Tool Markup Language</option>
+        <option correct="false">Hyper Technical Machine Language</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which HTML tag is used for creating a paragraph?</question_text>
+        <option correct="true">&lt;p&gt;</option>
+        <option correct="false">&lt;paragraph&gt;</option>
+        <option correct="false">&lt;para&gt;</option>
+        <option correct="false">&lt;text&gt;</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which HTML element is used to define the title of a document?</question_text>
+        <option correct="true">&lt;title&gt;</option>
+        <option correct="false">&lt;head&gt;</option>
+        <option correct="false">&lt;heading&gt;</option>
+        <option correct="false">&lt;h1&gt;</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is the correct HTML for creating a hyperlink?</question_text>
+        <option correct="true">&lt;a href="https://example.com"&gt;Link&lt;/a&gt;</option>
+        <option correct="false">&lt;link href="https://example.com"&gt;Link&lt;/link&gt;</option>
+        <option correct="false">&lt;hyperlink="https://example.com"&gt;Link&lt;/hyperlink&gt;</option>
+        <option correct="false">&lt;a url="https://example.com"&gt;Link&lt;/a&gt;</option>
+    </multiple_choice_question>
+</questions> 

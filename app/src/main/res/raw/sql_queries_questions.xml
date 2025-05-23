@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which SQL clause is used to filter records?</question_text>
+        <option correct="true">WHERE</option>
+        <option correct="false">FILTER</option>
+        <option correct="false">HAVING</option>
+        <option correct="false">WHEN</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which SQL clause is used to sort the result set?</question_text>
+        <option correct="true">ORDER BY</option>
+        <option correct="false">SORT BY</option>
+        <option correct="false">ARRANGE BY</option>
+        <option correct="false">GROUP BY</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which SQL clause is used to group rows that have the same values?</question_text>
+        <option correct="true">GROUP BY</option>
+        <option correct="false">CLUSTER BY</option>
+        <option correct="false">COMBINE BY</option>
+        <option correct="false">ORDER BY</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which SQL operator is used to search for a specified pattern in a column?</question_text>
+        <option correct="true">LIKE</option>
+        <option correct="false">MATCH</option>
+        <option correct="false">SIMILAR</option>
+        <option correct="false">PATTERN</option>
+    </multiple_choice_question>
+</questions> 

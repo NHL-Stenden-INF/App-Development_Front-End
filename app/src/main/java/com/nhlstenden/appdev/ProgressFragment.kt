@@ -6,16 +6,19 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.google.android.material.progressindicator.LinearProgressIndicator
+import com.nhlstenden.appdev.models.CourseParser
 
 class ProgressFragment : Fragment() {
     private lateinit var pieChart: PieChart
@@ -49,11 +52,29 @@ class ProgressFragment : Fragment() {
     }
 
     private fun setupPieChart() {
-        // Mock data for task completion
-        val totalTasks = 30
-        val completedTasks = 18
+        // Get all course data from XML
+        val courseParser = CourseParser(requireContext())
+        val courses = courseParser.loadAllCourses()
+        
+        // Calculate overall progress
+        var totalTopics = 0
+        var completedTopicsEquivalent = 0
+        
+        courses.forEach { course ->
+            course.topics.forEach { topic ->
+                totalTopics++
+                completedTopicsEquivalent += topic.progress / 100 // Convert percentage to completion fraction
+            }
+        }
+        
+        // If no data from XML, use mock data as fallback
+        val totalTasks = if (totalTopics > 0) totalTopics else 30
+        val completedTasks = if (completedTopicsEquivalent > 0) completedTopicsEquivalent else 18
         val remainingTasks = totalTasks - completedTasks
-        val completionPercentage = (completedTasks.toFloat() / totalTasks.toFloat() * 100).toInt()
+        val completionPercentage = if (totalTopics > 0) 
+            (completedTopicsEquivalent.toFloat() / totalTopics.toFloat() * 100).toInt()
+        else 
+            (completedTasks.toFloat() / totalTasks.toFloat() * 100).toInt()
         
         // Update overall progress percentage
         overallProgressPercentage.text = getString(R.string.overall_progress_percentage, completionPercentage)
@@ -110,17 +131,68 @@ class ProgressFragment : Fragment() {
     }
 
     private fun setupCourseList() {
-        // Sample data - replace with actual data from your backend
-        val courses = listOf(
-            CourseProgress("HTML", "5/10", 50, R.drawable.html_course),
-            CourseProgress("CSS", "8/12", 67, R.drawable.css_course),
-            CourseProgress("SQL", "3/8", 38, R.drawable.sql_course)
-        )
+        // Get course data from XML
+        val courseParser = CourseParser(requireContext())
+        val parsedCourses = courseParser.loadAllCourses()
+        
+        // Convert to CourseProgress objects for the adapter
+        val courses = if (parsedCourses.isNotEmpty()) {
+            parsedCourses.map { course ->
+                // Calculate completion status and percentage for this course
+                val totalTopics = course.topics.size
+                val averageProgress = if (totalTopics > 0) {
+                    course.topics.sumOf { it.progress } / totalTopics
+                } else 0
+                
+                // Map image resource based on course title
+                val imageResId = when (course.title) {
+                    "HTML" -> R.drawable.html_course
+                    "CSS" -> R.drawable.css_course
+                    "SQL" -> R.drawable.sql_course
+                    else -> R.drawable.html_course // Default fallback
+                }
+                
+                // Calculate completed topics based on progress > 0
+                val completedTopics = course.topics.count { it.progress > 0 }
+                
+                CourseProgress(
+                    course.title,
+                    "$completedTopics/$totalTopics",
+                    averageProgress,
+                    imageResId
+                )
+            }
+        } else {
+            // Fallback to hardcoded data if XML parsing fails
+            listOf(
+                CourseProgress("HTML", "5/10", 50, R.drawable.html_course),
+                CourseProgress("CSS", "8/12", 67, R.drawable.css_course),
+                CourseProgress("SQL", "3/8", 38, R.drawable.sql_course)
+            )
+        }
 
         courseProgressList.apply {
             layoutManager = LinearLayoutManager(context)
-            adapter = CourseProgressAdapter(courses)
+            adapter = CourseProgressAdapter(courses) { courseName ->
+                navigateToCourse(courseName)
+            }
         }
+    }
+    
+    private fun navigateToCourse(courseName: String) {
+        val fragment = CourseTopicsFragment().apply {
+            arguments = Bundle().apply {
+                putString("courseName", courseName)
+            }
+        }
+
+        requireActivity().findViewById<FrameLayout>(R.id.fragment_container).visibility = View.VISIBLE
+        requireActivity().findViewById<ViewPager2>(R.id.viewPager).visibility = View.GONE
+        
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
     }
 }
 
@@ -131,8 +203,10 @@ data class CourseProgress(
     val imageResId: Int
 )
 
-class CourseProgressAdapter(private val courses: List<CourseProgress>) : 
-    RecyclerView.Adapter<CourseProgressAdapter.ViewHolder>() {
+class CourseProgressAdapter(
+    private val courses: List<CourseProgress>,
+    private val onCourseClick: (String) -> Unit
+) : RecyclerView.Adapter<CourseProgressAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val courseImage: ImageView = view.findViewById(R.id.courseImage)
@@ -161,6 +235,11 @@ class CourseProgressAdapter(private val courses: List<CourseProgress>) :
             progressBar.setIndicatorColor(Color.rgb(76, 175, 80)) // Set progress color to green
             progressBar.setTrackColor(Color.rgb(158, 158, 158)) // Set track color to gray
             progressPercentage.text = "${course.progressPercentage}%"
+            
+            // Add click listener for the entire course row
+            itemView.setOnClickListener {
+                onCourseClick(course.title)
+            }
         }
     }
 

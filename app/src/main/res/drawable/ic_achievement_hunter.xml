@@ -4,10 +4,12 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <path
-        android:fillColor="#388E3C"
-        android:pathData="M15.5,14h-0.79l-0.28,-0.27C15.41,12.59 16,11.11 16,9.5 16,5.91 13.09,3 9.5,3S3,5.91 3,9.5 5.91,16 9.5,16c1.61,0 3.09,-0.59 4.23,-1.57l0.27,0.28v0.79l5,4.99L20.49,19l-4.99,-5zM9.5,14C7.01,14 5,11.99 5,9.5S7.01,5 9.5,5 14,7.01 14,9.5 11.99,14 9.5,14z"/>
-    <path
-        android:fillColor="#FFEB3B"
-        android:pathData="M9.5,8l-1,2.75L5.25,11l2.13,1.5L6.5,15l3,-2 3,2 -0.88,-2.5L13.75,11l-3.25,-0.25z"/>
+    <!-- Trophy body -->
+    <path android:fillColor="#43A047" android:pathData="M17,3H7v4c0,3.31 2.69,6 5,6s5,-2.69 5,-6V3z"/>
+    <!-- Trophy base -->
+    <path android:fillColor="#388E3C" android:pathData="M9,19h6v2H9z"/>
+    <!-- Handles -->
+    <path android:strokeColor="#43A047" android:strokeWidth="1" android:pathData="M5,7c-2,2 0,6 2,6M19,7c2,2 0,6 -2,6"/>
+    <!-- Star -->
+    <path android:fillColor="#FFD600" android:pathData="M12,8.5l0.95,1.91l2.11,0.31l-1.53,1.49l0.36,2.09L12,13.25l-1.89,0.99l0.36,-2.09l-1.53,-1.49l2.11,-0.31z"/>
 </vector> 

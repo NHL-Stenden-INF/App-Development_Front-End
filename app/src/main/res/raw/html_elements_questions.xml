@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which HTML element is used to define an image?</question_text>
+        <option correct="true">&lt;img&gt;</option>
+        <option correct="false">&lt;image&gt;</option>
+        <option correct="false">&lt;picture&gt;</option>
+        <option correct="false">&lt;photo&gt;</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which HTML tag is used to create a table?</question_text>
+        <option correct="true">&lt;table&gt;</option>
+        <option correct="false">&lt;tab&gt;</option>
+        <option correct="false">&lt;tbl&gt;</option>
+        <option correct="false">&lt;grid&gt;</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is the correct HTML element for playing audio files?</question_text>
+        <option correct="true">&lt;audio&gt;</option>
+        <option correct="false">&lt;sound&gt;</option>
+        <option correct="false">&lt;mp3&gt;</option>
+        <option correct="false">&lt;media&gt;</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which HTML element is used to define navigation links?</question_text>
+        <option correct="true">&lt;nav&gt;</option>
+        <option correct="false">&lt;navigation&gt;</option>
+        <option correct="false">&lt;navigate&gt;</option>
+        <option correct="false">&lt;menu&gt;</option>
+    </multiple_choice_question>
+</questions> 
