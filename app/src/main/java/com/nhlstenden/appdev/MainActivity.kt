@@ -22,6 +22,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bottomNavigation: BottomNavigationView
     private var userData: User? = null
     private val TAG = "MainActivity"
+    private var lastUpdateTime = 0L
+    private val UPDATE_DEBOUNCE_MS = 500L // Half second debounce
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -224,6 +226,13 @@ class MainActivity : AppCompatActivity() {
     // Update method to more reliably refresh UI
     fun updateUserData(updatedUser: User?) {
         if (updatedUser != null) {
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastUpdateTime < UPDATE_DEBOUNCE_MS) {
+                Log.d(TAG, "Skipping update due to debounce")
+                return
+            }
+            lastUpdateTime = currentTime
+
             // Update the stored user data
             userData = updatedUser
             Log.d(TAG, "User data updated, friends count: ${updatedUser.friends.size}")
@@ -254,22 +263,10 @@ class MainActivity : AppCompatActivity() {
                             Log.d(TAG, "Found visible FriendsFragment, triggering refresh")
                             // Force refresh by calling fetchFriends
                             fragment.fetchFriendsNow()
+                            return@forEach // Exit after first match
                         }
                     }
                 }
-            }
-            
-            // Always recreate the ViewPager adapter to ensure fragments are refreshed when shown
-            if (viewPagerView.adapter != null) {
-                Log.d(TAG, "Recreating ViewPager adapter")
-                // Create and set fresh adapter
-                viewPagerView.adapter = null
-                val newAdapter = MainPagerAdapter(this)
-                viewPagerView.adapter = newAdapter
-                
-                // Preserve current position
-                val currentPosition = viewPagerView.currentItem
-                viewPagerView.setCurrentItem(currentPosition, false)
             }
             
             // Update the intent to keep the User data in sync for future activities
@@ -278,22 +275,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private inner class MainPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {
-        // Remove fragments map as it's not necessary with our new approach
         override fun getItemCount(): Int = 5
 
         override fun createFragment(position: Int): Fragment {
-            return when (position) {
-                0 -> HomeFragment().apply {
-                    arguments = Bundle().apply {
-                        putParcelable("USER_DATA", userData)
-                    }
-                }
+            val fragment = when (position) {
+                0 -> HomeFragment()
                 1 -> CoursesFragment()
                 2 -> RewardsFragment()
                 3 -> FriendsFragment()
                 4 -> ProgressFragment()
                 else -> HomeFragment()
             }
+            
+            // Set user data in fragment arguments
+            fragment.arguments = Bundle().apply {
+                putParcelable("USER_DATA", userData)
+            }
+            
+            return fragment
         }
     }
 } 

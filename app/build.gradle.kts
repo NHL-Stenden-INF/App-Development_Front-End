@@ -49,6 +49,7 @@ dependencies {
     implementation(libs.material)
     implementation("androidx.cardview:cardview:1.0.0")
     implementation("androidx.viewpager2:viewpager2:1.0.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     
     // Navigation Component
     implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")

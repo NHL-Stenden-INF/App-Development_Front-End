@@ -35,6 +35,9 @@ import androidx.viewpager2.widget.ViewPager2
 import android.widget.FrameLayout
 import android.os.Handler
 import android.os.Looper
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import okhttp3.Request
+import okhttp3.OkHttpClient
 
 /**
  * A simple [Fragment] subclass.
@@ -46,6 +49,8 @@ class FriendsFragment : Fragment() {
     private lateinit var user: User
     private lateinit var friendsList: RecyclerView
     private lateinit var friendAdapter: FriendAdapter
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+    private lateinit var pullToRefreshText: TextView
     private val supabaseClient = SupabaseClient()
     private val TAG = "FriendsFragment"
     
@@ -64,6 +69,11 @@ class FriendsFragment : Fragment() {
                         user = updatedUser
                     }
                 }
+            }
+            
+            // Show refresh indicator and fetch the latest friend data
+            if (this::swipeRefreshLayout.isInitialized) {
+                swipeRefreshLayout.isRefreshing = true
             }
             
             // Fetch the latest friend data
@@ -235,6 +245,36 @@ class FriendsFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_friends, container, false)
 
         friendsList = view.findViewById(R.id.friendList)
+        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout)
+        pullToRefreshText = view.findViewById(R.id.pullToRefreshText)
+
+        // Set up the SwipeRefreshLayout
+        swipeRefreshLayout.setOnRefreshListener {
+            // Refresh friends list when user swipes down
+            Log.d(TAG, "Pull-to-refresh triggered, refreshing friends list")
+            pullToRefreshText.visibility = View.GONE
+            fetchFriends()
+        }
+        
+        // Show pull-to-refresh text when scrolling to top
+        friendsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                if (layoutManager.findFirstVisibleItemPosition() == 0) {
+                    pullToRefreshText.visibility = View.VISIBLE
+                } else {
+                    pullToRefreshText.visibility = View.GONE
+                }
+            }
+        })
+        
+        // Customize the refresh indicator colors
+        swipeRefreshLayout.setColorSchemeResources(
+            R.color.colorPrimary,
+            R.color.colorAccent,
+            R.color.primary_dark
+        )
 
         // Initialize with empty list, will be populated in onViewCreated
         val emptyFriends = listOf<Friend>()
@@ -337,91 +377,168 @@ class FriendsFragment : Fragment() {
         Log.d(TAG, "User ID: ${user.id}, Friends count: ${user.friends.size}")
         Log.d(TAG, "Auth token: ${user.authToken.take(15)}...")
         
-        // Don't hide elements yet - wait until we know if we have friends from the user object
-        CoroutineScope(Dispatchers.IO).launch {
+        // Set refreshing indicator
+        if (::swipeRefreshLayout.isInitialized && !swipeRefreshLayout.isRefreshing) {
+            swipeRefreshLayout.isRefreshing = true
+        }
+        
+        CoroutineScope(Dispatchers.Main).launch {
             try {
-                // Convert the UUIDs to strings
-                val friendIds = user.friends.map { it.toString() }
-                
-                Log.d(TAG, "Friend IDs from User object: $friendIds")
-                
-                // Update UI based on whether we have friends or not
-                withContext(Dispatchers.Main) {
-                    val emptyText: TextView? = view?.findViewById(R.id.emptyFriendsText)
+                // Always get fresh data from the database when pull-to-refresh is triggered
+                if (::swipeRefreshLayout.isInitialized && swipeRefreshLayout.isRefreshing) {
+                    Log.d(TAG, "Pull-to-refresh triggered, getting completely fresh data from database")
                     
-                    if (friendIds.isEmpty()) {
-                        // No friends found, show empty message
-                        Log.d(TAG, "No friends found in user object")
-                        emptyText?.visibility = View.VISIBLE
-                        friendsList.visibility = View.GONE
-                        return@withContext
+                    try {
+                        // Get fresh list of friend IDs using the RPC function
+                        val friendIdsResponse = supabaseClient.getUserFriendIds(user.authToken)
+                        
+                        if (friendIdsResponse.isSuccessful) {
+                            val responseBody = friendIdsResponse.body?.string()
+                            Log.d(TAG, "Fresh friend IDs response: $responseBody")
+                            
+                            // Parse the response - the response is a JSON array of UUIDs
+                            val jsonArray = JSONArray(responseBody ?: "[]")
+                            
+                            // Create a completely new friends list
+                            val freshFriends = ArrayList<UUID>()
+                            
+                            for (i in 0 until jsonArray.length()) {
+                                try {
+                                    // Each item is a JSON object with a "friend_id" field
+                                    val friendObject = jsonArray.getJSONObject(i)
+                                    val friendId = friendObject.getString("friend_id")
+                                    Log.d(TAG, "Found friend ID: $friendId")
+                                    freshFriends.add(UUID.fromString(friendId))
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Error during friend IDs refresh: ${e.message}", e)
+                                }
+                            }
+                            
+                            // Log the total count for debugging
+                            Log.d(TAG, "Retrieved ${freshFriends.size} friend IDs from database")
+                            
+                            if (freshFriends.size > 0 || jsonArray.length() == 0) {
+                                // Update the user with the completely fresh friends list
+                                // We update even if the list is empty (jsonArray.length==0) as that's valid - no friends
+                                user.friends.clear()
+                                user.friends.addAll(freshFriends)
+                                
+                                // Update MainActivity
+                                activity?.let {
+                                    if (it is MainActivity) {
+                                        it.updateUserData(user)
+                                        Log.d(TAG, "Updated user with ${freshFriends.size} fresh friend IDs")
+                                    }
+                                }
+                            } else {
+                                Log.w(TAG, "Friend IDs parsing issue, keeping current list.")
+                            }
+                        } else {
+                            // Get the error body for more information
+                            val errorBody = friendIdsResponse.body?.string() ?: "No error body"
+                            Log.e(TAG, "Failed to refresh friend IDs: ${friendIdsResponse.code}, Error: $errorBody")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error during friend IDs refresh: ${e.message}", e)
                     }
-                    
-                    // We have friends, hide empty message and show list
-                    Log.d(TAG, "Found ${friendIds.size} friends in user object")
-                    emptyText?.visibility = View.GONE
-                    friendsList.visibility = View.VISIBLE
                 }
                 
-                // Create a list to store friend details
+                // Get friend IDs from the (possibly updated) user object
+                val friendIds = user.friends.map { it.toString() }
+                Log.d(TAG, "Using these friend IDs: $friendIds")
+                
+                // Update UI based on whether we have friends or not
+                val emptyText: TextView? = view?.findViewById(R.id.emptyFriendsText)
+                
+                if (friendIds.isEmpty()) {
+                    // No friends found, show empty message
+                    Log.d(TAG, "No friends found")
+                    emptyText?.visibility = View.VISIBLE
+                    friendsList.visibility = View.GONE
+                    
+                    // Stop refresh animation
+                    if (::swipeRefreshLayout.isInitialized) {
+                        swipeRefreshLayout.isRefreshing = false
+                    }
+                    return@launch
+                }
+                
+                // We have friends, hide empty message and show list
+                Log.d(TAG, "Found ${friendIds.size} friends")
+                emptyText?.visibility = View.GONE
+                friendsList.visibility = View.VISIBLE
+                
+                // Create a new list to store friend details
                 val friendDetails = mutableListOf<Friend>()
                 
-                // For each friend ID, fetch the details
-                for (friendId in friendIds) {
-                    Log.d(TAG, "Fetching details for friend ID: $friendId")
-                    
-                    // Use our new SQL function to get friend details
-                    val attributesResponse = supabaseClient.getOrCreateFriendAttributes(friendId, user.authToken)
-                    Log.d(TAG, "Friend details response code: ${attributesResponse.code}")
-                    
-                    if (attributesResponse.isSuccessful) {
-                        val attrResponseBody = attributesResponse.body?.string()
-                        Log.d(TAG, "Friend detailed response: $attrResponseBody")
+                // For each friend ID, fetch the latest details
+                withContext(Dispatchers.IO) {
+                    for (friendId in friendIds) {
+                        Log.d(TAG, "Fetching fresh details for friend ID: $friendId")
                         
-                        try {
-                            val jsonArray = JSONArray(attrResponseBody ?: "[]")
-                            if (jsonArray.length() > 0) {
-                                val friendData = jsonArray.getJSONObject(0)
-                                val points = friendData.getInt("points")
-                                val profilePicture = friendData.getString("profile_picture")
-                                
-                                // Get the display name from our SQL function
-                                val displayName = friendData.getString("display_name")
-                                
-                                // Add the friend to our list with all data from SQL function
-                                friendDetails.add(Friend(displayName, points, profilePicture))
-                                Log.d(TAG, "Added friend with full details: $displayName, points: $points")
-                            } else {
-                                Log.e(TAG, "No friend data in JSON response")
+                        // Get fresh details for each friend using existing get_friend_details function
+                        val attributesResponse = supabaseClient.getOrCreateFriendAttributes(friendId, user.authToken)
+                        
+                        if (attributesResponse.isSuccessful) {
+                            val attrResponseBody = attributesResponse.body?.string()
+                            
+                            try {
+                                val jsonArray = JSONArray(attrResponseBody ?: "[]")
+                                if (jsonArray.length() > 0) {
+                                    val friendData = jsonArray.getJSONObject(0)
+                                    val points = friendData.getInt("points")
+                                    val profilePicture = friendData.getString("profile_picture")
+                                    val displayName = friendData.getString("display_name")
+                                    
+                                    // Add friend details
+                                    friendDetails.add(Friend(displayName, points, profilePicture))
+                                    Log.d(TAG, "Added friend details: $displayName")
+                                } else {
+                                    val shortId = friendId.replace("-", "").take(8)
+                                    friendDetails.add(Friend("User ($shortId)", 0, ""))
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error parsing friend data: ${e.message}")
                                 val shortId = friendId.replace("-", "").take(8)
                                 friendDetails.add(Friend("User ($shortId)", 0, ""))
                             }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error parsing friend data: ${e.message}")
-                            e.printStackTrace()
+                        } else {
+                            Log.e(TAG, "Error getting friend details: ${attributesResponse.code}")
                             val shortId = friendId.replace("-", "").take(8)
                             friendDetails.add(Friend("User ($shortId)", 0, ""))
                         }
-                    } else {
-                        Log.e(TAG, "Error getting friend details: ${attributesResponse.code}")
-                        val shortId = friendId.replace("-", "").take(8)
-                        friendDetails.add(Friend("User ($shortId)", 0, ""))
                     }
                 }
                 
-                // Update the UI on the main thread
+                // Update the UI with the fresh data
                 withContext(Dispatchers.Main) {
-                    Log.d(TAG, "Updating adapter with ${friendDetails.size} friends")
+                    Log.d(TAG, "Updating adapter with ${friendDetails.size} fresh friends")
+                    
+                    // Clear and update adapter with completely fresh data
                     friendAdapter.updateFriends(friendDetails)
+                    
+                    // Stop refresh animation
+                    if (::swipeRefreshLayout.isInitialized) {
+                        swipeRefreshLayout.isRefreshing = false
+                    }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error fetching friends: ${e.message}")
+                Log.e(TAG, "Error refreshing friends: ${e.message}", e)
                 e.printStackTrace()
                 
+                // Update UI on error
                 withContext(Dispatchers.Main) {
                     val emptyText: TextView? = view?.findViewById(R.id.emptyFriendsText)
                     emptyText?.visibility = View.VISIBLE
                     friendsList.visibility = View.GONE
+                    
+                    // Stop refresh animation
+                    if (::swipeRefreshLayout.isInitialized) {
+                        swipeRefreshLayout.isRefreshing = false
+                    }
+                    
+                    // Show error toast
+                    Toast.makeText(context, "Failed to refresh friends list", Toast.LENGTH_SHORT).show()
                 }
             }
         }
