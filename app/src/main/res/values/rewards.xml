@@ -11,6 +11,7 @@
         <item>Double XP Weekend</item>
         <item>Achievement Hunter</item>
         <item>Point Multiplier</item>
+        <item>Course Lobby Music</item>
     </array>
     
     <array name="reward_descriptions">
@@ -24,6 +25,7 @@
         <item>Earn double experience points for all completed tasks over a weekend</item>
         <item>Reveals hidden achievements and how to unlock them</item>
         <item>Earn 1.5x points on all completed tasks for 3 days</item>
+        <item>Unlock background music in course lobbies</item>
     </array>
     
     <integer-array name="reward_points">
@@ -37,18 +39,20 @@
         <item>1600</item>
         <item>850</item>
         <item>2000</item>
+        <item>500</item>
     </integer-array>
     
     <array name="reward_icons">
-        <item>@drawable/ic_code_snippets_library</item>
-        <item>@drawable/ic_editor_themes</item>
-        <item>@drawable/ic_font_collection</item>
-        <item>@drawable/ic_profile_badges</item>
-        <item>@drawable/ic_challenge_skipper</item>
-        <item>@drawable/ic_extra_daily_reward</item>
-        <item>@drawable/ic_streak_shield</item>
-        <item>@drawable/ic_double_xp</item>
-        <item>@drawable/ic_achievement_hunter</item>
-        <item>@drawable/ic_point_multiplier</item>
+        <item>ic_code_snippets_library</item>
+        <item>ic_editor_themes</item>
+        <item>ic_font_collection</item>
+        <item>ic_profile_badges</item>
+        <item>ic_challenge_skipper</item>
+        <item>ic_extra_daily_reward</item>
+        <item>ic_streak_shield</item>
+        <item>ic_double_xp</item>
+        <item>ic_achievement_hunter</item>
+        <item>ic_point_multiplier</item>
+        <item>ic_music_note</item>
     </array>
 </resources> 

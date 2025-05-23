@@ -230,7 +230,7 @@ class RewardsFragment : Fragment() {
 
     private fun setupRewardShop() {
         // Use RewardsManager to load rewards from resources
-        val rewardsManager = RewardsManager(resources)
+        val rewardsManager = RewardsManager(requireContext(), resources)
         val rewards = rewardsManager.loadRewards()
 
         // Initialize adapter with rewards but don't load unlocked status yet
@@ -328,7 +328,7 @@ class RewardsFragment : Fragment() {
     private fun refreshRewardsList() {
         android.util.Log.d("RewardsFragment", "Refreshing rewards list from server")
         // Use RewardsManager to load rewards from resources
-        val rewardsManager = RewardsManager(resources)
+        val rewardsManager = RewardsManager(requireContext(), resources)
         val rewards = rewardsManager.loadRewards()
 
         // Fetch unlocked rewards from Supabase

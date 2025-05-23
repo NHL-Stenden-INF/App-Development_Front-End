@@ -24,6 +24,11 @@ import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.ContextCompat.startActivity
 import com.nhlstenden.appdev.models.CourseParser
 import java.io.Serializable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
 
 class CourseTopicsFragment : Fragment() {
     private lateinit var topicsList: RecyclerView
@@ -32,7 +37,7 @@ class CourseTopicsFragment : Fragment() {
     private lateinit var backButton: ImageButton
     private lateinit var user: User
     private lateinit var gestureDetector: GestureDetectorCompat
-    private lateinit var mediaPlayer: MediaPlayer
+    private var mediaPlayer: MediaPlayer? = null
     private var courseName: String = ""
     private var courseData: CourseParser.Course? = null
 
@@ -97,7 +102,7 @@ class CourseTopicsFragment : Fragment() {
         setupCourseInfo()
         setupTopicsList()
         setupBackButton()
-        playMusic()
+        fetchUnlockedRewardsAndPlayMusic()
     }
 
     private fun setupCourseInfo() {
@@ -148,26 +153,63 @@ class CourseTopicsFragment : Fragment() {
         topicsList.adapter = TopicAdapter(requireContext(), topics, user)
     }
 
-    private fun playMusic() {
-        mediaPlayer = MediaPlayer.create(context,
-            when(courseName) {
-                "HTML" -> R.raw.html_themesong
-                "CSS" -> R.raw.css_themesong
-                "SQL" -> R.raw.sql_themesong
-                else -> R.raw.default_themesong
-            })
-        mediaPlayer.start()
+    private fun fetchUnlockedRewardsAndPlayMusic() {
+        val supabaseClient = SupabaseClient()
+        CoroutineScope(Dispatchers.IO).launch {
+            val response = supabaseClient.getUserUnlockedRewards(user.id.toString(), user.authToken)
+            val unlockedRewards = mutableListOf<String>()
+            if (response.code == 200) {
+                val responseBody = response.body?.string()
+                val rewardsArray = JSONArray(responseBody ?: "[]")
+                for (i in 0 until rewardsArray.length()) {
+                    val rewardId = rewardsArray.getJSONObject(i).getString("reward_id")
+                    unlockedRewards.add(rewardId)
+                }
+            }
+            withContext(Dispatchers.Main) {
+                playMusicWithUnlockedRewards(unlockedRewards)
+            }
+        }
+    }
+
+    private fun playMusicWithUnlockedRewards(unlockedRewards: List<String>) {
+        val hasMusicReward = unlockedRewards.any { it.equals("Course Lobby Music", ignoreCase = true) }
+        android.util.Log.d("CourseTopicsFragment", "Unlocked rewards: $unlockedRewards, Has music reward: $hasMusicReward")
+        if (hasMusicReward) {
+            try {
+                mediaPlayer = MediaPlayer.create(context,
+                    when(courseName) {
+                        "HTML" -> R.raw.html_themesong
+                        "CSS" -> R.raw.css_themesong
+                        "SQL" -> R.raw.sql_themesong
+                        else -> R.raw.default_themesong
+                    })
+                mediaPlayer?.start()
+                android.util.Log.d("CourseTopicsFragment", "Started playing music for course: $courseName")
+            } catch (e: Exception) {
+                android.util.Log.e("CourseTopicsFragment", "Error playing music: ${e.message}")
+            }
+        } else {
+            android.util.Log.d("CourseTopicsFragment", "Music reward not unlocked")
+        }
     }
 
     override fun onPause() {
         super.onPause()
-        mediaPlayer.pause()
+        mediaPlayer?.pause()
     }
 
     override fun onStop() {
         super.onStop()
-        mediaPlayer.stop()
-        mediaPlayer.release()
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+        mediaPlayer = null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer?.release()
+        mediaPlayer = null
     }
 
     data class Topic(
