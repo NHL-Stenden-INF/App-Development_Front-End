@@ -7,13 +7,13 @@
 
     <fragment
         android:id="@+id/nav_home"
-        android:name="com.nhlstenden.appdev.HomeFragment"
+        android:name="com.nhlstenden.appdev.home.ui.HomeFragment"
         android:label="Home"
         tools:layout="@layout/fragment_home" />
 
     <fragment
         android:id="@+id/nav_tasks"
-        android:name="com.nhlstenden.appdev.TasksFragment"
+        android:name="com.nhlstenden.appdev.task.ui.TasksFragment"
         android:label="Courses"
         tools:layout="@layout/fragment_tasks">
         <action
@@ -25,7 +25,7 @@
 
     <fragment
         android:id="@+id/nav_courses"
-        android:name="com.nhlstenden.appdev.CoursesFragment"
+        android:name="com.nhlstenden.appdev.courses.ui.CoursesFragment"
         android:label="Courses"
         tools:layout="@layout/fragment_courses">
         <action
@@ -37,7 +37,7 @@
 
     <fragment
         android:id="@+id/nav_course_topics"
-        android:name="com.nhlstenden.appdev.CourseTopicsFragment"
+        android:name="com.nhlstenden.appdev.courses.ui.CourseTopicsFragment"
         android:label="Course Topics"
         tools:layout="@layout/fragment_course_topics">
         <argument
@@ -47,19 +47,19 @@
 
     <fragment
         android:id="@+id/nav_rewards"
-        android:name="com.nhlstenden.appdev.RewardsFragment"
+        android:name="com.nhlstenden.appdev.rewards.ui.RewardsFragment"
         android:label="Rewards"
         tools:layout="@layout/fragment_rewards" />
 
     <fragment
         android:id="@+id/nav_friends"
-        android:name="com.nhlstenden.appdev.FriendsFragment"
+        android:name="com.nhlstenden.appdev.friends.ui.FriendsFragment"
         android:label="Friends"
         tools:layout="@layout/fragment_friends" />
 
     <fragment
         android:id="@+id/nav_progress"
-        android:name="com.nhlstenden.appdev.ProgressFragment"
+        android:name="com.nhlstenden.appdev.progress.ui.ProgressFragment"
         android:label="Progress"
         tools:layout="@layout/fragment_progress" />
 

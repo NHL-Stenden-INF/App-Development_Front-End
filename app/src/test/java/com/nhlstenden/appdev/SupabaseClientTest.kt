@@ -1,9 +1,9 @@
 package com.nhlstenden.appdev
 
+import com.nhlstenden.appdev.supabase.SupabaseClient
 import org.json.JSONException
 import org.json.JSONObject
 import org.junit.Assert.*
-import org.junit.Before
 import org.junit.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import kotlin.uuid.ExperimentalUuidApi
