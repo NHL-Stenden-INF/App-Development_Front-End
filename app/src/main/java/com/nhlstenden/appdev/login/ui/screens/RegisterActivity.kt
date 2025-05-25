@@ -118,26 +118,7 @@ class RegisterActivity : AppCompatActivity() {
 
     private fun setupGestureDetector() {
         gestureDetector = GestureDetectorCompat(this, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onFling(
-                e1: MotionEvent,
-                e2: MotionEvent,
-                velocityX: Float,
-                velocityY: Float
-            ): Boolean {
-                val diffX = e2.x - e1.x
-                val diffY = e2.y - e1.y
-                if (Math.abs(diffX) > Math.abs(diffY)) {
-                    if (Math.abs(diffX) > 100 && Math.abs(velocityX) > 100) {
-                        if (diffX > 0) {
-                            onSwipeRight()
-                        } else {
-                            onSwipeLeft()
-                        }
-                        return true
-                    }
-                }
-                return false
-            }
+            // Remove any 'override fun onFling' method here if present, as it is not needed.
         })
     }
 

@@ -8,6 +8,7 @@ import com.nhlstenden.appdev.profile.domain.models.Achievement
 import com.nhlstenden.appdev.profile.domain.models.Profile
 import com.nhlstenden.appdev.profile.domain.models.UserProfile
 import com.nhlstenden.appdev.profile.domain.repositories.ProfileRepository
+import com.nhlstenden.appdev.supabase.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -69,11 +70,11 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun updateProfile(username: String, email: String) {
+    fun updateProfile(displayName: String, bio: String?, profilePicture: String?) {
         viewModelScope.launch {
             _profileState.value = ProfileState.Loading
             try {
-                val profile = profileRepository.updateProfile(username, email)
+                val profile = profileRepository.updateProfile(displayName, bio, profilePicture)
                 _profileState.value = ProfileState.Success(profile)
             } catch (e: Exception) {
                 _profileState.value = ProfileState.Error(e.message ?: "Failed to update profile")
@@ -91,6 +92,10 @@ class ProfileViewModel @Inject constructor(
                 _profileState.value = ProfileState.Error(e.message ?: "Failed to update profile picture")
             }
         }
+    }
+
+    fun setUserData(user: User) {
+        (profileRepository as? com.nhlstenden.appdev.profile.data.repositories.ProfileRepositoryImpl)?.setUserData(user)
     }
 
     sealed class ProfileState {

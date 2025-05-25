@@ -24,6 +24,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.view.GestureDetector.SimpleOnGestureListener
 
 @AndroidEntryPoint
 class CourseTopicsFragment : Fragment() {
@@ -38,8 +39,8 @@ class CourseTopicsFragment : Fragment() {
     private var courseData: Course? = null
     private lateinit var gestureDetector: GestureDetectorCompat
 
-    private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
-        override fun onFling(
+    private inner class SwipeGestureListener : SimpleOnGestureListener() {
+        fun handleFling(
             e1: MotionEvent,
             e2: MotionEvent,
             velocityX: Float,
@@ -59,7 +60,7 @@ class CourseTopicsFragment : Fragment() {
             return false
         }
 
-        override fun onDown(e: MotionEvent): Boolean {
+        fun handleDown(e: MotionEvent): Boolean {
             return true
         }
     }

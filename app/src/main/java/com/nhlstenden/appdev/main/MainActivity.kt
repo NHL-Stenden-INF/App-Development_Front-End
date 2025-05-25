@@ -60,15 +60,8 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        // Get user data from intent or UserManager singleton
-        val intentUserData = intent.getParcelableExtra("USER_DATA", User::class.java)
-        userData = if (intentUserData == null) {
-            UserManager.getCurrentUser()
-        } else {
-            // Make sure UserManager is in sync
-            UserManager.setCurrentUser(intentUserData)
-            intentUserData
-        }
+        // Get user data from UserManager singleton only
+        userData = UserManager.getCurrentUser()
 
         viewPager = findViewById(R.id.viewPager)
         bottomNavigation = findViewById(R.id.bottom_navigation)
@@ -282,9 +275,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-            
-            // Update the intent to keep the User data in sync for future activities
-            intent.putExtra("USER_DATA", updatedUser)
         }
     }
 
@@ -294,8 +284,6 @@ class MainActivity : AppCompatActivity() {
             this.userData = user
             // Update UserManager
             UserManager.setCurrentUser(user)
-            // Update the intent to keep the User data in sync
-            intent.putExtra("USER_DATA", user)
         }
     }
 
@@ -311,12 +299,7 @@ class MainActivity : AppCompatActivity() {
                 4 -> ProgressFragment()
                 else -> HomeFragment()
             }
-            
-            // Set user data in fragment arguments
-            fragment.arguments = Bundle().apply {
-                putParcelable("USER_DATA", userData)
-            }
-            
+            // Do not set user data in fragment arguments; rely on UserManager
             return fragment
         }
     }

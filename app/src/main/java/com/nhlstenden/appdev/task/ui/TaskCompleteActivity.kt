@@ -29,15 +29,6 @@ class TaskCompleteActivity : AppCompatActivity() {
 
         returnButton.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
-            
-            // Get user from intent or UserManager singleton
-            var user: User? = this.intent.getParcelableExtra("USER_DATA", User::class.java)
-            if (user == null) {
-                user = UserManager.getCurrentUser()
-            }
-            
-            Log.d("TaskComplete", user.toString())
-            intent.putExtra("USER_DATA", user)
             startActivity(intent)
             finish()
         }

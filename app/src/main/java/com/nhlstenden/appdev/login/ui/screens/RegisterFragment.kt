@@ -12,9 +12,13 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.FragmentRegisterBinding
 import com.nhlstenden.appdev.login.ui.viewmodels.RegisterViewModel
+import com.nhlstenden.appdev.shared.components.UserManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import android.content.Intent
+import com.nhlstenden.appdev.main.MainActivity
+import android.util.Patterns
 
 @AndroidEntryPoint
 class RegisterFragment : Fragment() {
@@ -41,7 +45,7 @@ class RegisterFragment : Fragment() {
     private fun setupViews() {
         binding.registerButton.setOnClickListener { view ->
             view.isEnabled = false // Disable button immediately to prevent double clicks
-            val email = binding.emailEditText.text?.toString() ?: ""
+            val email = binding.emailEditText.text?.toString()?.trim() ?: ""
             val password = binding.passwordEditText.text?.toString() ?: ""
             val confirmPassword = binding.confirmPasswordEditText.text?.toString() ?: ""
             
@@ -53,6 +57,12 @@ class RegisterFragment : Fragment() {
             
             if (password != confirmPassword) {
                 Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
+                view.isEnabled = true
+                return@setOnClickListener
+            }
+            
+            if (!isValidEmail(email)) {
+                binding.emailEditText.error = "Please enter a valid email address"
                 view.isEnabled = true
                 return@setOnClickListener
             }
@@ -70,7 +80,10 @@ class RegisterFragment : Fragment() {
                     }
                     is RegisterViewModel.RegisterState.Success -> {
                         binding.registerButton.isEnabled = true
-                        showSuccessDialog()
+                        UserManager.setCurrentUser(state.user)
+                        val intent = Intent(requireContext(), MainActivity::class.java)
+                        startActivity(intent)
+                        requireActivity().finish()
                     }
                     is RegisterViewModel.RegisterState.Error -> {
                         binding.registerButton.isEnabled = true
@@ -115,6 +128,10 @@ class RegisterFragment : Fragment() {
                         }
                 }
             }
+    }
+
+    private fun isValidEmail(email: String): Boolean {
+        return Patterns.EMAIL_ADDRESS.matcher(email).matches()
     }
 
     override fun onDestroyView() {

@@ -68,7 +68,8 @@ class LoginFragment : Fragment() {
                     is LoginViewModel.LoginState.Success -> {
                         binding.loginButton.isEnabled = true
                         UserManager.setCurrentUser(state.user)
-                        startActivity(Intent(requireContext(), MainActivity::class.java))
+                        val intent = Intent(requireContext(), MainActivity::class.java)
+                        startActivity(intent)
                         requireActivity().finish()
                     }
                     is LoginViewModel.LoginState.Error -> {

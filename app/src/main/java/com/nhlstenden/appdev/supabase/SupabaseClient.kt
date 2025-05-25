@@ -369,6 +369,43 @@ class SupabaseClient() {
         if (arr.length() == 0) throw RuntimeException("User attributes not found")
         return arr.getJSONObject(0)
     }
+
+    suspend fun updateProfile(
+        authToken: String,
+        displayName: String? = null,
+        bio: String? = null,
+        profilePicture: String? = null
+    ): JSONObject {
+        val userId = getUserIdFromToken(authToken)
+        
+        val updateJson = JSONObject()
+        displayName?.let { updateJson.put("display_name", it) }
+        bio?.let { updateJson.put("bio", it) }
+        profilePicture?.let { updateJson.put("profile_picture", it) }
+        updateJson.put("updated_at", "now()")
+        
+        val requestBody = updateJson.toString().toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/profile?id=eq.$userId")
+            .patch(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=representation")
+            .build()
+            
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
+        if (!response.isSuccessful) {
+            val errorBody = response.body?.string()
+            Log.e("SupabaseClient", "Profile update failed with response: $errorBody")
+            throw RuntimeException(errorBody ?: "Profile update failed with code ${response.code}")
+        }
+        
+        val body = response.body?.string() ?: throw RuntimeException("No response body")
+        val arr = org.json.JSONArray(body)
+        if (arr.length() == 0) throw RuntimeException("Profile update failed")
+        return arr.getJSONObject(0)
+    }
 }
 
 @Parcelize

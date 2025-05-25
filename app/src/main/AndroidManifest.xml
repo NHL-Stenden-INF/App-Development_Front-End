@@ -65,9 +65,14 @@
             android:exported="true">
         </activity>
 
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppdevNHL.NoActionBar" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
+            android:authorities="com.nhlstenden.appdev.provider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

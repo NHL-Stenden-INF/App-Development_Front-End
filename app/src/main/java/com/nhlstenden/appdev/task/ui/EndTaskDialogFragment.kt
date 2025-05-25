@@ -57,13 +57,8 @@ class EndTaskDialogFragment : DialogFragment() {
             text = "Confirm"
             setOnClickListener {
                 val context = requireContext()
-                val intent = Intent(context, MainActivity::class.java)
-                
                 val currentUser = UserManager.getCurrentUser()
-                if (currentUser != null) {
-                    intent.putExtra("USER_DATA", currentUser)
-                }
-                
+                val intent = Intent(context, MainActivity::class.java)
                 context.startActivity(intent)
                 
                 if (context is Activity) {
