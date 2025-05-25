@@ -26,12 +26,23 @@ class RegisterViewModel @Inject constructor(
             try {
                 Log.d("RegisterViewModel", "Attempting to register with email: $email")
                 val username = email.split("@")[0]
-                supabaseClient.createNewUser(email, password, username)
-                
-                // After successful registration, log in the user
-                val user = supabaseClient.getUser(email, password)
+                // Register the user and get the access token
+                val accessToken = supabaseClient.register(email, password, username)
+                // Fetch profile and attributes using the access token
+                val profile = supabaseClient.fetchProfile(accessToken)
+                val attributes = supabaseClient.fetchUserAttributes(accessToken)
+                // Construct the User object (update as needed for your User model)
+                val user = User(
+                    accessToken,
+                    java.util.UUID.fromString(profile.getString("id")),
+                    profile.optString("display_name", username),
+                    profile.optString("email", email),
+                    attributes.optInt("points", 0),
+                    arrayListOf(), // friends, to be implemented with new structure
+                    arrayListOf(), // achievements, to be implemented with new structure
+                    profile.optString("profile_picture", "")
+                )
                 Log.d("RegisterViewModel", "Registration and login successful for user: ${user.email}")
-                
                 withContext(Dispatchers.Main) {
                     _registerState.value = RegisterState.Success(user)
                 }

@@ -26,7 +26,22 @@ class LoginViewModel @Inject constructor(
             _loginState.value = LoginState.Loading
             try {
                 Log.d("LoginViewModel", "Attempting to login with email: $email")
-                val user = supabaseClient.getUser(email, password)
+                // Login and get the access token
+                val accessToken = supabaseClient.login(email, password)
+                // Fetch profile and attributes using the access token
+                val profile = supabaseClient.fetchProfile(accessToken)
+                val attributes = supabaseClient.fetchUserAttributes(accessToken)
+                // Construct the User object (update as needed for your User model)
+                val user = User(
+                    accessToken,
+                    java.util.UUID.fromString(profile.getString("id")),
+                    profile.optString("display_name", email.split("@")[0]),
+                    profile.optString("email", email),
+                    attributes.optInt("points", 0),
+                    arrayListOf(), // friends, to be implemented with new structure
+                    arrayListOf(), // achievements, to be implemented with new structure
+                    profile.optString("profile_picture", "")
+                )
                 Log.d("LoginViewModel", "Login successful for user: ${user.email}")
                 withContext(Dispatchers.Main) {
                     _loginState.value = LoginState.Success(user)
