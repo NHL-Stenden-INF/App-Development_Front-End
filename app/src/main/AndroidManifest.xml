@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.nhlstenden.appdev">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
@@ -12,6 +13,7 @@
         android:required="true"/>
 
     <application
+        android:name=".AppDevApplication"
         android:usesCleartextTraffic="true" 
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -24,7 +26,7 @@
         tools:targetApi="33">
 
         <activity
-            android:name=".login.ui.LoginActivity"
+            android:name=".login.ui.screens.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -33,7 +35,7 @@
         </activity>
 
         <activity
-            android:name=".login.ui.RegisterActivity"
+            android:name=".login.ui.screens.RegisterActivity"
             android:exported="false"> 
         </activity>
 

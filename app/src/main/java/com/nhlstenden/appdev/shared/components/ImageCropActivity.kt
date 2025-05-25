@@ -57,7 +57,7 @@ class ImageCropActivity : AppCompatActivity() {
         scaleGestureDetector = ScaleGestureDetector(this, ScaleListener())
         
         // Get image URI from intent
-        val imageUri = intent.getParcelableExtra<Uri>(EXTRA_IMAGE_URI)
+        val imageUri = intent.getParcelableExtra(EXTRA_IMAGE_URI, Uri::class.java)
         if (imageUri == null) {
             setResult(Activity.RESULT_CANCELED)
             finish()

@@ -42,7 +42,7 @@ class TaskCompleteActivity : AppCompatActivity() {
             finish()
         }
 
-        val topic = intent.getSerializableExtra("TOPIC_DATA") as? Topic
+        val topic = intent.getParcelableExtra("TOPIC_DATA", Topic::class.java)
         taskName.text = topic?.title
         
         // Get and display points earned

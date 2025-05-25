@@ -19,7 +19,7 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
-import com.nhlstenden.appdev.profile.ui.ProfileFragment
+import com.nhlstenden.appdev.profile.ui.screens.ProfileFragment
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.supabase.User
 import com.nhlstenden.appdev.courses.ui.CourseTopicsFragment
@@ -121,7 +121,7 @@ class HomeFragment : Fragment() {
     
     private fun setupProfileButton() {
         profilePicture.setOnClickListener {
-            val userData = arguments?.getParcelable<User>("USER_DATA")
+            val userData = arguments?.getParcelable("USER_DATA", User::class.java)
 
             val profileFragment = ProfileFragment().apply {
                 arguments = Bundle().apply {
@@ -141,7 +141,7 @@ class HomeFragment : Fragment() {
     
     fun setupUI(view: View) {
         // Get user data from arguments
-        val userData = arguments?.getParcelable<User>("USER_DATA")
+        val userData = arguments?.getParcelable("USER_DATA", User::class.java)
         userData?.let { user ->
             greetingText.text = getString(R.string.greeting_format, user.username)
             updateMotivationalMessage(user)
@@ -239,7 +239,7 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun updateMotivationalMessage(user: User) {
+    private fun updateMotivationalMessage(_user: User) {
         // TODO: Replace with actual friend data from the backend
         val friendName = "John"
         val tasksAhead = 5
@@ -307,5 +307,9 @@ class HomeFragment : Fragment() {
         return resources.configuration.uiMode and 
             android.content.res.Configuration.UI_MODE_NIGHT_MASK == 
             android.content.res.Configuration.UI_MODE_NIGHT_YES
+    }
+
+    private fun updateUserData(_user: User) {
+        // Implementation
     }
 }

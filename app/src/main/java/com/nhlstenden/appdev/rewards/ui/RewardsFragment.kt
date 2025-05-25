@@ -28,6 +28,8 @@ import android.widget.FrameLayout
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.supabase.SupabaseClient
 import com.nhlstenden.appdev.supabase.User
+import android.util.Log
+import kotlinx.coroutines.delay
 
 class RewardsFragment : Fragment() {
     private lateinit var pointsValue: TextView
@@ -63,28 +65,55 @@ class RewardsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val userData = activity?.intent?.getParcelableExtra<User>("USER_DATA")
-        userId = userData?.id.toString()
-        authToken = userData?.authToken ?: ""
-        android.util.Log.d("Supabase", "AuthToken: $authToken")
+        val userData = arguments?.getParcelable("USER_DATA", User::class.java)
+        if (userData == null) {
+            Log.e("RewardsFragment", "No user data found in arguments")
+            Toast.makeText(context, "Error: User data not found", Toast.LENGTH_LONG).show()
+            return
+        }
+        
+        userId = userData.id.toString()
+        authToken = userData.authToken
+        Log.d("RewardsFragment", "Initialized with userId: $userId")
         
         // Initialize the reward shop AFTER userId is initialized
         setupRewardShop()
         
         // Fetch points and opened_daily_at from Supabase
         CoroutineScope(Dispatchers.IO).launch {
-            val response = supabaseClient.getUserAttributes(userId)
-            if (response.code == 200) {
-                val userResponse = JSONArray(response.body?.string())
-                currentPoints = userResponse.getJSONObject(0).getInt("points")
-                openedDailyAt = userResponse.getJSONObject(0).optString("opened_daily_at", null)
+            try {
+                val response = supabaseClient.getUserAttributes(userId)
+                if (response.code == 200) {
+                    val userResponse = JSONArray(response.body?.string())
+                    if (userResponse.length() > 0) {
+                        val userData = userResponse.getJSONObject(0)
+                        currentPoints = userData.getInt("points")
+                        openedDailyAt = userData.optString("opened_daily_at", null)
+                        withContext(Dispatchers.Main) {
+                            updatePointsDisplay()
+                            setupDailyRewardTimer()
+                        }
+                    } else {
+                        Log.e("RewardsFragment", "No user data found in response")
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Error: User data not found", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                } else {
+                    val errorBody = response.body?.string()
+                    Log.e("RewardsFragment", "Failed to get user attributes: ${response.code} $errorBody")
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Error: Failed to load user data", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("RewardsFragment", "Error getting user attributes: ${e.message}")
                 withContext(Dispatchers.Main) {
-                    updatePointsDisplay()
-                    setupDailyRewardTimer() // Now that we have openedDailyAt
+                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
             
-            // Check saved rewards to debug any issues - moved after userId initialization
+            // Check saved rewards to debug any issues
             checkSavedRewards()
         }
     }
@@ -98,15 +127,41 @@ class RewardsFragment : Fragment() {
     }
 
     private fun addPoints(points: Int) {
-        currentPoints += points
-        updatePointsDisplay()
-        updatePointsInSupabase()
+        CoroutineScope(Dispatchers.IO).launch {
+            val newPoints = currentPoints + points
+            val response = supabaseClient.updateUserPoints(userId, newPoints, authToken)
+            if (response.code == 204 || response.code == 200) {
+                // Only update UI after successful server update
+                withContext(Dispatchers.Main) {
+                    currentPoints = newPoints
+                    updatePointsDisplay()
+                }
+            } else {
+                android.util.Log.e("Supabase", "Failed to update points: ${response.code} ${response.body?.string()}")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Failed to update points. Please try again.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun spendPoints(points: Int) {
-        currentPoints -= points
-        updatePointsDisplay()
-        updatePointsInSupabase()
+        CoroutineScope(Dispatchers.IO).launch {
+            val newPoints = currentPoints - points
+            val response = supabaseClient.updateUserPoints(userId, newPoints, authToken)
+            if (response.code == 204 || response.code == 200) {
+                // Only update UI after successful server update
+                withContext(Dispatchers.Main) {
+                    currentPoints = newPoints
+                    updatePointsDisplay()
+                }
+            } else {
+                android.util.Log.e("Supabase", "Failed to update points: ${response.code} ${response.body?.string()}")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Failed to update points. Please try again.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun canAffordReward(cost: Int): Boolean {
@@ -138,31 +193,88 @@ class RewardsFragment : Fragment() {
         }
 
         openChestButton.setOnClickListener {
+            // Disable button immediately to prevent double clicks
+            openChestButton.isEnabled = false
+            
             // Add random points between 1 and 100
             val rewardPoints = (1..100).random()
-            addPoints(rewardPoints)
-            Toast.makeText(context, "You earned $rewardPoints points!", Toast.LENGTH_SHORT).show()
-            openChestButton.isEnabled = false
-            openChestButton.text = "Wait for next reward"
-            openChestButton.alpha = 0.6f
-            openChestButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(),
-                R.color.gray
-            ))
-            // Update opened_daily_at in Supabase
+            
+            // Update opened_daily_at in Supabase first
             CoroutineScope(Dispatchers.IO).launch {
-                val todayDate = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString()
-                val response = supabaseClient.updateUserOpenedDaily(userId, todayDate, authToken)
-                if (response.code == 204 || response.code == 200) {
-                    openedDailyAt = todayDate
-                    withContext(Dispatchers.Main) {
-                        // Start timer to next midnight
-                        val now = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC)
-                        val midnight = now.toLocalDate().plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC)
-                        val msUntilMidnight = java.time.Duration.between(now, midnight).toMillis()
-                        startCountDownTimer(msUntilMidnight)
+                var retryCount = 0
+                val maxRetries = 3
+                var success = false
+                
+                while (!success && retryCount < maxRetries) {
+                    try {
+                        val todayDate = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString()
+                        Log.d("RewardsFragment", "Updating opened_daily_at to: $todayDate (attempt ${retryCount + 1})")
+                        val response = supabaseClient.updateUserOpenedDaily(userId, todayDate, authToken)
+                        
+                        if (response.code == 204 || response.code == 200) {
+                            Log.d("RewardsFragment", "Successfully updated opened_daily_at")
+                            // Only update UI and add points after successful server update
+                            openedDailyAt = todayDate
+                            
+                            // Now update points
+                            val newPoints = currentPoints + rewardPoints
+                            Log.d("RewardsFragment", "Updating points from $currentPoints to $newPoints")
+                            val pointsResponse = supabaseClient.updateUserPoints(userId, newPoints, authToken)
+                            
+                            if (pointsResponse.code == 204 || pointsResponse.code == 200) {
+                                Log.d("RewardsFragment", "Successfully updated points")
+                                withContext(Dispatchers.Main) {
+                                    currentPoints = newPoints
+                                    updatePointsDisplay()
+                                    Toast.makeText(context, "You earned $rewardPoints points!", Toast.LENGTH_SHORT).show()
+                                    
+                                    // Update button state
+                                    openChestButton.text = "Wait for next reward"
+                                    openChestButton.alpha = 0.6f
+                                    openChestButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(),
+                                        R.color.gray
+                                    ))
+                                    
+                                    // Start timer to next midnight
+                                    val now = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC)
+                                    val midnight = now.toLocalDate().plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC)
+                                    val msUntilMidnight = java.time.Duration.between(now, midnight).toMillis()
+                                    startCountDownTimer(msUntilMidnight)
+                                }
+                                success = true
+                            } else {
+                                val errorBody = pointsResponse.body?.string()
+                                Log.e("RewardsFragment", "Failed to update points: ${pointsResponse.code} $errorBody")
+                                retryCount++
+                                if (retryCount < maxRetries) {
+                                    Log.d("RewardsFragment", "Retrying points update...")
+                                    delay(1000) // Wait 1 second before retrying
+                                }
+                            }
+                        } else {
+                            val errorBody = response.body?.string()
+                            Log.e("RewardsFragment", "Failed to update opened_daily_at: ${response.code} $errorBody")
+                            retryCount++
+                            if (retryCount < maxRetries) {
+                                Log.d("RewardsFragment", "Retrying opened_daily_at update...")
+                                delay(1000) // Wait 1 second before retrying
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("RewardsFragment", "Error updating daily reward: ${e.message}")
+                        retryCount++
+                        if (retryCount < maxRetries) {
+                            Log.d("RewardsFragment", "Retrying after error...")
+                            delay(1000) // Wait 1 second before retrying
+                        }
                     }
-                } else {
-                    android.util.Log.e("Supabase", "Failed to update opened_daily_at: ${response.code} ${response.body?.string()}")
+                }
+                
+                if (!success) {
+                    withContext(Dispatchers.Main) {
+                        openChestButton.isEnabled = true
+                        Toast.makeText(context, "Failed to collect reward after multiple attempts. Please try again.", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
@@ -274,9 +386,8 @@ class RewardsFragment : Fragment() {
     }
 
     private fun fetchUnlockedRewards(callback: (List<String>) -> Unit) {
-        // Add null safety check
-        if (!::userId.isInitialized) {
-            android.util.Log.e("RewardsFragment", "Cannot fetch unlocked rewards - userId not initialized")
+        if (!::userId.isInitialized || userId.isEmpty() || userId == "null") {
+            Log.e("RewardsFragment", "Cannot fetch unlocked rewards - invalid userId: $userId")
             callback(emptyList())
             return
         }
@@ -284,10 +395,10 @@ class RewardsFragment : Fragment() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val response = supabaseClient.getUserUnlockedRewards(userId, authToken)
-                android.util.Log.d("RewardsFragment", "Fetch unlocked rewards response code: ${response.code}")
+                Log.d("RewardsFragment", "Fetch unlocked rewards response code: ${response.code}")
                 if (response.code == 200) {
                     val responseBody = response.body?.string()
-                    android.util.Log.d("RewardsFragment", "Unlocked rewards response: $responseBody")
+                    Log.d("RewardsFragment", "Unlocked rewards response: $responseBody")
                     val rewardsArray = JSONArray(responseBody ?: "[]")
                     val unlockedRewards = mutableListOf<String>()
                     
@@ -295,22 +406,22 @@ class RewardsFragment : Fragment() {
                         val rewardObj = rewardsArray.getJSONObject(i)
                         val rewardId = rewardObj.getString("reward_id")
                         unlockedRewards.add(rewardId)
-                        android.util.Log.d("RewardsFragment", "Found unlocked reward: $rewardId")
+                        Log.d("RewardsFragment", "Found unlocked reward: $rewardId")
                     }
                     
-                    android.util.Log.d("RewardsFragment", "Total unlocked rewards: ${unlockedRewards.size}")
+                    Log.d("RewardsFragment", "Total unlocked rewards: ${unlockedRewards.size}")
                     withContext(Dispatchers.Main) {
                         callback(unlockedRewards)
                     }
                 } else {
-                    android.util.Log.e("Supabase", "Failed to fetch unlocked rewards: ${response.code}")
+                    val errorBody = response.body?.string()
+                    Log.e("RewardsFragment", "Failed to fetch unlocked rewards: ${response.code} $errorBody")
                     withContext(Dispatchers.Main) {
                         callback(emptyList())
                     }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("Supabase", "Error fetching unlocked rewards: ${e.message}")
-                android.util.Log.e("Supabase", "Stack trace: ${e.stackTraceToString()}")
+                Log.e("RewardsFragment", "Error fetching unlocked rewards: ${e.message}")
                 withContext(Dispatchers.Main) {
                     callback(emptyList())
                 }

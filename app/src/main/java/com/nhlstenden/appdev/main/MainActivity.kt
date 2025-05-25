@@ -15,16 +15,19 @@ import android.util.Log
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
-import com.nhlstenden.appdev.friends.ui.FriendsFragment
+import com.nhlstenden.appdev.friends.ui.screens.FriendsFragment
 import com.nhlstenden.appdev.home.ui.HomeFragment
-import com.nhlstenden.appdev.profile.ui.ProfileFragment
+import com.nhlstenden.appdev.profile.ui.screens.ProfileFragment
 import com.nhlstenden.appdev.progress.ui.ProgressFragment
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.rewards.ui.RewardsFragment
 import com.nhlstenden.appdev.supabase.User
-import com.nhlstenden.appdev.courses.ui.CoursesFragment
+import com.nhlstenden.appdev.courses.ui.screens.CoursesFragment
 import com.nhlstenden.appdev.shared.components.UserManager
+import com.nhlstenden.appdev.shared.components.ImageCropActivity
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2
     private lateinit var bottomNavigation: BottomNavigationView
@@ -58,12 +61,13 @@ class MainActivity : AppCompatActivity() {
         })
 
         // Get user data from intent or UserManager singleton
-        userData = intent.getParcelableExtra("USER_DATA", User::class.java)
-        if (userData == null) {
-            userData = UserManager.getCurrentUser()
+        val intentUserData = intent.getParcelableExtra("USER_DATA", User::class.java)
+        userData = if (intentUserData == null) {
+            UserManager.getCurrentUser()
         } else {
             // Make sure UserManager is in sync
-            UserManager.setCurrentUser(userData)
+            UserManager.setCurrentUser(intentUserData)
+            intentUserData
         }
 
         viewPager = findViewById(R.id.viewPager)
@@ -243,7 +247,7 @@ class MainActivity : AppCompatActivity() {
 
             // Update the stored user data
             userData = updatedUser
-            Log.d(TAG, "User data updated, friends count: ${updatedUser.friends.size}")
+            Log.d(TAG, "User data updated, friends count: ${updatedUser.friends?.size ?: 0}")
             
             // Check which fragments are visible and update them
             val fragmentContainer = findViewById<FrameLayout>(R.id.fragment_container)
@@ -254,7 +258,6 @@ class MainActivity : AppCompatActivity() {
                 val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
                 if (currentFragment is ProfileFragment) {
                     Log.d(TAG, "Refreshing ProfileFragment")
-                    currentFragment.refreshUI(userData)
                 }
             }
             
@@ -282,6 +285,17 @@ class MainActivity : AppCompatActivity() {
             
             // Update the intent to keep the User data in sync for future activities
             intent.putExtra("USER_DATA", updatedUser)
+        }
+    }
+
+    private fun handleUserData(userData: User?) {
+        userData?.let { user ->
+            // Update the stored user data
+            this.userData = user
+            // Update UserManager
+            UserManager.setCurrentUser(user)
+            // Update the intent to keep the User data in sync
+            intent.putExtra("USER_DATA", user)
         }
     }
 

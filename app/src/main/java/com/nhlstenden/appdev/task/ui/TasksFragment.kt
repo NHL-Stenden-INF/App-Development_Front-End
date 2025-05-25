@@ -80,7 +80,7 @@ class TasksFragment : Fragment() {
     }
 
     private fun setupFilterChips() {
-        filterChipGroup.setOnCheckedStateChangeListener { group, checkedIds ->
+        filterChipGroup.setOnCheckedStateChangeListener { _group, _checkedIds ->
             // TODO: Implement filtering when connected to backend
         }
     }

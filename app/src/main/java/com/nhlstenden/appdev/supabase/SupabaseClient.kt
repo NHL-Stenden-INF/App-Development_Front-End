@@ -2,7 +2,7 @@ package com.nhlstenden.appdev.supabase
 
 import android.os.Parcelable
 import android.util.Log
-import kotlinx.android.parcel.Parcelize
+import kotlinx.parcelize.Parcelize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -33,19 +33,38 @@ class SupabaseClient() {
         }
     }
 
-    fun getUser(email: String, password: String): User {
+    suspend fun getUser(email: String, password: String): User {
+        Log.d("SupabaseClient", "Attempting to get user with email: $email")
         val loginRequest = login(email, password)
         if (!loginRequest.isSuccessful) {
-            throw RuntimeException(loginRequest.body?.string())
+            val errorBody = loginRequest.body?.string()
+            Log.e("SupabaseClient", "Login request failed: $errorBody")
+            throw RuntimeException(errorBody ?: "Login failed")
         }
 
         val authResponse = JSONObject(loginRequest.body?.string())
-        val userRequest = this.getUserAttributes(authResponse.getJSONObject("user").getString("id"))
+        Log.d("SupabaseClient", "Auth response received: ${authResponse.toString()}")
+        
+        val userId = authResponse.getJSONObject("user").getString("id")
+        Log.d("SupabaseClient", "Getting user attributes for ID: $userId")
+        
+        val userRequest = withContext(Dispatchers.IO) {
+            getUserAttributes(userId)
+        }
         if (!userRequest.isSuccessful) {
-            throw RuntimeException(userRequest.body?.string())
+            val errorBody = userRequest.body?.string()
+            Log.e("SupabaseClient", "Failed to get user attributes: $errorBody")
+            throw RuntimeException(errorBody ?: "Failed to get user attributes")
         }
 
         val userResponse = JSONArray(userRequest.body?.string())
+        Log.d("SupabaseClient", "User attributes received: ${userResponse.toString()}")
+        
+        if (userResponse.length() == 0) {
+            Log.e("SupabaseClient", "No user attributes found for ID: $userId")
+            throw RuntimeException("User attributes not found")
+        }
+
         val friends = ArrayList<UUID>()
         val jsonFriends = userResponse.getJSONObject(0).getJSONArray("friends")
         for (i in 0 until jsonFriends.length()) {
@@ -58,9 +77,9 @@ class SupabaseClient() {
             achievements.add(jsonAchievements.getString(i))
         }
 
-        return User(
+        val user = User(
             authResponse.getString("access_token"),
-            UUID.fromString(authResponse.getJSONObject("user").getString("id")),
+            UUID.fromString(userId),
             authResponse.getJSONObject("user").getJSONObject("user_metadata").getString("display_name"),
             authResponse.getJSONObject("user").getString("email"),
             userResponse.getJSONObject(0).getInt("points"),
@@ -68,6 +87,8 @@ class SupabaseClient() {
             achievements,
             userResponse.getJSONObject(0).getString("profile_picture"),
         )
+        Log.d("SupabaseClient", "User object created successfully: ${user.email}")
+        return user
     }
 
     fun signup(email: String, password: String, username: String): Response {
@@ -84,28 +105,44 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
-    fun login(email: String, password: String): Response {
-        val json = """{"email": "$email", "password": "$password"}"""
-        val requestBody = json.toRequestBody("application/json".toMediaType())
+    suspend fun login(email: String, password: String): Response {
+        return withContext(Dispatchers.IO) {
+            val json = """{"email": "$email", "password": "$password"}"""
+            val requestBody = json.toRequestBody("application/json".toMediaType())
 
-        val request = Request.Builder()
-            .url("$supabaseUrl/auth/v1/token?grant_type=password")
-            .post(requestBody)
-            .addHeader("apikey", supabaseKey)
-            .addHeader("Content-Type", "application/json")
-            .build()
+            val request = Request.Builder()
+                .url("$supabaseUrl/auth/v1/token?grant_type=password")
+                .post(requestBody)
+                .addHeader("apikey", supabaseKey)
+                .addHeader("Content-Type", "application/json")
+                .build()
 
-        return client.newCall(request).execute()
+            val response = client.newCall(request).execute()
+            Log.d("SupabaseClient", "Login response code: ${response.code}")
+            if (!response.isSuccessful) {
+                val errorBody = response.body?.string()
+                Log.e("SupabaseClient", "Login failed with response: $errorBody")
+                throw RuntimeException(errorBody ?: "Login failed with code ${response.code}")
+            }
+            response
+        }
     }
 
-    fun getUserAttributes(userId: String): Response {
-        val request = Request.Builder()
-            .url("$supabaseUrl/rest/v1/user_attributes?select=*&user_id=eq.$userId")
-            .get()
-            .addHeader("apikey", supabaseKey)
-            .build()
+    suspend fun getUserAttributes(userId: String): Response {
+        if (userId.isBlank() || userId == "null") {
+            Log.e("SupabaseClient", "Invalid userId provided: $userId")
+            throw IllegalArgumentException("Invalid userId provided")
+        }
+        
+        return withContext(Dispatchers.IO) {
+            val request = Request.Builder()
+                .url("$supabaseUrl/rest/v1/user_attributes?user_id=eq.$userId")
+                .get()
+                .addHeader("apikey", supabaseKey)
+                .build()
 
-        return client.newCall(request).execute()
+            client.newCall(request).execute()
+        }
     }
 
     fun createUserAttributes(authToken: String): Response {
@@ -143,38 +180,20 @@ class SupabaseClient() {
     }
 
     fun updateUserPoints(userId: String, newPoints: Int, authToken: String): Response {
-        // Use RPC (Remote Procedure Call) instead of PATCH
-        // This calls a database function directly, bypassing any REST API issues
-        val json = """{"input_user_id": "$userId", "new_points": $newPoints}"""
+        val json = """{"points": $newPoints}"""
         val requestBody = json.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
-            .url("$supabaseUrl/rest/v1/rpc/update_user_points")
-            .post(requestBody) // RPC uses POST, not PATCH
+            .url("$supabaseUrl/rest/v1/user_attributes?user_id=eq.$userId")
+            .patch(requestBody)
             .addHeader("apikey", supabaseKey)
             .addHeader("Authorization", "Bearer $authToken")
             .addHeader("Content-Type", "application/json")
             .addHeader("Prefer", "return=minimal")
             .build()
-
         return client.newCall(request).execute()
     }
 
     fun updateUserOpenedDaily(userId: String, date: String, authToken: String): Response {
-        val json = """{"input_user_id": "$userId", "new_date": "$date"}"""
-        val requestBody = json.toRequestBody("application/json".toMediaType())
-        val request = Request.Builder()
-            .url("$supabaseUrl/rest/v1/rpc/update_user_opened_daily")
-            .post(requestBody) // RPC uses POST, not PATCH
-            .addHeader("apikey", supabaseKey)
-            .addHeader("Authorization", "Bearer $authToken")
-            .addHeader("Content-Type", "application/json")
-            .addHeader("Prefer", "return=minimal")
-            .build()
-
-        return client.newCall(request).execute()
-    }
-
-    fun updateOpenedDailyAt(userId: String, date: String, authToken: String): Response {
         val json = """{"opened_daily_at": "$date"}"""
         val requestBody = json.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
@@ -185,7 +204,6 @@ class SupabaseClient() {
             .addHeader("Content-Type", "application/json")
             .addHeader("Prefer", "return=minimal")
             .build()
-
         return client.newCall(request).execute()
     }
 
@@ -203,7 +221,7 @@ class SupabaseClient() {
             
             val request = Request.Builder()
                 .url("$supabaseUrl/rest/v1/rpc/update_user_profile_picture")
-                .post(requestBody) // RPC uses POST, not PATCH
+                .post(requestBody)
                 .addHeader("apikey", supabaseKey)
                 .addHeader("Authorization", "Bearer $authToken")
                 .addHeader("Content-Type", "application/json")
@@ -222,47 +240,37 @@ class SupabaseClient() {
             
             // If we get here, RPC function doesn't exist, try direct update
             Log.d("SupabaseClient", "RPC method not found, trying direct update")
-        } catch (e: Exception) {
-            Log.e("SupabaseClient", "Error in RPC profile update", e)
-            // Continue to fallback method
-        }
-        
-        // Fallback to direct update
-        try {
-            // Direct SQL update approach
-            val updateObject = org.json.JSONObject()
-            updateObject.put("profile_picture", profilePicture)
             
-            val directRequestBody = updateObject.toString().toRequestBody("application/json".toMediaType())
+            val patchJson = org.json.JSONObject()
+            patchJson.put("profile_picture", profilePicture)
             
-            val directRequest = Request.Builder()
+            val patchRequestBody = patchJson.toString().toRequestBody("application/json".toMediaType())
+            
+            val patchRequest = Request.Builder()
                 .url("$supabaseUrl/rest/v1/user_attributes?user_id=eq.$userId")
-                .patch(directRequestBody)
+                .patch(patchRequestBody)
                 .addHeader("apikey", supabaseKey)
                 .addHeader("Authorization", "Bearer $authToken")
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Prefer", "return=minimal")
                 .build()
             
-            val directResponse = client.newCall(directRequest).execute()
-            
-            // Log the direct update response
-            Log.d("SupabaseClient", "Direct profile picture update response: ${directResponse.code} ${directResponse.message}")
-            if (!directResponse.isSuccessful) {
-                Log.e("SupabaseClient", "Direct update error body: ${directResponse.body?.string()}")
-            }
-            
-            return directResponse
+            return client.newCall(patchRequest).execute()
         } catch (e: Exception) {
-            Log.e("SupabaseClient", "Error in direct profile update", e)
+            Log.e("SupabaseClient", "Error updating profile picture", e)
             throw e
         }
     }
 
-    // Get user unlocked rewards
+    // Get user unlocked rewards using direct query
     fun getUserUnlockedRewards(userId: String, authToken: String): Response {
+        if (userId.isBlank() || userId == "null") {
+            Log.e("SupabaseClient", "Invalid userId provided for unlocked rewards: $userId")
+            throw IllegalArgumentException("Invalid userId provided")
+        }
+
         val request = Request.Builder()
-            .url("$supabaseUrl/rest/v1/user_rewards?select=*&user_id=eq.$userId")
+            .url("$supabaseUrl/rest/v1/user_rewards?user_id=eq.$userId&select=reward_id,unlocked_at")
             .get()
             .addHeader("apikey", supabaseKey)
             .addHeader("Authorization", "Bearer $authToken")
