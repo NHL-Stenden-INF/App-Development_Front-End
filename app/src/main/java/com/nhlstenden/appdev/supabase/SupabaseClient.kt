@@ -165,7 +165,7 @@ class SupabaseClient() {
             throw IllegalArgumentException("Invalid userId provided")
         }
         val request = Request.Builder()
-            .url("$supabaseUrl/rest/v1/user_rewards?id=eq.$userId&select=reward_id,unlocked_at")
+            .url("$supabaseUrl/rest/v1/user_reward?user_id=eq.$userId&select=reward_id,unlocked_at")
             .get()
             .addHeader("apikey", supabaseKey)
             .addHeader("Authorization", "Bearer $authToken")
@@ -240,19 +240,17 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
-    fun unlockReward(userId: String, rewardId: String, authToken: String): Response {
-        val json = """{"input_user_id": "$userId", "input_reward_id": "$rewardId"}"""
+    fun unlockReward(userId: String, rewardId: Int, authToken: String): Response {
+        val json = """{"user_id": "$userId", "reward_id": $rewardId}"""
         val requestBody = json.toRequestBody("application/json".toMediaType())
-        
         val request = Request.Builder()
-            .url("$supabaseUrl/rest/v1/rpc/unlock_user_reward")
+            .url("$supabaseUrl/rest/v1/user_reward")
             .post(requestBody)
             .addHeader("apikey", supabaseKey)
             .addHeader("Authorization", "Bearer $authToken")
             .addHeader("Content-Type", "application/json")
             .addHeader("Prefer", "return=minimal")
             .build()
-            
         return client.newCall(request).execute()
     }
 

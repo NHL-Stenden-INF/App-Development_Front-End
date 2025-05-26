@@ -8,6 +8,7 @@ import com.nhlstenden.appdev.rewards.ui.Reward
 class RewardsManager(private val context: Context, private val resources: Resources) {
 
     fun loadRewards(): List<Reward> {
+        val ids = resources.getIntArray(R.array.reward_ids)
         val titles = resources.getStringArray(R.array.reward_titles)
         val descriptions = resources.getStringArray(R.array.reward_descriptions)
         val points = resources.getIntArray(R.array.reward_points)
@@ -16,15 +17,16 @@ class RewardsManager(private val context: Context, private val resources: Resour
             val resId = resources.getIdentifier(resourceName, "drawable", context.packageName)
             if (resId == 0) R.drawable.ic_achievement else resId
         }
-        if (titles.size != descriptions.size || titles.size != points.size || titles.size != iconResIds.size) {
+        if (ids.size != titles.size || titles.size != descriptions.size || titles.size != points.size || titles.size != iconResIds.size) {
             throw IllegalStateException("Reward resource arrays must have the same length")
         }
         return titles.indices.map { i ->
-            Reward(titles[i], descriptions[i], points[i], iconResIds[i], false)
+            Reward(ids[i], titles[i], descriptions[i], points[i], iconResIds[i], false)
         }
     }
     
     fun getReward(index: Int): Reward {
+        val ids = resources.getIntArray(R.array.reward_ids)
         val titles = resources.getStringArray(R.array.reward_titles)
         val descriptions = resources.getStringArray(R.array.reward_descriptions)
         val points = resources.getIntArray(R.array.reward_points)
@@ -35,6 +37,7 @@ class RewardsManager(private val context: Context, private val resources: Resour
         val iconResId = resources.getIdentifier(iconResourceNames[index], "drawable", context.packageName)
         val finalIconResId = if (iconResId == 0) R.drawable.ic_achievement else iconResId
         return Reward(
+            ids[index],
             titles[index],
             descriptions[index],
             points[index],
@@ -47,18 +50,14 @@ class RewardsManager(private val context: Context, private val resources: Resour
         return resources.getStringArray(R.array.reward_titles).size
     }
     
-    fun updateUnlockedStatus(rewards: List<Reward>, unlockedRewardIds: List<String>): List<Reward> {
+    fun updateUnlockedStatus(rewards: List<Reward>, unlockedRewardIds: List<Int>): List<Reward> {
         android.util.Log.d("RewardsManager", "Updating unlocked status with IDs: $unlockedRewardIds")
         
-        // Convert unlocked IDs to lowercase for case-insensitive comparison
-        val normalizedUnlockedIds = unlockedRewardIds.map { it.trim().lowercase() }
+        val normalizedUnlockedIds = unlockedRewardIds
         
         return rewards.map { reward ->
-            val rewardTitle = reward.title.trim().lowercase()
-            android.util.Log.d("RewardsManager", "Checking if reward '$rewardTitle' is in unlocked IDs")
-            
-            // If the reward title is in the list of unlocked rewards, mark it as unlocked
-            val isUnlocked = normalizedUnlockedIds.contains(rewardTitle)
+            android.util.Log.d("RewardsManager", "Checking if reward id '${reward.id}' is in unlocked IDs")
+            val isUnlocked = normalizedUnlockedIds.contains(reward.id)
             if (isUnlocked) {
                 android.util.Log.d("RewardsManager", "Marking reward as unlocked: ${reward.title}")
                 reward.copy(isUnlocked = true)

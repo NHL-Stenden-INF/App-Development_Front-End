@@ -428,7 +428,7 @@ class RewardsFragment : Fragment() {
         refreshRewardsList()
     }
 
-    private fun fetchUnlockedRewards(callback: (List<String>) -> Unit) {
+    private fun fetchUnlockedRewards(callback: (List<Int>) -> Unit) {
         if (!::userId.isInitialized || userId.isEmpty() || userId == "null") {
             Log.e("RewardsFragment", "Cannot fetch unlocked rewards - invalid userId: $userId")
             callback(emptyList())
@@ -443,11 +443,11 @@ class RewardsFragment : Fragment() {
                     val responseBody = response.body?.string()
                     Log.d("RewardsFragment", "Unlocked rewards response: $responseBody")
                     val rewardsArray = JSONArray(responseBody ?: "[]")
-                    val unlockedRewards = mutableListOf<String>()
+                    val unlockedRewards = mutableListOf<Int>()
                     
                     for (i in 0 until rewardsArray.length()) {
                         val rewardObj = rewardsArray.getJSONObject(i)
-                        val rewardId = rewardObj.getString("reward_id")
+                        val rewardId = rewardObj.getInt("reward_id")
                         unlockedRewards.add(rewardId)
                         Log.d("RewardsFragment", "Found unlocked reward: $rewardId")
                     }
@@ -472,7 +472,7 @@ class RewardsFragment : Fragment() {
         }
     }
 
-    private fun saveUnlockedRewardToSupabase(rewardId: String) {
+    private fun saveUnlockedRewardToSupabase(rewardId: Int) {
         android.util.Log.d("RewardsFragment", "Attempting to save reward: $rewardId for user: $userId")
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -545,7 +545,7 @@ class RewardsFragment : Fragment() {
                     val rewardsArray = JSONArray(responseBody ?: "[]")
                     for (i in 0 until rewardsArray.length()) {
                         val rewardObj = rewardsArray.getJSONObject(i)
-                        val rewardId = rewardObj.getString("reward_id")
+                        val rewardId = rewardObj.getInt("reward_id")
                         val createdAt = rewardObj.optString("created_at", "unknown")
                         android.util.Log.d("RewardsFragment", "SAVED REWARD: ID=$rewardId, Created=$createdAt")
                     }
@@ -581,6 +581,7 @@ data class Achievement(
 )
 
 data class Reward(
+    val id: Int,
     val title: String,
     val description: String,
     val pointsCost: Int,
@@ -592,7 +593,7 @@ class RewardShopAdapter(
     private val rewards: MutableList<Reward>,
     private val onUnlockClick: (Reward) -> Boolean,
     private var currentPoints: Int,
-    private val onSaveReward: (String) -> Unit
+    private val onSaveReward: (Int) -> Unit
 ) : RecyclerView.Adapter<RewardShopAdapter.ViewHolder>() {
 
     fun updatePoints(newPoints: Int) {
@@ -672,7 +673,7 @@ class RewardShopAdapter(
                 unlockButton.setOnClickListener {
                     if (onUnlockClick(reward)) {
                         // Save the unlocked reward to the database using the callback
-                        onSaveReward(reward.title)
+                        onSaveReward(reward.id)
                         // Update the reward's unlocked state in the list
                         rewards[position] = reward.copy(isUnlocked = true)
                         notifyItemChanged(position)
