@@ -30,6 +30,7 @@ import com.nhlstenden.appdev.supabase.SupabaseClient
 import com.nhlstenden.appdev.supabase.User
 import android.util.Log
 import kotlinx.coroutines.delay
+import com.nhlstenden.appdev.shared.components.UserManager
 
 class RewardsFragment : Fragment() {
     private lateinit var pointsValue: TextView
@@ -37,7 +38,7 @@ class RewardsFragment : Fragment() {
     private lateinit var openChestButton: MaterialButton
     private lateinit var rewardShopList: RecyclerView
     private var countDownTimer: CountDownTimer? = null
-    private var currentPoints = 1234 // Mock points value
+    private var currentPoints = 0 // Default to 0 points
     private lateinit var rewardShopAdapter: RewardShopAdapter
     private val supabaseClient = SupabaseClient()
     private lateinit var userId: String
@@ -65,60 +66,94 @@ class RewardsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val userData = arguments?.getParcelable("USER_DATA", User::class.java)
+        val userData = UserManager.getCurrentUser()
         if (userData == null) {
-            Log.e("RewardsFragment", "No user data found in arguments")
+            Log.e("RewardsFragment", "No user data found in UserManager")
             Toast.makeText(context, "Error: User data not found", Toast.LENGTH_LONG).show()
+            currentPoints = 0
+            updatePointsDisplay()
             return
         }
-        
         userId = userData.id.toString()
         authToken = userData.authToken
         Log.d("RewardsFragment", "Initialized with userId: $userId")
-        
-        // Initialize the reward shop AFTER userId is initialized
         setupRewardShop()
-        
+        setupAchievements(view)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        fetchUserAttributesAndUpdateUI()
+    }
+
+    private fun fetchUserAttributesAndUpdateUI() {
+        val userData = UserManager.getCurrentUser()
+        if (userData == null) {
+            Log.e("RewardsFragment", "No user data found in UserManager")
+            Toast.makeText(context, "Error: User data not found", Toast.LENGTH_LONG).show()
+            currentPoints = 0
+            updatePointsDisplay()
+            return
+        }
+        userId = userData.id.toString()
+        authToken = userData.authToken
+        Log.d("RewardsFragment", "Initialized with userId: $userId")
         // Fetch points and opened_daily_at from Supabase
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = supabaseClient.getUserAttributes(userId)
+                Log.d("RewardsFragment", "Fetching user attributes for userId: $userId")
+                val response = supabaseClient.getUserAttributes(userId, authToken)
+                Log.d("RewardsFragment", "Supabase response code: ${response.code}")
+                val responseBody = response.body?.string()
+                Log.d("RewardsFragment", "Supabase response body: $responseBody")
                 if (response.code == 200) {
-                    val userResponse = JSONArray(response.body?.string())
+                    val userResponse = JSONArray(responseBody)
+                    Log.d("RewardsFragment", "Parsed userResponse: $userResponse")
                     if (userResponse.length() > 0) {
                         val userData = userResponse.getJSONObject(0)
+                        Log.d("RewardsFragment", "Fetched userData JSON: $userData")
+                        if (userData.has("points")) {
+                            Log.d("RewardsFragment", "Fetched points from JSON: ${userData.get("points")}")
+                        } else {
+                            Log.e("RewardsFragment", "No 'points' field in userData JSON!")
+                        }
                         currentPoints = userData.getInt("points")
+                        Log.d("RewardsFragment", "currentPoints set to: $currentPoints")
                         openedDailyAt = userData.optString("opened_daily_at", null)
+                        Log.d("RewardsFragment", "Fetched points: $currentPoints, openedDailyAt: $openedDailyAt")
                         withContext(Dispatchers.Main) {
                             updatePointsDisplay()
                             setupDailyRewardTimer()
                         }
                     } else {
-                        Log.e("RewardsFragment", "No user data found in response")
+                        Log.e("RewardsFragment", "No user data found in response for userId: $userId")
                         withContext(Dispatchers.Main) {
+                            currentPoints = 0
+                            updatePointsDisplay()
                             Toast.makeText(context, "Error: User data not found", Toast.LENGTH_LONG).show()
                         }
                     }
                 } else {
-                    val errorBody = response.body?.string()
-                    Log.e("RewardsFragment", "Failed to get user attributes: ${response.code} $errorBody")
+                    Log.e("RewardsFragment", "Failed to get user attributes: ${response.code} $responseBody")
                     withContext(Dispatchers.Main) {
+                        currentPoints = 0
+                        updatePointsDisplay()
                         Toast.makeText(context, "Error: Failed to load user data", Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
                 Log.e("RewardsFragment", "Error getting user attributes: ${e.message}")
                 withContext(Dispatchers.Main) {
+                    currentPoints = 0
+                    updatePointsDisplay()
                     Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
-            
-            // Check saved rewards to debug any issues
-            checkSavedRewards()
         }
     }
 
     private fun updatePointsDisplay() {
+        Log.d("RewardsFragment", "updatePointsDisplay: currentPoints = $currentPoints")
         pointsValue.text = String.format("%,d", currentPoints)
         // Only update adapter if it's initialized
         if (::rewardShopAdapter.isInitialized) {
@@ -127,13 +162,17 @@ class RewardsFragment : Fragment() {
     }
 
     private fun addPoints(points: Int) {
+        Log.d("RewardsFragment", "addPoints called with points: $points, currentPoints before: $currentPoints")
         CoroutineScope(Dispatchers.IO).launch {
             val newPoints = currentPoints + points
+            Log.d("RewardsFragment", "addPoints: newPoints = $newPoints")
             val response = supabaseClient.updateUserPoints(userId, newPoints, authToken)
+            Log.d("RewardsFragment", "addPoints: updateUserPoints response code: ${response.code}")
             if (response.code == 204 || response.code == 200) {
                 // Only update UI after successful server update
                 withContext(Dispatchers.Main) {
                     currentPoints = newPoints
+                    Log.d("RewardsFragment", "addPoints: currentPoints after update: $currentPoints")
                     updatePointsDisplay()
                 }
             } else {
@@ -146,13 +185,17 @@ class RewardsFragment : Fragment() {
     }
 
     private fun spendPoints(points: Int) {
+        Log.d("RewardsFragment", "spendPoints called with points: $points, currentPoints before: $currentPoints")
         CoroutineScope(Dispatchers.IO).launch {
             val newPoints = currentPoints - points
+            Log.d("RewardsFragment", "spendPoints: newPoints = $newPoints")
             val response = supabaseClient.updateUserPoints(userId, newPoints, authToken)
+            Log.d("RewardsFragment", "spendPoints: updateUserPoints response code: ${response.code}")
             if (response.code == 204 || response.code == 200) {
                 // Only update UI after successful server update
                 withContext(Dispatchers.Main) {
                     currentPoints = newPoints
+                    Log.d("RewardsFragment", "spendPoints: currentPoints after update: $currentPoints")
                     updatePointsDisplay()
                 }
             } else {
@@ -480,7 +523,7 @@ class RewardsFragment : Fragment() {
                 android.util.Log.d("Supabase", "Points updated successfully! New value: $currentPoints")
             }
             // Immediately GET after PATCH to see the value in Supabase
-            val getResponse = supabaseClient.getUserAttributes(userId)
+            val getResponse = supabaseClient.getUserAttributes(userId, authToken)
             android.util.Log.d("Supabase", "GET after PATCH: ${getResponse.body?.string()}")
         }
     }

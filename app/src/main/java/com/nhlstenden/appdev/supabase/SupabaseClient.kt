@@ -10,6 +10,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -65,7 +66,7 @@ class SupabaseClient() {
         }
     }
 
-    suspend fun getUserAttributes(userId: String): Response {
+    suspend fun getUserAttributes(userId: String, authToken: String): Response {
         if (userId.isBlank() || userId == "null") {
             Log.e("SupabaseClient", "Invalid userId provided: $userId")
             throw IllegalArgumentException("Invalid userId provided")
@@ -75,8 +76,19 @@ class SupabaseClient() {
                 .url("$supabaseUrl/rest/v1/user_attributes?id=eq.$userId")
                 .get()
                 .addHeader("apikey", supabaseKey)
+                .addHeader("Authorization", "Bearer $authToken")
                 .build()
-            client.newCall(request).execute()
+            val response = client.newCall(request).execute()
+            val responseBody = response.body?.string()
+            Log.d("SupabaseClient", "getUserAttributes: userId=$userId, code=${response.code}, body=$responseBody")
+            // Re-create the response with the consumed body for the caller
+            okhttp3.Response.Builder()
+                .request(request)
+                .protocol(response.protocol)
+                .code(response.code)
+                .message(response.message)
+                .body(responseBody?.toResponseBody("application/json".toMediaType()))
+                .build()
         }
     }
 
