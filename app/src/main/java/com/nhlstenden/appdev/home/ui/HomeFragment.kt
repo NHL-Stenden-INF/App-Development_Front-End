@@ -16,14 +16,24 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
-import com.nhlstenden.appdev.profile.ui.ProfileFragment
+import com.nhlstenden.appdev.profile.ui.screens.ProfileFragment
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.supabase.User
 import com.nhlstenden.appdev.courses.ui.CourseTopicsFragment
 import com.nhlstenden.appdev.courses.parser.CourseParser
+import android.app.AlertDialog
+import android.widget.EditText
+import com.nhlstenden.appdev.profile.ui.viewmodels.ProfileViewModel
+import com.nhlstenden.appdev.profile.ui.viewmodels.ProfileViewModel.ProfileState
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
+import dagger.hilt.android.AndroidEntryPoint
+import com.bumptech.glide.Glide
 
 // Data class for course info
 data class HomeCourse(
@@ -96,10 +106,13 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>) : RecyclerView.Ad
  * Use the [HomeFragment.newInstance] factory method to
  * create an instance of this fragment.
  */
+@AndroidEntryPoint
 class HomeFragment : Fragment() {
     private lateinit var greetingText: TextView
     private lateinit var motivationalMessage: TextView
     private lateinit var profilePicture: ImageView
+    private val profileViewModel: ProfileViewModel by viewModels()
+    private var displayNameDialogShown = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -115,20 +128,57 @@ class HomeFragment : Fragment() {
         motivationalMessage = view.findViewById(R.id.motivationalMessage)
         profilePicture = view.findViewById(R.id.profileImage)
 
+        // Set user data in ProfileViewModel
+        val userData = arguments?.getParcelable<User>("USER_DATA") ?: com.nhlstenden.appdev.shared.components.UserManager.getCurrentUser()
+        userData?.let { user ->
+            profileViewModel.setUserData(user)
+            profileViewModel.loadProfile()
+        }
+
         setupProfileButton()
         setupUI(view)
+
+        // Observe profile state using StateFlow
+        viewLifecycleOwner.lifecycleScope.launch {
+            android.util.Log.d("HomeFragment", "Started collecting profileState")
+            profileViewModel.profileState.collect { state ->
+                android.util.Log.d("HomeFragment", "profileState emitted: $state")
+                if (state is ProfileState.Success) {
+                    val displayName = state.profile.displayName
+                    val invalidNames = listOf("", "null", "default", "user", "anonymous")
+                    android.util.Log.d("HomeFragment", "Display name from profile: '$displayName'")
+                    if (displayName in invalidNames && !displayNameDialogShown) {
+                        showDisplayNameDialog()
+                    } else {
+                        greetingText.text = getString(R.string.greeting_format, displayName)
+                    }
+                    // Show correct profile picture
+                    val profilePic = state.profile.profilePicture
+                    val invalidPics = listOf(null, "", "null")
+                    if (profilePic !in invalidPics) {
+                        if (profilePic!!.startsWith("http")) {
+                            Glide.with(this@HomeFragment)
+                                .load(profilePic)
+                                .placeholder(R.drawable.zorotlpf)
+                                .error(R.drawable.zorotlpf)
+                                .into(profilePicture)
+                        } else {
+                            // Assume base64
+                            val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
+                            val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                            profilePicture.setImageBitmap(bitmap)
+                        }
+                    } else {
+                        profilePicture.setImageResource(R.drawable.zorotlpf)
+                    }
+                }
+            }
+        }
     }
     
     private fun setupProfileButton() {
         profilePicture.setOnClickListener {
-            val userData = arguments?.getParcelable<User>("USER_DATA")
-
-            val profileFragment = ProfileFragment().apply {
-                arguments = Bundle().apply {
-                    putParcelable("USER_DATA", userData)
-                }
-            }
-
+            val profileFragment = ProfileFragment()
             parentFragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, profileFragment)
                 .addToBackStack(null)
@@ -141,7 +191,7 @@ class HomeFragment : Fragment() {
     
     fun setupUI(view: View) {
         // Get user data from arguments
-        val userData = arguments?.getParcelable<User>("USER_DATA")
+        val userData = arguments?.getParcelable("USER_DATA", User::class.java)
         userData?.let { user ->
             greetingText.text = getString(R.string.greeting_format, user.username)
             updateMotivationalMessage(user)
@@ -239,7 +289,7 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun updateMotivationalMessage(user: User) {
+    private fun updateMotivationalMessage(_user: User) {
         // TODO: Replace with actual friend data from the backend
         val friendName = "John"
         val tasksAhead = 5
@@ -307,5 +357,32 @@ class HomeFragment : Fragment() {
         return resources.configuration.uiMode and 
             android.content.res.Configuration.UI_MODE_NIGHT_MASK == 
             android.content.res.Configuration.UI_MODE_NIGHT_YES
+    }
+
+    private fun updateUserData(_user: User) {
+        // Implementation
+    }
+
+    private fun showDisplayNameDialog() {
+        displayNameDialogShown = true
+        val editText = EditText(requireContext())
+        editText.hint = "Enter display name"
+        AlertDialog.Builder(requireContext())
+            .setTitle("Set Display Name")
+            .setMessage("Please enter a display name to continue.")
+            .setView(editText)
+            .setCancelable(false)
+            .setPositiveButton("Save") { _, _ ->
+                val newDisplayName = editText.text.toString().trim()
+                if (newDisplayName.isNotEmpty()) {
+                    // Update profile in Supabase
+                    profileViewModel.updateProfile(newDisplayName, null, null)
+                } else {
+                    // Show dialog again if input is empty
+                    displayNameDialogShown = false
+                    showDisplayNameDialog()
+                }
+            }
+            .show()
     }
 }

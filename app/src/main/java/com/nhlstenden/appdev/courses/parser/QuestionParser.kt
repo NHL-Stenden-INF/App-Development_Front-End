@@ -2,10 +2,11 @@ package com.nhlstenden.appdev.courses.parser
 
 import android.content.Context
 import android.util.Log
-import com.nhlstenden.appdev.task.ui.Option
-import com.nhlstenden.appdev.task.ui.TaskActivity.Question
-import org.w3c.dom.Element
-import org.w3c.dom.NodeList
+import com.nhlstenden.appdev.task.domain.models.Option
+import com.nhlstenden.appdev.task.domain.models.Question
+import com.nhlstenden.appdev.task.domain.models.QuestionType
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.InputStream
 import javax.xml.parsers.DocumentBuilderFactory
 
@@ -20,7 +21,7 @@ class QuestionParser(private val context: Context) {
         
         return try {
             val inputStream = context.resources.openRawResource(resourceId)
-            parseQuestionsXml(inputStream)
+            parseQuestionsJson(inputStream)
         } catch (e: Exception) {
             Log.e("QuestionParser", "Error loading questions for topic: $topicTitle", e)
             emptyList()
@@ -62,69 +63,17 @@ class QuestionParser(private val context: Context) {
         return context.resources.getIdentifier(resourceName, "raw", context.packageName)
     }
     
-    private fun parseQuestionsXml(inputStream: InputStream): List<Question> {
+    private fun parseQuestionsJson(inputStream: InputStream): List<Question> {
         val questions = mutableListOf<Question>()
         
         try {
-            val factory = DocumentBuilderFactory.newInstance()
-            val builder = factory.newDocumentBuilder()
-            val document = builder.parse(inputStream)
-            document.documentElement.normalize()
-            
-            // Parse multiple choice questions
-            val mcqNodes = document.getElementsByTagName("multiple_choice_question")
-            for (i in 0 until mcqNodes.length) {
-                val questionElement = mcqNodes.item(i) as Element
-                val questionText = questionElement.getElementsByTagName("question_text").item(0).textContent
-                val optionsNodeList = questionElement.getElementsByTagName("option")
-                
-                val options = parseOptions(optionsNodeList)
-                if (options.isNotEmpty()) {
-                    // Shuffle options to randomize answer order
-                    options.shuffle()
-                    questions.add(Question.MultipleChoiceQuestion(questionText, options))
-                }
+            val jsonArray = JSONArray(inputStream.bufferedReader().use { it.readText() })
+            for (i in 0 until jsonArray.length()) {
+                val jsonObject = jsonArray.getJSONObject(i)
+                questions.add(parseQuestion(jsonObject))
             }
-            
-            // Parse flip card questions
-            val flipCardNodes = document.getElementsByTagName("flip_card_question")
-            for (i in 0 until flipCardNodes.length) {
-                val questionElement = flipCardNodes.item(i) as Element
-                val frontText = questionElement.getElementsByTagName("front_text").item(0).textContent
-                val backText = questionElement.getElementsByTagName("back_text").item(0).textContent
-                
-                questions.add(Question.FlipCardQuestion(Pair(frontText, backText)))
-            }
-            
-            // Parse press mistakes questions
-            val pressMistakesNodes = document.getElementsByTagName("press_mistakes_question")
-            for (i in 0 until pressMistakesNodes.length) {
-                val questionElement = pressMistakesNodes.item(i) as Element
-                val questionText = questionElement.getElementsByTagName("question_text").item(0).textContent
-                val sentence = questionElement.getElementsByTagName("sentence").item(0).textContent
-                
-                val mistakesNodeList = questionElement.getElementsByTagName("mistake")
-                val mistakes = mutableListOf<String>()
-                for (j in 0 until mistakesNodeList.length) {
-                    mistakes.add(mistakesNodeList.item(j).textContent)
-                }
-                
-                questions.add(Question.PressMistakesQuestion(questionText, sentence, mistakes))
-            }
-            
-            // Parse edit text questions
-            val editTextNodes = document.getElementsByTagName("edit_text_question")
-            for (i in 0 until editTextNodes.length) {
-                val questionElement = editTextNodes.item(i) as Element
-                val questionText = questionElement.getElementsByTagName("question_text").item(0).textContent
-                val incorrectText = questionElement.getElementsByTagName("incorrect_text").item(0).textContent
-                val correctText = questionElement.getElementsByTagName("correct_text").item(0).textContent
-                
-                questions.add(Question.EditTextQuestion(questionText, incorrectText, correctText))
-            }
-            
         } catch (e: Exception) {
-            Log.e("QuestionParser", "Error parsing XML", e)
+            Log.e("QuestionParser", "Error parsing JSON", e)
         } finally {
             inputStream.close()
         }
@@ -132,13 +81,43 @@ class QuestionParser(private val context: Context) {
         return questions
     }
     
-    private fun parseOptions(optionsNodeList: NodeList): MutableList<Option> {
-        val options = mutableListOf<Option>()
-        for (j in 0 until optionsNodeList.length) {
-            val optionElement = optionsNodeList.item(j) as Element
-            val optionText = optionElement.textContent
-            val isCorrect = optionElement.getAttribute("correct").equals("true", ignoreCase = true)
-            options.add(Option(optionText, isCorrect))
+    fun parseQuestion(jsonObject: JSONObject): Question {
+        val id = jsonObject.getString("id")
+        val type = QuestionType.valueOf(jsonObject.getString("type"))
+        val text = jsonObject.getString("text")
+        val options = parseOptions(jsonObject.optJSONArray("options"))
+        val correctOptionId = jsonObject.optString("correct_option_id")
+        val front = jsonObject.optString("front")
+        val back = jsonObject.optString("back")
+        val mistakes = jsonObject.optInt("mistakes", 0)
+        val correctText = jsonObject.optString("correct_text")
+
+        return Question(
+            id = id,
+            type = type,
+            text = text,
+            options = options,
+            correctOptionId = correctOptionId,
+            front = front,
+            back = back,
+            mistakes = mistakes,
+            correctText = correctText
+        )
+    }
+    
+    private fun parseOptions(optionsArray: JSONArray?): List<Question.Option> {
+        if (optionsArray == null) return emptyList()
+        
+        val options = mutableListOf<Question.Option>()
+        for (i in 0 until optionsArray.length()) {
+            val optionObj = optionsArray.getJSONObject(i)
+            options.add(
+                Question.Option(
+                    id = optionObj.getString("id"),
+                    text = optionObj.getString("text"),
+                    isCorrect = optionObj.optBoolean("is_correct", false)
+                )
+            )
         }
         return options
     }

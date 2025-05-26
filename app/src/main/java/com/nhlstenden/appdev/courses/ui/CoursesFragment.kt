@@ -15,6 +15,7 @@ import androidx.viewpager2.widget.ViewPager2
 import android.widget.FrameLayout
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.courses.parser.CourseParser
+import android.widget.RadioGroup
 
 class CoursesFragment : Fragment() {
     private lateinit var coursesList: RecyclerView
@@ -109,8 +110,12 @@ class CoursesFragment : Fragment() {
     }
 
     private fun setupFilterChips() {
-        filterChipGroup.setOnCheckedStateChangeListener { group, checkedIds ->
+        filterChipGroup.setOnCheckedStateChangeListener { _, _ ->
             // TODO: Implement filtering when connected to backend
         }
+    }
+
+    private val filterListener = RadioGroup.OnCheckedChangeListener { _, _ ->
+        // Filter implementation
     }
 }
