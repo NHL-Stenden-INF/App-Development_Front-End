@@ -37,24 +37,29 @@ class FriendAdapter(
             // Set points and progress bar
             binding.friendProgressBar.progress = friend.progress
             binding.friendProgressText.text = "${friend.progress} points"
+            binding.friendPoints.text = "${friend.progress} pts"
             
-            // Load profile picture using Glide
-            val profilePicUrl = friend.profilePicture
-            val context = binding.friendProfilePicture.context
-            
-            if (!profilePicUrl.isNullOrEmpty() && profilePicUrl != "null") {
-                Glide.with(context)
-                    .load(profilePicUrl)
-                    .placeholder(R.drawable.ic_profile_placeholder) // Replace with your placeholder drawable
-                    .error(R.drawable.ic_profile_placeholder) // Replace with your error drawable
-                    .circleCrop() // Optional: if you want circular images
-                    .into(binding.friendProfilePicture)
+            val profilePic = friend.profilePicture
+            val invalidPics = listOf(null, "", "null")
+            if (profilePic !in invalidPics) {
+                if (profilePic!!.startsWith("http")) {
+                    Glide.with(binding.friendProfilePicture.context)
+                        .load(profilePic)
+                        .placeholder(R.drawable.ic_profile_placeholder)
+                        .error(R.drawable.ic_profile_placeholder)
+                        .circleCrop()
+                        .into(binding.friendProfilePicture)
+                } else {
+                    try {
+                        val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
+                        val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                        binding.friendProfilePicture.setImageBitmap(bitmap)
+                    } catch (e: Exception) {
+                        binding.friendProfilePicture.setImageResource(R.drawable.ic_profile_placeholder)
+                    }
+                }
             } else {
-                // Load a default placeholder if no profile picture is available
-                Glide.with(context)
-                    .load(R.drawable.ic_profile_placeholder) // Replace with your placeholder drawable
-                    .circleCrop() // Optional: if you want circular images
-                    .into(binding.friendProfilePicture)
+                binding.friendProfilePicture.setImageResource(R.drawable.ic_profile_placeholder)
             }
             
             binding.root.setOnClickListener { onFriendClick(friend) }
