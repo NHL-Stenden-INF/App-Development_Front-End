@@ -21,6 +21,7 @@ import com.nhlstenden.appdev.main.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import android.graphics.Rect
 
 @AndroidEntryPoint
 class LoginActivity : AppCompatActivity() {
@@ -63,10 +64,8 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        
         setupViews()
         observeLoginState()
-        
         resetSleepTimer()
     }
 

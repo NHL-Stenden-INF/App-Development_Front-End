@@ -12,13 +12,15 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.ChipGroup
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.courses.ui.adapters.CourseAdapter
+import com.nhlstenden.appdev.courses.models.CourseAdapter
 import com.nhlstenden.appdev.courses.ui.viewmodels.CourseViewModel
 import com.nhlstenden.appdev.shared.navigation.NavigationManager
 import com.nhlstenden.appdev.shared.ui.base.BaseFragment
 import com.nhlstenden.appdev.shared.ui.components.BaseListAdapter
 import kotlinx.coroutines.launch
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class CoursesFragment : BaseFragment() {
     private val viewModel: CourseViewModel by viewModels()
     private lateinit var coursesList: RecyclerView
@@ -64,23 +66,16 @@ class CoursesFragment : BaseFragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.courses.collect { courses ->
-                    adapter.submitList(courses)
-                }
-            }
-        }
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.isLoading.collect { isLoading ->
-                    showLoading(isLoading)
-                }
-            }
-        }
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.error.collect { error ->
-                    error?.let { showError(it) }
+                    val mapped = courses.map { domainCourse ->
+                        com.nhlstenden.appdev.courses.models.Course(
+                            id = domainCourse.id,
+                            title = domainCourse.title,
+                            level = domainCourse.difficulty,
+                            description = domainCourse.description,
+                            imageResId = domainCourse.imageResId
+                        )
+                    }
+                    adapter.submitList(mapped)
                 }
             }
         }

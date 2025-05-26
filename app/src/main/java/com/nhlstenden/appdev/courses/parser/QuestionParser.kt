@@ -9,6 +9,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.InputStream
 import javax.xml.parsers.DocumentBuilderFactory
+import org.json.JSONException
+import org.xmlpull.v1.XmlPullParser
+import org.xmlpull.v1.XmlPullParserFactory
 
 class QuestionParser(private val context: Context) {
     
@@ -19,65 +22,71 @@ class QuestionParser(private val context: Context) {
             return emptyList()
         }
         
-        return try {
-            val inputStream = context.resources.openRawResource(resourceId)
-            parseQuestionsJson(inputStream)
+        var inputStream: InputStream? = null
+        try {
+            inputStream = context.resources.openRawResource(resourceId)
+            // Try to parse as JSON, fallback to XML if it fails
+            return try {
+                parseQuestionsJson(inputStream)
+            } catch (jsonEx: JSONException) {
+                inputStream.close()
+                // Reopen stream for XML parsing
+                val xmlStream = context.resources.openRawResource(resourceId)
+                val result = parseQuestionsXml(xmlStream)
+                xmlStream.close()
+                result
+            }
         } catch (e: Exception) {
             Log.e("QuestionParser", "Error loading questions for topic: $topicTitle", e)
-            emptyList()
+            return emptyList()
+        } finally {
+            inputStream?.close()
         }
     }
     
     private fun getResourceIdForTopic(topicTitle: String): Int {
+        // Split topicTitle into course and topic part
+        val lower = topicTitle.lowercase()
         val resourceName = when {
-            topicTitle.contains("HTML", ignoreCase = true) -> {
-                when {
-                    topicTitle.contains("Basic", ignoreCase = true) -> "html_basics_questions"
-                    topicTitle.contains("Element", ignoreCase = true) -> "html_elements_questions"
-                    topicTitle.contains("Form", ignoreCase = true) -> "html_forms_questions"
-                    topicTitle.contains("Structure", ignoreCase = true) -> "html_structure_questions"
-                    else -> "html_basics_questions" // Default HTML questions
-                }
+            lower.contains("html") -> when {
+                lower.contains("basics") -> "html_basics_questions"
+                lower.contains("structure") -> "html_structure_questions"
+                lower.contains("forms") -> "html_forms_questions"
+                lower.contains("elements") -> "html_elements_questions"
+                else -> "html_basics_questions"
             }
-            topicTitle.contains("CSS", ignoreCase = true) -> {
-                when {
-                    topicTitle.contains("Basic", ignoreCase = true) -> "css_basics_questions"
-                    topicTitle.contains("Layout", ignoreCase = true) -> "css_layout_questions"
-                    topicTitle.contains("Selector", ignoreCase = true) -> "css_selectors_questions"
-                    topicTitle.contains("Animation", ignoreCase = true) -> "css_animation_questions"
-                    else -> "css_basics_questions" // Default CSS questions
-                }
+            lower.contains("css") -> when {
+                lower.contains("basics") -> "css_basics_questions"
+                lower.contains("layout") -> "css_layout_questions"
+                lower.contains("selectors") -> "css_selectors_questions"
+                lower.contains("animation") -> "css_animation_questions"
+                else -> "css_basics_questions"
             }
-            topicTitle.contains("SQL", ignoreCase = true) -> {
-                when {
-                    topicTitle.contains("Basic", ignoreCase = true) -> "sql_basics_questions"
-                    topicTitle.contains("Join", ignoreCase = true) -> "sql_joins_questions"
-                    topicTitle.contains("Quer", ignoreCase = true) -> "sql_queries_questions"
-                    topicTitle.contains("Database", ignoreCase = true) -> "sql_database_questions"
-                    else -> "sql_basics_questions" // Default SQL questions
-                }
+            lower.contains("sql") -> when {
+                lower.contains("basics") -> "sql_basics_questions"
+                lower.contains("queries") -> "sql_queries_questions"
+                lower.contains("joins") -> "sql_joins_questions"
+                lower.contains("database") -> "sql_database_questions"
+                else -> "sql_basics_questions"
             }
-            else -> "default_questions" // Default fallback
+            else -> "default_questions"
         }
-        
         return context.resources.getIdentifier(resourceName, "raw", context.packageName)
     }
     
     private fun parseQuestionsJson(inputStream: InputStream): List<Question> {
         val questions = mutableListOf<Question>()
-        
         try {
             val jsonArray = JSONArray(inputStream.bufferedReader().use { it.readText() })
             for (i in 0 until jsonArray.length()) {
                 val jsonObject = jsonArray.getJSONObject(i)
                 questions.add(parseQuestion(jsonObject))
             }
+        } catch (e: JSONException) {
+            throw e
         } catch (e: Exception) {
             Log.e("QuestionParser", "Error parsing JSON", e)
-        } finally {
-            inputStream.close()
         }
-        
         return questions
     }
     
@@ -120,5 +129,65 @@ class QuestionParser(private val context: Context) {
             )
         }
         return options
+    }
+
+    private fun parseQuestionsXml(inputStream: InputStream): List<Question> {
+        val questions = mutableListOf<Question>()
+        try {
+            val factory = XmlPullParserFactory.newInstance()
+            val parser = factory.newPullParser()
+            parser.setInput(inputStream, null)
+            var eventType = parser.eventType
+            var currentQuestion: Question? = null
+            var currentOptions = mutableListOf<Question.Option>()
+            var correctOptionId: String? = null
+            var questionId = 1
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                when (eventType) {
+                    XmlPullParser.START_TAG -> {
+                        when (parser.name) {
+                            "multiple_choice_question" -> {
+                                currentOptions = mutableListOf()
+                                correctOptionId = null
+                            }
+                            "question_text" -> {
+                                parser.next()
+                                val text = parser.text
+                                currentQuestion = Question(
+                                    id = questionId.toString(),
+                                    type = com.nhlstenden.appdev.task.domain.models.QuestionType.MULTIPLE_CHOICE,
+                                    text = text ?: "",
+                                    options = emptyList()
+                                )
+                            }
+                            "option" -> {
+                                val isCorrect = parser.getAttributeValue(null, "correct") == "true"
+                                parser.next()
+                                val text = parser.text ?: ""
+                                val optionId = (currentOptions.size + 1).toString()
+                                currentOptions.add(Question.Option(optionId, text, isCorrect))
+                                if (isCorrect) correctOptionId = optionId
+                            }
+                        }
+                    }
+                    XmlPullParser.END_TAG -> {
+                        when (parser.name) {
+                            "multiple_choice_question" -> {
+                                if (currentQuestion != null) {
+                                    questions.add(currentQuestion.copy(options = currentOptions.toList(), correctOptionId = correctOptionId))
+                                    questionId++
+                                }
+                            }
+                        }
+                    }
+                }
+                eventType = parser.next()
+            }
+        } catch (e: Exception) {
+            Log.e("QuestionParser", "Error parsing XML", e)
+        } finally {
+            inputStream.close()
+        }
+        return questions
     }
 } 

@@ -20,6 +20,13 @@ class TaskActivity : AppCompatActivity() {
     private lateinit var binding: ActivityTaskBinding
     private val viewModel: TaskViewModel by viewModels()
     private lateinit var taskPagerAdapter: TaskPagerAdapter
+    private var allQuestions: List<Question> = emptyList()
+    private var wrongQuestionIds: MutableSet<String> = mutableSetOf()
+    private var roundWrongIds: MutableSet<String> = mutableSetOf()
+    private var currentQuestions: MutableList<Question> = mutableListOf()
+    private var currentIndex = 0
+    private var remainingQuestions: MutableList<Question> = mutableListOf()
+    private var correctQuestionIds: MutableSet<String> = mutableSetOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,19 +48,13 @@ class TaskActivity : AppCompatActivity() {
     private fun setupViewPager() {
         taskPagerAdapter = TaskPagerAdapter(this, object : TaskCompleteListener {
             override fun onTaskCompleted(question: Question) {
-                viewModel.completeTask()
+                // No-op here
             }
 
             override fun onTaskComplete(isCorrect: Boolean) {
+                val question = currentQuestions[currentIndex]
                 if (isCorrect) {
-                    Toast.makeText(this@TaskActivity, "Correct!", Toast.LENGTH_SHORT).show()
-                    if (binding.viewPager.currentItem < taskPagerAdapter.itemCount - 1) {
-                        binding.viewPager.currentItem += 1
-                    } else {
-                        viewModel.completeTask()
-                    }
-                } else {
-                    Toast.makeText(this@TaskActivity, "Incorrect. Try again!", Toast.LENGTH_SHORT).show()
+                    correctQuestionIds.add(question.id)
                 }
             }
         })
@@ -76,7 +77,13 @@ class TaskActivity : AppCompatActivity() {
                 is TaskViewModel.TaskState.Success -> {
                     binding.progressBar.visibility = View.GONE
                     binding.viewPager.visibility = View.VISIBLE
-                    taskPagerAdapter.submitList(state.questions)
+                    allQuestions = state.questions
+                    correctQuestionIds.clear()
+                    currentQuestions = allQuestions.shuffled().toMutableList()
+                    currentIndex = 0
+                    updateQuestionNumber()
+                    taskPagerAdapter.submitList(currentQuestions)
+                    binding.viewPager.setCurrentItem(0, false)
                 }
                 is TaskViewModel.TaskState.Error -> {
                     binding.progressBar.visibility = View.GONE
@@ -88,6 +95,30 @@ class TaskActivity : AppCompatActivity() {
                     finish()
                 }
             }
+        }
+        binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                currentIndex = position
+                updateQuestionNumber()
+            }
+        })
+    }
+
+    private fun updateQuestionNumber() {
+        binding.taskProgress.text = "${currentIndex + 1} of ${currentQuestions.size}"
+    }
+
+    fun onNextQuestion() {
+        // Called from fragment after feedback
+        if (currentIndex < currentQuestions.size - 1) {
+            binding.viewPager.currentItem = currentIndex + 1
+        } else {
+            // End of round: always repeat all questions, shuffled
+            currentQuestions = allQuestions.shuffled().toMutableList()
+            currentIndex = 0
+            updateQuestionNumber()
+            taskPagerAdapter.submitList(currentQuestions)
+            binding.viewPager.setCurrentItem(0, false)
         }
     }
 

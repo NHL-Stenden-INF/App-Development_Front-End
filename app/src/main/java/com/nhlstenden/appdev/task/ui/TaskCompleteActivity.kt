@@ -9,7 +9,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.supabase.User
-import com.nhlstenden.appdev.courses.ui.CourseTopicsFragment.Topic
+import com.nhlstenden.appdev.courses.domain.models.Topic
 import com.nhlstenden.appdev.main.MainActivity
 import com.nhlstenden.appdev.shared.components.UserManager
 

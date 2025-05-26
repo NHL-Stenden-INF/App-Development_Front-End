@@ -14,11 +14,15 @@ import com.nhlstenden.appdev.courses.models.CourseAdapter
 import androidx.viewpager2.widget.ViewPager2
 import android.widget.FrameLayout
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.courses.ui.CourseTopicsFragment
+import com.nhlstenden.appdev.courses.ui.CourseFragment
+import dagger.hilt.android.AndroidEntryPoint
+import com.nhlstenden.appdev.shared.navigation.NavigationManager
 
+@AndroidEntryPoint
 class TasksFragment : Fragment() {
     private lateinit var tasksList: RecyclerView
     private lateinit var filterChipGroup: ChipGroup
+    private lateinit var adapter: CourseAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -34,6 +38,13 @@ class TasksFragment : Fragment() {
         tasksList = view.findViewById(R.id.coursesList)
         filterChipGroup = view.findViewById(R.id.filterChipGroup)
 
+        adapter = CourseAdapter { course ->
+            // Use NavigationManager for consistent navigation and back behavior
+            NavigationManager.navigateToCourseTopics(requireActivity(), course.id)
+        }
+        tasksList.layoutManager = LinearLayoutManager(context)
+        tasksList.adapter = adapter
+
         setupTasksList()
         setupFilterChips()
     }
@@ -41,42 +52,28 @@ class TasksFragment : Fragment() {
     private fun setupTasksList() {
         val courses = listOf(
             Course(
-                "HTML",
-                "Beginner",
-                "Learn the fundamentals of HTML markup language",
-                R.drawable.html_course
+                id = "1",
+                title = "HTML",
+                level = "Beginner",
+                description = "Learn the fundamentals of HTML markup language",
+                imageResId = R.drawable.html_course
             ),
             Course(
-                "CSS",
-                "Intermediate",
-                "Master CSS styling and layout techniques",
-                R.drawable.css_course
+                id = "2",
+                title = "CSS",
+                level = "Intermediate",
+                description = "Master CSS styling and layout techniques",
+                imageResId = R.drawable.css_course
             ),
             Course(
-                "SQL",
-                "Advanced",
-                "Learn database management with SQL",
-                R.drawable.sql_course
+                id = "3",
+                title = "SQL",
+                level = "Advanced",
+                description = "Learn database management with SQL",
+                imageResId = R.drawable.sql_course
             )
         )
-
-        tasksList.apply {
-            layoutManager = LinearLayoutManager(context)
-            adapter = CourseAdapter(courses) { course ->
-                // Show CourseTopicsFragment in fragment_container
-                val fragment = CourseTopicsFragment().apply {
-                    arguments = Bundle().apply {
-                        putString("courseName", course.title)
-                    }
-                }
-                requireActivity().findViewById<FrameLayout>(R.id.fragment_container).visibility = View.VISIBLE
-                requireActivity().findViewById<ViewPager2>(R.id.viewPager).visibility = View.GONE
-                parentFragmentManager.commit {
-                    replace(R.id.fragment_container, fragment)
-                    addToBackStack(null)
-                }
-            }
-        }
+        adapter.submitList(courses)
     }
 
     private fun setupFilterChips() {

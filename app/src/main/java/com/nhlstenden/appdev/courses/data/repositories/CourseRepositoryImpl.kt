@@ -1,12 +1,16 @@
 package com.nhlstenden.appdev.courses.data.repositories
 
+import android.app.Application
 import com.nhlstenden.appdev.courses.domain.models.Topic
 import com.nhlstenden.appdev.courses.domain.repositories.CourseRepository
+import com.nhlstenden.appdev.courses.parser.CourseParser
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class CourseRepositoryImpl @Inject constructor() : CourseRepository {
+class CourseRepositoryImpl @Inject constructor(
+    private val application: Application
+) : CourseRepository {
     override suspend fun getTopics(): List<Topic> {
         // TODO: Implement actual data fetching from Supabase
         return listOf(
@@ -40,5 +44,10 @@ class CourseRepositoryImpl @Inject constructor() : CourseRepository {
 
     override suspend fun updateTopicProgress(topicId: String, progress: Int) {
         // TODO: Implement actual progress update in Supabase
+    }
+
+    override suspend fun getTopics(courseId: String): List<Topic> {
+        val parser = CourseParser(application.applicationContext)
+        return parser.loadTopicsByCourseId(courseId)
     }
 } 

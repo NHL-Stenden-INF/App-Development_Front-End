@@ -31,6 +31,14 @@ class CourseParser(private val context: Context) {
         return loadAllCourses().find { it.title.equals(courseTitle, ignoreCase = true) }
     }
     
+    fun loadTopicsByCourseId(courseId: String): List<Topic> {
+        return loadAllCourses().find { it.id == courseId }?.topics ?: emptyList()
+    }
+    
+    fun loadCourseById(courseId: String): Course? {
+        return loadAllCourses().find { it.id == courseId }
+    }
+    
     private fun parseCoursesXml(inputStream: InputStream): List<Course> {
         val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream)
         val coursesElement = document.documentElement
@@ -43,7 +51,7 @@ class CourseParser(private val context: Context) {
     }
     
     private fun parseCourse(courseElement: Element): Course {
-        val id = courseElement.getAttribute("id")
+        val id = courseElement.getElementsByTagName("id").item(0).textContent
         val title = courseElement.getElementsByTagName("title").item(0).textContent
         val description = courseElement.getElementsByTagName("description").item(0).textContent
         val difficulty = courseElement.getElementsByTagName("difficulty").item(0).textContent

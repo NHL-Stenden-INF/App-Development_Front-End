@@ -19,9 +19,11 @@ import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.courses.ui.CourseTopicsFragment
+import com.nhlstenden.appdev.courses.ui.CourseFragment
 import com.nhlstenden.appdev.courses.parser.CourseParser
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class ProgressFragment : Fragment() {
     private lateinit var pieChart: PieChart
     private lateinit var courseProgressList: RecyclerView
@@ -182,7 +184,7 @@ class ProgressFragment : Fragment() {
     }
     
     private fun navigateToCourse(courseName: String) {
-        val fragment = CourseTopicsFragment().apply {
+        val fragment = CourseFragment().apply {
             arguments = Bundle().apply {
                 putString("courseName", courseName)
             }
@@ -213,36 +215,31 @@ class CourseProgressAdapter(
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val courseImage: ImageView = view.findViewById(R.id.courseImage)
         val courseTitle: TextView = view.findViewById(R.id.courseTitle)
-        val completionStatus: TextView = view.findViewById(R.id.completionStatus)
         val progressBar: LinearProgressIndicator = view.findViewById(R.id.progressBar)
         val progressPercentage: TextView = view.findViewById(R.id.progressPercentage)
+        val difficultyLevel: TextView = view.findViewById(R.id.difficultyLevel)
+        val courseDescription: TextView = view.findViewById(R.id.courseDescription)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_course_progress, parent, false)
-
+            .inflate(R.layout.item_course, parent, false)
         return ViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val course = courses[position]
-        holder.apply {
-            courseImage.setImageResource(course.imageResId)
-            courseImage.contentDescription = "${course.title} course icon"
-            courseTitle.text = course.title
-            completionStatus.text = course.completionStatus
-            progressBar.max = 100
-            progressBar.setProgress(course.progressPercentage, false)
-            progressBar.setIndicatorColor(Color.rgb(76, 175, 80)) // Set progress color to green
-            progressBar.setTrackColor(Color.rgb(158, 158, 158)) // Set track color to gray
-            progressPercentage.text = "${course.progressPercentage}%"
-            
-            // Add click listener for the entire course row
-            itemView.setOnClickListener {
-                onCourseClick(course.title)
-            }
-        }
+        holder.courseImage.setImageResource(course.imageResId)
+        holder.courseTitle.text = course.title
+        holder.difficultyLevel.text = ""
+        holder.difficultyLevel.visibility = View.GONE
+        holder.courseDescription.text = ""
+        holder.courseDescription.visibility = View.GONE
+        holder.progressBar.visibility = View.VISIBLE
+        holder.progressBar.progress = course.progressPercentage
+        holder.progressPercentage.visibility = View.VISIBLE
+        holder.progressPercentage.text = "${course.progressPercentage}%"
+        holder.itemView.setOnClickListener { onCourseClick(course.title) }
     }
 
     override fun getItemCount() = courses.size

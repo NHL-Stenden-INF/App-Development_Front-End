@@ -8,7 +8,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
+import android.widget.ScrollView
 import android.widget.Toast
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -38,6 +42,20 @@ class LoginFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        val scrollView = view.findViewById<ScrollView>(R.id.scrollView)
+        view.viewTreeObserver.addOnGlobalLayoutListener {
+            val focused = activity?.currentFocus
+            if (focused != null && scrollView != null) {
+                scrollView.post {
+                    scrollView.smoothScrollTo(0, focused.bottom)
+                }
+            }
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+            v.setPadding(0, 0, 0, imeInsets.bottom)
+            insets
+        }
         setupViews()
         observeLoginState()
         startArrowAnimation()

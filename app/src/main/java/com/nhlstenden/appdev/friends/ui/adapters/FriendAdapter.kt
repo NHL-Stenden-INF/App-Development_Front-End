@@ -5,6 +5,8 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.ItemFriendBinding
 import com.nhlstenden.appdev.friends.domain.models.Friend
 
@@ -31,10 +33,34 @@ class FriendAdapter(
         
         fun bind(friend: Friend) {
             binding.friendUsername.text = friend.username
-            binding.friendProgressBar.progress = friend.progress
-            binding.friendProgressText.text = "${friend.progress}%"
             
-            // TODO: Load profile picture using Glide
+            // Set points and progress bar
+            binding.friendProgressBar.progress = friend.progress
+            binding.friendProgressText.text = "${friend.progress} points"
+            binding.friendPoints.text = "${friend.progress} pts"
+            
+            val profilePic = friend.profilePicture
+            val invalidPics = listOf(null, "", "null")
+            if (profilePic !in invalidPics) {
+                if (profilePic!!.startsWith("http")) {
+                    Glide.with(binding.friendProfilePicture.context)
+                        .load(profilePic)
+                        .placeholder(R.drawable.ic_profile_placeholder)
+                        .error(R.drawable.ic_profile_placeholder)
+                        .circleCrop()
+                        .into(binding.friendProfilePicture)
+                } else {
+                    try {
+                        val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
+                        val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                        binding.friendProfilePicture.setImageBitmap(bitmap)
+                    } catch (e: Exception) {
+                        binding.friendProfilePicture.setImageResource(R.drawable.ic_profile_placeholder)
+                    }
+                }
+            } else {
+                binding.friendProfilePicture.setImageResource(R.drawable.ic_profile_placeholder)
+            }
             
             binding.root.setOnClickListener { onFriendClick(friend) }
         }
