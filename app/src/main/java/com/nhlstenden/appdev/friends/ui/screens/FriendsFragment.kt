@@ -1,5 +1,6 @@
 package com.nhlstenden.appdev.friends.ui.screens
 
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -7,6 +8,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -21,12 +23,25 @@ import com.nhlstenden.appdev.shared.ui.base.BaseFragment
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class FriendsFragment : BaseFragment() {
     private val viewModel: FriendsViewModel by viewModels()
     private var _binding: FragmentFriendsBinding? = null
     private val binding get() = _binding!!
     private lateinit var adapter: FriendAdapter
+    
+    private val qrScannerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val scannedUuid = result.data?.getStringExtra("SCANNED_UUID")
+            scannedUuid?.let { uuid ->
+                viewModel.addFriend(uuid)
+            }
+        }
+    }
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -63,7 +78,8 @@ class FriendsFragment : BaseFragment() {
         }
         
         binding.scanButton.setOnClickListener {
-            startActivity(Intent(requireContext(), QRScannerActivity::class.java))
+            val intent = Intent(requireContext(), QRScannerActivity::class.java)
+            qrScannerLauncher.launch(intent)
         }
         
         binding.shareButton.setOnClickListener {

@@ -5,6 +5,8 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.ItemFriendBinding
 import com.nhlstenden.appdev.friends.domain.models.Friend
 
@@ -31,10 +33,29 @@ class FriendAdapter(
         
         fun bind(friend: Friend) {
             binding.friendUsername.text = friend.username
-            binding.friendProgressBar.progress = friend.progress
-            binding.friendProgressText.text = "${friend.progress}%"
             
-            // TODO: Load profile picture using Glide
+            // Set points and progress bar
+            binding.friendProgressBar.progress = friend.progress
+            binding.friendProgressText.text = "${friend.progress} points"
+            
+            // Load profile picture using Glide
+            val profilePicUrl = friend.profilePicture
+            val context = binding.friendProfilePicture.context
+            
+            if (!profilePicUrl.isNullOrEmpty() && profilePicUrl != "null") {
+                Glide.with(context)
+                    .load(profilePicUrl)
+                    .placeholder(R.drawable.ic_profile_placeholder) // Replace with your placeholder drawable
+                    .error(R.drawable.ic_profile_placeholder) // Replace with your error drawable
+                    .circleCrop() // Optional: if you want circular images
+                    .into(binding.friendProfilePicture)
+            } else {
+                // Load a default placeholder if no profile picture is available
+                Glide.with(context)
+                    .load(R.drawable.ic_profile_placeholder) // Replace with your placeholder drawable
+                    .circleCrop() // Optional: if you want circular images
+                    .into(binding.friendProfilePicture)
+            }
             
             binding.root.setOnClickListener { onFriendClick(friend) }
         }

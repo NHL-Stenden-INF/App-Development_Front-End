@@ -13,8 +13,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.shared.components.UserManager
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import android.util.Log
 
-class FriendsViewModel : BaseViewModel() {
+@HiltViewModel
+class FriendsViewModel @Inject constructor(
+    private val supabaseClient: SupabaseClient
+) : BaseViewModel() {
     private val _friends = MutableStateFlow<List<Friend>>(emptyList())
     val friends: StateFlow<List<Friend>> = _friends.asStateFlow()
     
@@ -23,28 +31,40 @@ class FriendsViewModel : BaseViewModel() {
     
     fun loadFriends() {
         launchWithLoading {
-            // TODO: Implement friend loading from repository
-            // For now, using dummy data
-            _friends.value = listOf(
-                Friend(
-                    id = "1",
-                    username = "John Doe",
-                    profilePicture = null,
-                    progress = 75
-                ),
-                Friend(
-                    id = "2",
-                    username = "Jane Smith",
-                    profilePicture = null,
-                    progress = 90
+            val user = UserManager.getCurrentUser()
+            if (user == null) {
+                setError("User not logged in")
+                return@launchWithLoading
+            }
+            val authToken = user.authToken
+            val response = supabaseClient.getAllFriends(authToken)
+            if (!response.isSuccessful) {
+                setError("Failed to load friends: ${response.code}")
+                Log.e("FriendsViewModel", "Failed to load friends: ${response.code}, Body: ${response.body?.string()}")
+                return@launchWithLoading
+            }
+            val body = response.body?.string() ?: "[]"
+            Log.d("FriendsViewModel", "Get all friends RPC response body: $body")
+            val arr = org.json.JSONArray(body)
+            val friendsList = mutableListOf<Friend>()
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                val friend = Friend(
+                    id = obj.optString("id"),
+                    username = obj.optString("display_name"),
+                    profilePicture = obj.optString("profile_picture", null),
+                    progress = obj.optInt("points", 0)
                 )
-            )
+                friendsList.add(friend)
+                Log.d("FriendsViewModel", "Parsed friend: id=${friend.id}, username=${friend.username}, profilePicture=${friend.profilePicture}, points=${friend.progress}")
+            }
+            _friends.value = friendsList
         }
     }
     
     fun generateQRCode() {
         launchWithLoading {
-            val userId = UUID.randomUUID().toString()
+            val userId = UserManager.getCurrentUser()?.id?.toString() ?: UUID.randomUUID().toString()
             _qrCode.value = withContext(Dispatchers.IO) {
                 try {
                     val multiFormatWriter = MultiFormatWriter()
@@ -64,7 +84,18 @@ class FriendsViewModel : BaseViewModel() {
     
     fun addFriend(friendId: String) {
         launchWithLoading {
-            // TODO: Implement friend adding
+            val user = UserManager.getCurrentUser()
+            if (user == null) {
+                setError("User not logged in")
+                return@launchWithLoading
+            }
+            val authToken = user.authToken
+            val response = supabaseClient.createMutualFriendship(friendId, authToken)
+            if (!response.isSuccessful) {
+                setError("Failed to add friend: ${response.code}")
+                return@launchWithLoading
+            }
+            setSuccess("Friend added successfully!") // Optional success message
             loadFriends() // Reload friends after adding
         }
     }

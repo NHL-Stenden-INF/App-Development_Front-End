@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -19,13 +20,16 @@ import java.util.UUID
 class QRScannerActivity : AppCompatActivity() {
     private lateinit var barcodeView: BarcodeView
     private var isScanning = false
+    private val TAG = "QRScannerActivity"
     
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
+            Log.d(TAG, "Camera permission granted.")
             startScanning()
         } else {
+            Log.w(TAG, "Camera permission denied.")
             Toast.makeText(this, "Camera permission is required to scan QR codes", Toast.LENGTH_LONG).show()
             finish()
         }
@@ -60,37 +64,49 @@ class QRScannerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_qr_scanner)
         
+        Log.d(TAG, "onCreate called.")
+        
         barcodeView = findViewById(R.id.barcodeView)
+        Log.d(TAG, "BarcodeView initialized.")
         
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED
         ) {
+            Log.d(TAG, "Camera permission already granted. Starting scan.")
             startScanning()
         } else {
+            Log.d(TAG, "Requesting camera permission.")
             requestPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
     
     private fun startScanning() {
+        Log.d(TAG, "startScanning called.")
         isScanning = true
         barcodeView.decodeContinuous(callback)
+        Log.d(TAG, "decodeContinuous called.")
     }
     
     override fun onResume() {
         super.onResume()
+        Log.d(TAG, "onResume called.")
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            startScanning()
+            Log.d(TAG, "onResume: Permission granted. Resuming scanner.")
+            barcodeView.resume()
+        } else {
+             Log.d(TAG, "onResume: Permission not granted, skipping scan resume.")
         }
     }
     
     override fun onPause() {
         super.onPause()
+        Log.d(TAG, "onPause called. Pausing scanner.")
         barcodeView.pause()
     }
 }

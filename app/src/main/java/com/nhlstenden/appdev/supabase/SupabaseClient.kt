@@ -240,6 +240,24 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
+    suspend fun createMutualFriendship(targetFriendId: String, authToken: String): Response {
+        val json = """{"target_friend_id": "${targetFriendId.trim()}"}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/create_mutual_friendship")
+            .post(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+
+        return withContext(Dispatchers.IO) {
+            client.newCall(request).execute()
+        }
+    }
+
     fun unlockReward(userId: String, rewardId: Int, authToken: String): Response {
         val json = """{"user_id": "$userId", "reward_id": $rewardId}"""
         val requestBody = json.toRequestBody("application/json".toMediaType())
