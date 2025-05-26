@@ -85,9 +85,8 @@
             android:clipToPadding="false"
             android:paddingHorizontal="16dp"
             android:paddingBottom="16dp"
-            app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-            app:spanCount="2"
-            tools:listitem="@layout/item_topic" />
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/item_course" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 

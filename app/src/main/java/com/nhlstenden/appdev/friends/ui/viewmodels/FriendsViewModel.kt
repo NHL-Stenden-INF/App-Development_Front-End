@@ -18,11 +18,13 @@ import com.nhlstenden.appdev.shared.components.UserManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import android.util.Log
+import android.app.Application
 
 @HiltViewModel
 class FriendsViewModel @Inject constructor(
+    application: Application,
     private val supabaseClient: SupabaseClient
-) : BaseViewModel() {
+) : BaseViewModel(application) {
     private val _friends = MutableStateFlow<List<Friend>>(emptyList())
     val friends: StateFlow<List<Friend>> = _friends.asStateFlow()
     

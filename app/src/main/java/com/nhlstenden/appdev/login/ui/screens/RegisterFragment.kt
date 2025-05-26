@@ -19,6 +19,10 @@ import kotlinx.coroutines.launch
 import android.content.Intent
 import com.nhlstenden.appdev.main.MainActivity
 import android.util.Patterns
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import android.view.ViewTreeObserver
+import android.widget.ScrollView
 
 @AndroidEntryPoint
 class RegisterFragment : Fragment() {
@@ -37,6 +41,20 @@ class RegisterFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        val scrollView = view.findViewById<ScrollView>(R.id.scrollView)
+        view.viewTreeObserver.addOnGlobalLayoutListener {
+            val focused = activity?.currentFocus
+            if (focused != null && scrollView != null) {
+                scrollView.post {
+                    scrollView.smoothScrollTo(0, focused.bottom)
+                }
+            }
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+            v.setPadding(0, 0, 0, imeInsets.bottom)
+            insets
+        }
         setupViews()
         observeRegisterState()
         startArrowAnimation()

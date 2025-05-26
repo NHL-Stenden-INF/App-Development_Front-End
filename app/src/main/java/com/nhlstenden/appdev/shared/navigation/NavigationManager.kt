@@ -7,7 +7,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.courses.ui.screens.CourseTopicsFragment
+import com.nhlstenden.appdev.courses.ui.CourseFragment
 import android.os.Bundle
 
 object NavigationManager {
@@ -31,6 +31,8 @@ object NavigationManager {
         val fragmentManager = activity.supportFragmentManager
         if (fragmentManager.backStackEntryCount > 0) {
             fragmentManager.popBackStack()
+            activity.findViewById<ViewPager2>(R.id.viewPager).visibility = View.VISIBLE
+            activity.findViewById<FrameLayout>(R.id.fragment_container).visibility = View.GONE
         } else {
             showViewPager(activity)
         }
@@ -67,7 +69,7 @@ object NavigationManager {
     }
 
     fun navigateToCourseTopics(activity: FragmentActivity, courseId: String) {
-        val fragment = CourseTopicsFragment().apply {
+        val fragment = CourseFragment().apply {
             arguments = Bundle().apply {
                 putString("courseId", courseId)
             }

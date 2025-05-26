@@ -27,7 +27,8 @@
 
         <activity
             android:name=".login.ui.screens.LoginActivity"
-            android:exported="true">
+            android:exported="true"
+            android:windowSoftInputMode="adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -36,7 +37,8 @@
 
         <activity
             android:name=".login.ui.screens.RegisterActivity"
-            android:exported="false"> 
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize"> 
         </activity>
 
         <activity
@@ -56,9 +58,8 @@
         </activity>
 
         <activity
-            android:name=".task.ui.TaskActivity"
-            android:exported="true">
-        </activity>
+            android:name=".task.ui.screens.TaskActivity"
+            android:exported="true" />
 
         <activity
             android:name=".task.ui.TaskCompleteActivity"

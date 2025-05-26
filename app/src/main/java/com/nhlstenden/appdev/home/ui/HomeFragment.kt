@@ -23,7 +23,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.profile.ui.screens.ProfileFragment
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.supabase.User
-import com.nhlstenden.appdev.courses.ui.CourseTopicsFragment
+import com.nhlstenden.appdev.courses.ui.CourseFragment
 import com.nhlstenden.appdev.courses.parser.CourseParser
 import android.app.AlertDialog
 import android.widget.EditText
@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
 import dagger.hilt.android.AndroidEntryPoint
 import com.bumptech.glide.Glide
+import com.google.android.material.progressindicator.LinearProgressIndicator
 
 // Data class for course info
 data class HomeCourse(
@@ -44,58 +45,43 @@ data class HomeCourse(
     val accentColor: Int
 )
 
-class HomeCourseAdapter(private val courses: List<HomeCourse>) : RecyclerView.Adapter<HomeCourseAdapter.ViewHolder>() {
+class HomeCourseAdapter(private val courses: List<HomeCourse>, private val fragment: Fragment) : RecyclerView.Adapter<HomeCourseAdapter.ViewHolder>() {
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val courseIcon: ImageView = view.findViewById(R.id.courseIcon)
+        val courseImage: ImageView = view.findViewById(R.id.courseImage)
         val courseTitle: TextView = view.findViewById(R.id.courseTitle)
-        val courseProgress: TextView = view.findViewById(R.id.courseProgress)
-        val courseProgressBar: ProgressBar = view.findViewById(R.id.courseProgressBar)
-        val coursePlayButton: ImageButton = view.findViewById(R.id.coursePlayButton)
+        val progressBar: LinearProgressIndicator = view.findViewById(R.id.progressBar)
+        val progressPercentage: TextView = view.findViewById(R.id.progressPercentage)
+        val difficultyLevel: TextView = view.findViewById(R.id.difficultyLevel)
+        val courseDescription: TextView = view.findViewById(R.id.courseDescription)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.course_select_card, parent, false)
+            .inflate(R.layout.item_course, parent, false)
         return ViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val course = courses[position]
-        holder.courseIcon.setImageResource(course.iconResId)
-        holder.courseIcon.contentDescription = "${course.title} course icon"
+        holder.courseImage.setImageResource(course.iconResId)
         holder.courseTitle.text = course.title
-        holder.courseProgress.text = course.progressText
-        holder.courseProgressBar.max = 100
-        holder.courseProgressBar.progress = course.progressPercent
-        holder.courseProgressBar.progressTintList = ColorStateList.valueOf(course.accentColor)
-        holder.coursePlayButton.backgroundTintList = ColorStateList.valueOf(course.accentColor)
-        
-        // Add click listener for the entire card
+        holder.difficultyLevel.text = course.progressText // Map to difficultyLevel for now
+        holder.difficultyLevel.visibility = View.GONE
+        holder.courseDescription.text = ""
+        holder.courseDescription.visibility = View.GONE
+        holder.progressBar.visibility = View.VISIBLE
+        holder.progressBar.progress = course.progressPercent
+        holder.progressPercentage.visibility = View.VISIBLE
+        holder.progressPercentage.text = "${course.progressPercent}%"
         holder.itemView.setOnClickListener {
-            navigateToCourse(holder.itemView.context, course.title)
-        }
-        
-        // Add click listener for the play button
-        holder.coursePlayButton.setOnClickListener {
-            navigateToCourse(holder.itemView.context, course.title)
+            navigateToCourse(course)
         }
     }
     
-    private fun navigateToCourse(context: android.content.Context, courseName: String) {
-        val fragment = CourseTopicsFragment().apply {
-            arguments = Bundle().apply {
-                putString("courseName", courseName)
-            }
-        }
-
-        val activity = context as androidx.fragment.app.FragmentActivity
-        activity.findViewById<FrameLayout>(R.id.fragment_container).visibility = View.VISIBLE
-        activity.findViewById<ViewPager2>(R.id.viewPager).visibility = View.GONE
-        
-        activity.supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .addToBackStack(null)
-            .commit()
+    private fun navigateToCourse(course: HomeCourse) {
+        val activity = fragment.requireActivity() as androidx.fragment.app.FragmentActivity
+        // Use NavigationManager and pass courseId (use title as fallback if no id)
+        com.nhlstenden.appdev.shared.navigation.NavigationManager.navigateToCourseTopics(activity, course.title)
     }
 
     override fun getItemCount() = courses.size
@@ -271,7 +257,7 @@ class HomeFragment : Fragment() {
 
         val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)
         recyclerView.layoutManager = LinearLayoutManager(context)
-        recyclerView.adapter = HomeCourseAdapter(courses)
+        recyclerView.adapter = HomeCourseAdapter(courses, this)
     }
     
     private fun loadProfilePicture(profilePictureData: String) {

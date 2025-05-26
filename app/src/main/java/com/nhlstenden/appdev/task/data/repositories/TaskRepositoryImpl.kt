@@ -1,43 +1,26 @@
 package com.nhlstenden.appdev.task.data.repositories
 
+import android.app.Application
+import com.nhlstenden.appdev.courses.parser.CourseParser
+import com.nhlstenden.appdev.courses.parser.QuestionParser
 import com.nhlstenden.appdev.task.domain.models.Question
 import com.nhlstenden.appdev.task.domain.models.QuestionType
 import com.nhlstenden.appdev.task.domain.repositories.TaskRepository
 import javax.inject.Inject
 
-class TaskRepositoryImpl @Inject constructor() : TaskRepository {
+class TaskRepositoryImpl @Inject constructor(
+    private val application: Application
+) : TaskRepository {
     override suspend fun getQuestionsForTopic(topicId: String): List<Question> {
-        // TODO: Replace with actual API call
-        return listOf(
-            Question(
-                id = "1",
-                type = QuestionType.MULTIPLE_CHOICE,
-                text = "What is the capital of France?",
-                options = listOf(
-                    Question.Option("1", "London", false),
-                    Question.Option("2", "Paris", true),
-                    Question.Option("3", "Berlin", false),
-                    Question.Option("4", "Madrid", false)
-                ),
-                correctOptionId = "2"
-            ),
-            Question(
-                id = "2",
-                type = QuestionType.TRUE_FALSE,
-                text = "The Earth is flat.",
-                options = listOf(
-                    Question.Option("1", "True", false),
-                    Question.Option("2", "False", true)
-                ),
-                correctOptionId = "2"
-            ),
-            Question(
-                id = "3",
-                type = QuestionType.OPEN_ENDED,
-                text = "What is the main purpose of a constructor in object-oriented programming?",
-                correctAnswer = "To initialize the object's state"
-            )
-        )
+        // Get the topic title and difficulty from the XML using CourseParser
+        val courseParser = CourseParser(application.applicationContext)
+        val allCourses = courseParser.loadAllCourses()
+        val topic = allCourses.flatMap { it.topics }.find { it.id == topicId }
+        if (topic != null) {
+            val questionParser = QuestionParser(application.applicationContext)
+            return questionParser.loadQuestionsForTopic(topic.title)
+        }
+        return emptyList()
     }
 
     override suspend fun submitAnswer(questionId: String, answer: String): Boolean {
