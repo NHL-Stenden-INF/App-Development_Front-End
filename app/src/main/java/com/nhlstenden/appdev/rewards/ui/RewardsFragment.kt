@@ -31,8 +31,13 @@ import com.nhlstenden.appdev.supabase.User
 import android.util.Log
 import kotlinx.coroutines.delay
 import com.nhlstenden.appdev.shared.components.UserManager
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.content.Context
 
-class RewardsFragment : Fragment() {
+class RewardsFragment : Fragment(), SensorEventListener {
     private lateinit var pointsValue: TextView
     private lateinit var timerText: TextView
     private lateinit var openChestButton: MaterialButton
@@ -44,6 +49,15 @@ class RewardsFragment : Fragment() {
     private lateinit var userId: String
     private lateinit var authToken: String
     private var openedDailyAt: String? = null
+    private var sensorManager: SensorManager? = null
+    private var accelerometer: Sensor? = null
+    private var lastShakeTime: Long = 0
+    private var shakeThreshold = 2.5f
+    private var canShakeToClaim = false
+    private var lastX = 0f
+    private var lastY = 0f
+    private var lastZ = 0f
+    private var lastUpdate: Long = 0
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -56,6 +70,9 @@ class RewardsFragment : Fragment() {
         timerText = view.findViewById(R.id.timerText)
         openChestButton = view.findViewById(R.id.openChestButton)
         rewardShopList = view.findViewById(R.id.rewardShopList)
+
+        sensorManager = requireContext().getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
         updatePointsDisplay()
         setupDailyRewardTimer()
@@ -84,6 +101,14 @@ class RewardsFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         fetchUserAttributesAndUpdateUI()
+        accelerometer?.let {
+            sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        sensorManager?.unregisterListener(this)
     }
 
     private fun fetchUserAttributesAndUpdateUI() {
@@ -221,6 +246,7 @@ class RewardsFragment : Fragment() {
             openChestButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(),
                 R.color.colorPrimary
             ))
+            canShakeToClaim = true
         } else {
             // Calculate ms until midnight UTC
             val now = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC)
@@ -233,6 +259,7 @@ class RewardsFragment : Fragment() {
             openChestButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(),
                 R.color.gray
             ))
+            canShakeToClaim = false
         }
 
         openChestButton.setOnClickListener {
@@ -570,6 +597,33 @@ class RewardsFragment : Fragment() {
         rewards.forEachIndexed { index, reward ->
             android.util.Log.d("RewardsFragment", "Reward[$index]: ${reward.title}, ${reward.pointsCost}pts - ${reward.description}")
         }
+    }
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        if (!canShakeToClaim) return
+        if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
+            val curTime = System.currentTimeMillis()
+            // Only allow one shake every 2 seconds
+            if ((curTime - lastShakeTime) > 2000) {
+                val x = event.values[0]
+                val y = event.values[1]
+                val z = event.values[2]
+                val gX = x / SensorManager.GRAVITY_EARTH
+                val gY = y / SensorManager.GRAVITY_EARTH
+                val gZ = z / SensorManager.GRAVITY_EARTH
+                val gForce = Math.sqrt((gX * gX + gY * gY + gZ * gZ).toDouble()).toFloat()
+                if (gForce > shakeThreshold) {
+                    lastShakeTime = curTime
+                    if (openChestButton.isEnabled) {
+                        openChestButton.performClick()
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+   
     }
 }
 
