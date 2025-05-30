@@ -3,37 +3,44 @@ package com.nhlstenden.appdev.home.manager
 import android.os.Build
 import androidx.annotation.RequiresApi
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 class StreakManager {
-    @RequiresApi(Build.VERSION_CODES.O)
-    private var currentDate: LocalDate = LocalDate.now()
-    @RequiresApi(Build.VERSION_CODES.O)
-    private var prevStreakDate: LocalDate = currentDate.minusDays(2)
     private var currentStreak: Int = 0
+    private var lastCompletedDate: LocalDate? = null
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun streakChecker() {
-        when {
-            currentDate == prevStreakDate -> {
-            }
+    fun updateStreak(taskCompletionDate: LocalDate) {
+        if (lastCompletedDate == null) {
+            currentStreak = 1
+        } else {
+            val daysBetween = ChronoUnit.DAYS.between(lastCompletedDate, taskCompletionDate)
+            when {
+                daysBetween == 0L -> {
+                    // Is the same day, so nothing
+                }
 
-            // First streak day
-            currentStreak == 0 -> {
-                currentStreak = 1
-                prevStreakDate = currentDate
-            }
+                // The next day, so add 1
+                daysBetween == 1L -> {
+                    currentStreak += 1
+                }
 
-            // Continued streak
-            currentDate.minusDays(1) == prevStreakDate -> {
-                currentStreak += 1
-                prevStreakDate = currentDate
-            }
-
-            // Missed a day or more, reset streak
-            else -> {
-                currentStreak =1
-                prevStreakDate = currentDate
+                // Two or more days ago, so reset to 1
+                else -> {
+                    currentStreak = 1
+                }
             }
         }
+
+        lastCompletedDate = taskCompletionDate
+    }
+
+    fun getCurrentStreak(): Int = currentStreak
+
+    fun getLastCompletedDate(): LocalDate? = lastCompletedDate
+
+    fun resetStreak() {
+        currentStreak = 0
+        lastCompletedDate = null
     }
 }
