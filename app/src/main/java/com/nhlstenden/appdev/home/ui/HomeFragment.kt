@@ -1,6 +1,5 @@
 package com.nhlstenden.appdev.home.ui
 
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.os.Bundle
@@ -9,10 +8,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -23,18 +20,25 @@ import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.profile.ui.screens.ProfileFragment
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.supabase.User
-import com.nhlstenden.appdev.courses.ui.CourseFragment
 import com.nhlstenden.appdev.courses.parser.CourseParser
 import android.app.AlertDialog
+import android.os.Build
 import android.widget.EditText
+import androidx.annotation.RequiresApi
 import com.nhlstenden.appdev.profile.ui.viewmodels.ProfileViewModel
 import com.nhlstenden.appdev.profile.ui.viewmodels.ProfileViewModel.ProfileState
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.collect
 import dagger.hilt.android.AndroidEntryPoint
 import com.bumptech.glide.Glide
 import com.google.android.material.progressindicator.LinearProgressIndicator
+import com.nhlstenden.appdev.home.manager.StreakManager
+import com.nhlstenden.appdev.shared.components.UserManager
+import org.json.JSONArray
+import java.time.LocalDate
+import android.util.Log
+import com.nhlstenden.appdev.home.data.repositories.StreakRepository
+import javax.inject.Inject
 
 // Data class for course info
 data class HomeCourse(
@@ -100,12 +104,17 @@ class HomeFragment : Fragment() {
     private val profileViewModel: ProfileViewModel by viewModels()
     private var displayNameDialogShown = false
 
+    @Inject
+    lateinit var streakRepository: StreakRepository
+    private val streakManager = StreakManager()
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.fragment_home, container, false)
     }
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         dayCounter(view)
@@ -175,6 +184,7 @@ class HomeFragment : Fragment() {
         }
     }
     
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     fun setupUI(view: View) {
         // Get user data from arguments
         val userData = arguments?.getParcelable("USER_DATA", User::class.java)
@@ -282,12 +292,34 @@ class HomeFragment : Fragment() {
         motivationalMessage.text = getString(R.string.motivational_message, friendName, tasksAhead)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun dayCounter(view: View) {
         val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-        val completedDays = setOf(0, 1, 2, 3, 4)
-
         val container = view.findViewById<LinearLayout>(R.id.daysContainer)
         container.removeAllViews()
+
+        val today = LocalDate.now()
+        val startOfWeek = today.minusDays(today.dayOfWeek.value.toLong() -1)
+
+        val streakCounter = view.findViewById<TextView>(R.id.streakCount)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val currentUser = UserManager.getCurrentUser()
+                if (currentUser != null) {
+                    val lastTaskDate = streakRepository.getLastTaskDate(currentUser.id.toString(), currentUser.authToken)
+                    lastTaskDate?.let {streakManager.updateStreak(it)}
+
+                    val currentStreak = streakManager.getCurrentStreak()
+                    streakCounter.text = "$currentStreak days"
+
+                    streakRepository.updateLastTaskDate(currentUser.id.toString(), today, currentUser.authToken)
+                }
+            } catch (e: Exception) {
+                Log.e("HomeFragment", "Error updating streak: ${e.message}")
+                streakCounter.text = "0 days"
+            }
+        }
 
         // Using a solid color that's visible in both light and dark modes
         val textColor = if (isNightMode()) {
@@ -296,7 +328,8 @@ class HomeFragment : Fragment() {
             Color.BLACK
         }
 
-        for ((index, day) in days.withIndex()) {
+        for (i in 0..6) {
+            val currentDate = startOfWeek.plusDays(i.toLong())
             val dayLayout = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
@@ -310,9 +343,13 @@ class HomeFragment : Fragment() {
                     gravity = Gravity.CENTER
                 }
 
+                val isCompleted = streakManager.getLastCompletedDate()?.let {
+                        lastDate -> lastDate.isEqual(currentDate) || lastDate.isAfter((currentDate))
+                } ?: false
+
                 background = ContextCompat.getDrawable(
                     requireContext(),
-                    if (completedDays.contains(index)) R.drawable.day_circle_active else R.drawable.day_circle_inactive
+                    if (isCompleted) R.drawable.day_circle_active else R.drawable.day_circle_inactive
                 )
             }
 
@@ -320,12 +357,12 @@ class HomeFragment : Fragment() {
             val check = ImageView(requireContext()).apply {
                 layoutParams = FrameLayout.LayoutParams(32, 32, Gravity.CENTER)
                 setImageResource(R.drawable.ic_check)
-                visibility = if (completedDays.contains(index)) View.VISIBLE else View.INVISIBLE
+                visibility = if (streakManager.getLastCompletedDate()?.isEqual(currentDate) == true) View.VISIBLE else View.INVISIBLE
                 setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN)
             }
 
             val label = TextView(requireContext()).apply {
-                text = day
+                text = days[i]
                 setTextColor(textColor)
                 textSize = 16f
                 setPadding(0, 8, 0, 0)
