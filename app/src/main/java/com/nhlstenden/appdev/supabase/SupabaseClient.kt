@@ -434,6 +434,24 @@ class SupabaseClient() {
         if (arr.length() == 0) throw RuntimeException("Profile update failed")
         return arr.getJSONObject(0)
     }
+
+    fun updateUserLastTaskDate(userID: String, lastTaskDate: String, authToken: String): Response {
+        val url = "$supabaseUrl/rest/v1/user_attributes?id=eq.$userID"
+        val requestBody = JSONObject().apply {
+            put("last_task_date", lastTaskDate)
+        }.toString()
+
+        val request = Request.Builder()
+            .url(url)
+            .patch(requestBody.toRequestBody("application/json".toMediaType()))
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=representation")
+            .build()
+
+        return client.newCall(request).execute()
+    }
 }
 
 @Parcelize
