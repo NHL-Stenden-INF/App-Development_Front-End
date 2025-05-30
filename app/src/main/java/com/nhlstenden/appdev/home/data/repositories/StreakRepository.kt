@@ -19,8 +19,12 @@ class StreakRepository @Inject constructor(
             val userData = org.json.JSONArray(responseBody).getJSONObject(0)
             val lastTaskDate = userData.optString("last_task_date")
 
-            return if (lastTaskDate.isNotEmpty()) {
-                LocalDate.parse(lastTaskDate)
+            return if (lastTaskDate.isNotEmpty() && lastTaskDate != "null") {
+                try {
+                    LocalDate.parse(lastTaskDate)
+                } catch (e: Exception) {
+                    null
+                }
             } else null
         }
         return null

@@ -39,6 +39,8 @@ import java.time.LocalDate
 import android.util.Log
 import com.nhlstenden.appdev.home.data.repositories.StreakRepository
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 // Data class for course info
 data class HomeCourse(
@@ -303,21 +305,44 @@ class HomeFragment : Fragment() {
 
         val streakCounter = view.findViewById<TextView>(R.id.streakCount)
 
-        viewLifecycleOwner.lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val currentUser = UserManager.getCurrentUser()
                 if (currentUser != null) {
+                    Log.d("HomeFragment", "Fetching last task date for user: ${currentUser.id}")
                     val lastTaskDate = streakRepository.getLastTaskDate(currentUser.id.toString(), currentUser.authToken)
-                    lastTaskDate?.let {streakManager.updateStreak(it)}
+                    Log.d("HomeFragment", "Last task date: $lastTaskDate")
+                    
+                    // Initialize streak manager with last task date if available
+                    if (lastTaskDate != null) {
+                        Log.d("HomeFragment", "Updating streak with last task date: $lastTaskDate")
+                        streakManager.updateStreak(lastTaskDate)
+                    } else {
+                        // If no last task date, initialize with today
+                        Log.d("HomeFragment", "No last task date found, initializing with today")
+                        streakManager.updateStreak(today)
+                        streakRepository.updateLastTaskDate(currentUser.id.toString(), today, currentUser.authToken)
+                    }
 
                     val currentStreak = streakManager.getCurrentStreak()
-                    streakCounter.text = "$currentStreak days"
-
-                    streakRepository.updateLastTaskDate(currentUser.id.toString(), today, currentUser.authToken)
+                    Log.d("HomeFragment", "Current streak: $currentStreak")
+                    
+                    // Switch to main thread for UI updates
+                    withContext(Dispatchers.Main) {
+                        streakCounter.text = "$currentStreak days"
+                    }
+                } else {
+                    Log.e("HomeFragment", "No current user found")
+                    withContext(Dispatchers.Main) {
+                        streakCounter.text = "0 days"
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("HomeFragment", "Error updating streak: ${e.message}")
-                streakCounter.text = "0 days"
+                Log.e("HomeFragment", "Stack trace: ${e.stackTraceToString()}")
+                withContext(Dispatchers.Main) {
+                    streakCounter.text = "0 days"
+                }
             }
         }
 
