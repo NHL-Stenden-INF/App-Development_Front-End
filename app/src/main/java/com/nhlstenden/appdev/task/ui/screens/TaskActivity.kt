@@ -2,11 +2,13 @@ package com.nhlstenden.appdev.task.ui.screens
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
@@ -64,6 +66,7 @@ class TaskActivity : AppCompatActivity() {
                 // No-op here
             }
 
+            @RequiresApi(Build.VERSION_CODES.O)
             override fun onTaskComplete(isCorrect: Boolean) {
                 val question = currentQuestions[currentIndex]
                 Log.d("TaskActivity", "Question answered. Correct: $isCorrect")
@@ -73,7 +76,7 @@ class TaskActivity : AppCompatActivity() {
                     Log.d("TaskActivity", "Question was correct, updating streak...")
 
                     // Test to look if the streak counter works
-                    lifecycleScope.launch(Dispatchers.IO) {  // Add Dispatchers.IO here
+                    lifecycleScope.launch(Dispatchers.IO) {
                         try {
                             val currentUser = UserManager.getCurrentUser()
                             if (currentUser != null) {
@@ -81,11 +84,27 @@ class TaskActivity : AppCompatActivity() {
                                 val today = LocalDate.now()
                                 Log.d("TaskActivity", "Updating streak for date: $today")
                                 
-                                streakManager.updateStreak(today)
+                                // Get current streak and last task date from database
+                                val currentStreak = streakRepository.getCurrentStreak(currentUser.id.toString(), currentUser.authToken)
+                                val lastTaskDate = streakRepository.getLastTaskDate(currentUser.id.toString(), currentUser.authToken)
+                                
+                                Log.d("TaskActivity", "Current streak from DB: $currentStreak")
+                                Log.d("TaskActivity", "Last task date from DB: $lastTaskDate")
+                                
+                                // Set the last completed date in the streak manager
+                                streakManager.getLastCompletedDate()?.let { streakManager.resetStreak() }
+                                lastTaskDate?.let { streakManager.updateStreak(it, currentStreak) }
+                                
+                                // Update streak with today's date
+                                streakManager.updateStreak(today, currentStreak)
+                                
+                                // Update both last task date and streak in database
                                 val streakUpdated = streakRepository.updateLastTaskDate(currentUser.id.toString(), today, currentUser.authToken)
+                                val newStreak = streakManager.getCurrentStreak()
+                                val streakResponse = streakRepository.updateStreak(currentUser.id.toString(), newStreak, currentUser.authToken)
                                 
                                 Log.d("TaskActivity", "Streak update result: $streakUpdated")
-                                Log.d("TaskActivity", "Current streak: ${streakManager.getCurrentStreak()}")
+                                Log.d("TaskActivity", "New streak: $newStreak")
                             } else {
                                 Log.e("TaskActivity", "No current user found")
                             }

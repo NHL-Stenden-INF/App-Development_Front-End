@@ -10,28 +10,38 @@ class StreakManager {
     private var lastCompletedDate: LocalDate? = null
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun updateStreak(taskCompletionDate: LocalDate) {
+    fun updateStreak(taskCompletionDate: LocalDate, currentStreakFromDb: Int = 0) {
+        val today = LocalDate.now()
+        
+        // If the task completion date is in the future, don't update
+        if (taskCompletionDate.isAfter(today)) {
+            return
+        }
+
+        // Initialize with the streak from the database
+        currentStreak = currentStreakFromDb
+
         if (lastCompletedDate == null) {
+            // First time completing a task
             currentStreak = 1
         } else {
             val daysBetween = ChronoUnit.DAYS.between(lastCompletedDate, taskCompletionDate)
             when {
                 daysBetween == 0L -> {
-                    // Is the same day, so nothing
+                    // Same day, do nothing
                 }
-
-                // The next day, so add 1
                 daysBetween == 1L -> {
-                    currentStreak += 1
+                    // Next day, increment streak
+                    currentStreak++
                 }
-
-                // Two or more days ago, so reset to 1
                 else -> {
+                    // More than one day has passed, reset streak to 1
                     currentStreak = 1
                 }
             }
         }
 
+        // Always update the last completed date
         lastCompletedDate = taskCompletionDate
     }
 
@@ -42,5 +52,11 @@ class StreakManager {
     fun resetStreak() {
         currentStreak = 0
         lastCompletedDate = null
+    }
+
+    // New function to initialize the streak manager with database values
+    fun initializeFromDatabase(lastTaskDate: LocalDate?, currentStreak: Int) {
+        this.lastCompletedDate = lastTaskDate
+        this.currentStreak = currentStreak
     }
 }

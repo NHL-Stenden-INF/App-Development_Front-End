@@ -452,6 +452,20 @@ class SupabaseClient() {
 
         return client.newCall(request).execute()
     }
+
+    fun updateUserStreak(userId: String, streak: Int, authToken: String): Response {
+        val json = """{"streak": $streak}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/user_attributes?id=eq.$userId")
+            .patch(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+        return client.newCall(request).execute()
+    }
 }
 
 @Parcelize

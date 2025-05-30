@@ -34,7 +34,6 @@ import com.bumptech.glide.Glide
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.nhlstenden.appdev.home.manager.StreakManager
 import com.nhlstenden.appdev.shared.components.UserManager
-import org.json.JSONArray
 import java.time.LocalDate
 import android.util.Log
 import com.nhlstenden.appdev.home.data.repositories.StreakRepository
@@ -311,25 +310,64 @@ class HomeFragment : Fragment() {
                 if (currentUser != null) {
                     Log.d("HomeFragment", "Fetching last task date for user: ${currentUser.id}")
                     val lastTaskDate = streakRepository.getLastTaskDate(currentUser.id.toString(), currentUser.authToken)
+                    val currentStreak = streakRepository.getCurrentStreak(currentUser.id.toString(), currentUser.authToken)
                     Log.d("HomeFragment", "Last task date: $lastTaskDate")
+                    Log.d("HomeFragment", "Current streak from DB: $currentStreak")
                     
-                    // Initialize streak manager with last task date if available
-                    if (lastTaskDate != null) {
-                        Log.d("HomeFragment", "Updating streak with last task date: $lastTaskDate")
-                        streakManager.updateStreak(lastTaskDate)
-                    } else {
-                        // If no last task date, initialize with today
-                        Log.d("HomeFragment", "No last task date found, initializing with today")
-                        streakManager.updateStreak(today)
-                        streakRepository.updateLastTaskDate(currentUser.id.toString(), today, currentUser.authToken)
-                    }
-
-                    val currentStreak = streakManager.getCurrentStreak()
-                    Log.d("HomeFragment", "Current streak: $currentStreak")
+                    // Initialize streak manager with database values
+                    streakManager.initializeFromDatabase(lastTaskDate, currentStreak)
                     
                     // Switch to main thread for UI updates
                     withContext(Dispatchers.Main) {
-                        streakCounter.text = "$currentStreak days"
+                        // Update streak counter with the value from streak manager
+                        streakCounter.text = "${streakManager.getCurrentStreak()} days"
+                        
+                        // Draw the days
+                        for (i in 0..6) {
+                            val currentDate = startOfWeek.plusDays(i.toLong())
+                            val dayLayout = LinearLayout(requireContext()).apply {
+                                orientation = LinearLayout.VERTICAL
+                                gravity = Gravity.CENTER
+                                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                            }
+
+                            // Draw the circle
+                            val circle = FrameLayout(requireContext()).apply {
+                                layoutParams = FrameLayout.LayoutParams(64, 64).apply {
+                                    gravity = Gravity.CENTER
+                                }
+
+                                // Only mark as completed if it's the last task date
+                                val isCompleted = lastTaskDate?.isEqual(currentDate) == true
+
+                                background = ContextCompat.getDrawable(
+                                    requireContext(),
+                                    if (isCompleted) R.drawable.day_circle_active else R.drawable.day_circle_inactive
+                                )
+                            }
+
+                            // Draw the checkmark
+                            val check = ImageView(requireContext()).apply {
+                                layoutParams = FrameLayout.LayoutParams(32, 32, Gravity.CENTER)
+                                setImageResource(R.drawable.ic_check)
+                                // Show checkmark only on the last completed day
+                                visibility = if (lastTaskDate?.isEqual(currentDate) == true) View.VISIBLE else View.INVISIBLE
+                                setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN)
+                            }
+
+                            val label = TextView(requireContext()).apply {
+                                text = days[i]
+                                setTextColor(if (isNightMode()) Color.WHITE else Color.BLACK)
+                                textSize = 16f
+                                setPadding(0, 8, 0, 0)
+                                gravity = Gravity.CENTER
+                            }
+
+                            circle.addView(check)
+                            dayLayout.addView(circle)
+                            dayLayout.addView(label)
+                            container.addView(dayLayout)
+                        }
                     }
                 } else {
                     Log.e("HomeFragment", "No current user found")
@@ -344,60 +382,6 @@ class HomeFragment : Fragment() {
                     streakCounter.text = "0 days"
                 }
             }
-        }
-
-        // Using a solid color that's visible in both light and dark modes
-        val textColor = if (isNightMode()) {
-            Color.WHITE
-        } else {
-            Color.BLACK
-        }
-
-        for (i in 0..6) {
-            val currentDate = startOfWeek.plusDays(i.toLong())
-            val dayLayout = LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                layoutParams =
-                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            }
-
-            // Draw the circle
-            val circle = FrameLayout(requireContext()).apply {
-                layoutParams = FrameLayout.LayoutParams(64, 64).apply {
-                    gravity = Gravity.CENTER
-                }
-
-                val isCompleted = streakManager.getLastCompletedDate()?.let {
-                        lastDate -> lastDate.isEqual(currentDate) || lastDate.isAfter((currentDate))
-                } ?: false
-
-                background = ContextCompat.getDrawable(
-                    requireContext(),
-                    if (isCompleted) R.drawable.day_circle_active else R.drawable.day_circle_inactive
-                )
-            }
-
-            // Draw the checkmark
-            val check = ImageView(requireContext()).apply {
-                layoutParams = FrameLayout.LayoutParams(32, 32, Gravity.CENTER)
-                setImageResource(R.drawable.ic_check)
-                visibility = if (streakManager.getLastCompletedDate()?.isEqual(currentDate) == true) View.VISIBLE else View.INVISIBLE
-                setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN)
-            }
-
-            val label = TextView(requireContext()).apply {
-                text = days[i]
-                setTextColor(textColor)
-                textSize = 16f
-                setPadding(0, 8, 0, 0)
-                gravity = Gravity.CENTER
-            }
-
-            circle.addView(check)
-            dayLayout.addView(circle)
-            dayLayout.addView(label)
-            container.addView(dayLayout)
         }
     }
     

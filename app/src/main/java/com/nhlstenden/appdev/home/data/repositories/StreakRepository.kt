@@ -30,8 +30,23 @@ class StreakRepository @Inject constructor(
         return null
     }
 
-    suspend fun  updateLastTaskDate(userId: String, date: LocalDate, authToken: String): Boolean {
+    suspend fun getCurrentStreak(userId: String, authToken: String): Int {
+        val response = supabaseClient.getUserAttributes(userId, authToken)
+        if (response.code == 200) {
+            val responseBody = response.body?.string()
+            val userData = org.json.JSONArray(responseBody).getJSONObject(0)
+            return userData.optInt("streak", 0)
+        }
+        return 0
+    }
+
+    suspend fun updateLastTaskDate(userId: String, date: LocalDate, authToken: String): Boolean {
         val response = supabaseClient.updateUserLastTaskDate(userId, date.toString(), authToken)
+        return response.code == 200 || response.code == 204
+    }
+
+    suspend fun updateStreak(userId: String, streak: Int, authToken: String): Boolean {
+        val response = supabaseClient.updateUserStreak(userId, streak, authToken)
         return response.code == 200 || response.code == 204
     }
 }
