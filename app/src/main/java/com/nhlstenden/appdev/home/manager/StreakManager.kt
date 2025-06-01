@@ -14,16 +14,21 @@ class StreakManager {
         val today = LocalDate.now()
         
         // If the task completion date is in the future, don't update
-        if (taskCompletionDate.isAfter(today)) {
-            return
-        }
+//        if (taskCompletionDate.isAfter(today)) {
+//            return
+//        }
 
         // Initialize with the streak from the database
         currentStreak = currentStreakFromDb
 
         if (lastCompletedDate == null) {
-            // First time completing a task
-            currentStreak = 1
+            // If we have a streak but no last completed date, this is the first update
+            // after initialization, so we should increment the streak
+            if (currentStreak > 0) {
+                currentStreak++
+            } else {
+                currentStreak = 1
+            }
         } else {
             val daysBetween = ChronoUnit.DAYS.between(lastCompletedDate, taskCompletionDate)
             when {
