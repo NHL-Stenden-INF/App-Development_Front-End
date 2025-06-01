@@ -75,7 +75,6 @@ class TaskActivity : AppCompatActivity() {
                     correctQuestionIds.add(question.id)
                     Log.d("TaskActivity", "Question was correct, updating streak...")
 
-                    // Test to look if the streak counter works
                     lifecycleScope.launch(Dispatchers.IO) {
                         try {
                             val currentUser = UserManager.getCurrentUser()
@@ -84,16 +83,8 @@ class TaskActivity : AppCompatActivity() {
                                 val today = LocalDate.now()
                                 Log.d("TaskActivity", "Updating streak for date: $today")
                                 
-                                // Get current streak and last task date from database
+                                // Get current streak from database
                                 val currentStreak = streakRepository.getCurrentStreak(currentUser.id.toString(), currentUser.authToken)
-                                val lastTaskDate = streakRepository.getLastTaskDate(currentUser.id.toString(), currentUser.authToken)
-                                
-                                Log.d("TaskActivity", "Current streak from DB: $currentStreak")
-                                Log.d("TaskActivity", "Last task date from DB: $lastTaskDate")
-                                
-                                // Set the last completed date in the streak manager
-                                streakManager.getLastCompletedDate()?.let { streakManager.resetStreak() }
-                                lastTaskDate?.let { streakManager.updateStreak(it, currentStreak) }
                                 
                                 // Update streak with today's date
                                 streakManager.updateStreak(today, currentStreak)
