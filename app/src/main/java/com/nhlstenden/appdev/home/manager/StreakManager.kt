@@ -14,9 +14,9 @@ class StreakManager {
         val today = LocalDate.now()
         
         // If the task completion date is in the future, don't update
-//        if (taskCompletionDate.isAfter(today)) {
-//            return
-//        }
+        if (taskCompletionDate.isAfter(today)) {
+            return
+        }
 
         // Initialize with the streak from the database
         currentStreak = currentStreakFromDb

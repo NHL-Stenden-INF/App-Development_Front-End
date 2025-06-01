@@ -40,6 +40,7 @@ import com.nhlstenden.appdev.home.data.repositories.StreakRepository
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.time.temporal.ChronoUnit
 
 // Data class for course info
 data class HomeCourse(
@@ -331,14 +332,20 @@ class HomeFragment : Fragment() {
                                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                             }
 
+                            // Calculate if this day should be marked as completed
+                            val isCompleted = if (lastTaskDate != null) {
+                                // Check if this date is within the streak period
+                                val daysFromLastTask = ChronoUnit.DAYS.between(currentDate, lastTaskDate)
+                                daysFromLastTask >= 0 && daysFromLastTask < currentStreak
+                            } else {
+                                false
+                            }
+
                             // Draw the circle
                             val circle = FrameLayout(requireContext()).apply {
                                 layoutParams = FrameLayout.LayoutParams(64, 64).apply {
                                     gravity = Gravity.CENTER
                                 }
-
-                                // Only mark as completed if it's the last task date
-                                val isCompleted = lastTaskDate?.isEqual(currentDate) == true
 
                                 background = ContextCompat.getDrawable(
                                     requireContext(),
@@ -350,8 +357,8 @@ class HomeFragment : Fragment() {
                             val check = ImageView(requireContext()).apply {
                                 layoutParams = FrameLayout.LayoutParams(32, 32, Gravity.CENTER)
                                 setImageResource(R.drawable.ic_check)
-                                // Show checkmark only on the last completed day
-                                visibility = if (lastTaskDate?.isEqual(currentDate) == true) View.VISIBLE else View.INVISIBLE
+                                // Show checkmark only on completed days
+                                visibility = if (isCompleted) View.VISIBLE else View.INVISIBLE
                                 setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN)
                             }
 
