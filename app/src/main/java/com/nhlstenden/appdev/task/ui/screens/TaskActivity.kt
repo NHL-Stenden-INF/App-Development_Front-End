@@ -2,18 +2,29 @@ package com.nhlstenden.appdev.task.ui.screens
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.databinding.ActivityTaskBinding
+import com.nhlstenden.appdev.home.data.repositories.StreakRepository
+import com.nhlstenden.appdev.home.manager.StreakManager
+import com.nhlstenden.appdev.shared.components.UserManager
 import com.nhlstenden.appdev.task.domain.models.Question
 import com.nhlstenden.appdev.task.ui.adapters.TaskPagerAdapter
 import com.nhlstenden.appdev.task.ui.viewmodels.TaskViewModel
 import com.nhlstenden.appdev.task.listener.TaskCompleteListener
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import java.time.LocalDate
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class TaskActivity : AppCompatActivity() {
@@ -27,6 +38,10 @@ class TaskActivity : AppCompatActivity() {
     private var currentIndex = 0
     private var remainingQuestions: MutableList<Question> = mutableListOf()
     private var correctQuestionIds: MutableSet<String> = mutableSetOf()
+
+    @Inject
+    lateinit var streakRepository: StreakRepository
+    private val streakManager = StreakManager()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,10 +66,44 @@ class TaskActivity : AppCompatActivity() {
                 // No-op here
             }
 
+            @RequiresApi(Build.VERSION_CODES.O)
             override fun onTaskComplete(isCorrect: Boolean) {
                 val question = currentQuestions[currentIndex]
+                Log.d("TaskActivity", "Question answered. Correct: $isCorrect")
+                
                 if (isCorrect) {
                     correctQuestionIds.add(question.id)
+                    Log.d("TaskActivity", "Question was correct, updating streak...")
+
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            val currentUser = UserManager.getCurrentUser()
+                            if (currentUser != null) {
+                                Log.d("TaskActivity", "Current user found: ${currentUser.id}")
+                                val today = LocalDate.now()
+                                Log.d("TaskActivity", "Updating streak for date: $today")
+                                
+                                // Get current streak from database
+                                val currentStreak = streakRepository.getCurrentStreak(currentUser.id.toString(), currentUser.authToken)
+                                
+                                // Update streak with today's date
+                                streakManager.updateStreak(today, currentStreak)
+                                
+                                // Update both last task date and streak in database
+                                val streakUpdated = streakRepository.updateLastTaskDate(currentUser.id.toString(), today, currentUser.authToken)
+                                val newStreak = streakManager.getCurrentStreak()
+                                val streakResponse = streakRepository.updateStreak(currentUser.id.toString(), newStreak, currentUser.authToken)
+                                
+                                Log.d("TaskActivity", "Streak update result: $streakUpdated")
+                                Log.d("TaskActivity", "New streak: $newStreak")
+                            } else {
+                                Log.e("TaskActivity", "No current user found")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("TaskActivity", "Error updating streak: ${e.message}")
+                            Log.e("TaskActivity", "Stack trace: ${e.stackTraceToString()}")
+                        }
+                    }
                 }
             }
         })
