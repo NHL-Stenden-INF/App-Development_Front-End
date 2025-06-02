@@ -234,58 +234,24 @@ class HomeFragment : Fragment() {
                 } else 0
                 
                 // Get appropriate icon and accent color based on course title
-                val (iconResId, accentColor) = when (course.title) {
-                    "HTML" -> Pair(
-                        R.drawable.html_course,
-                        ContextCompat.getColor(requireContext(), R.color.html_color)
-                    )
-                    "CSS" -> Pair(
-                        R.drawable.css_course,
-                        ContextCompat.getColor(requireContext(), R.color.css_color)
-                    )
-                    "SQL" -> Pair(
-                        R.drawable.sql_course,
-                        ContextCompat.getColor(requireContext(), R.color.sql_color)
-                    )
-                    else -> Pair(
-                        R.drawable.html_course,
-                        ContextCompat.getColor(requireContext(), R.color.html_color)
-                    )
+                val accentColor = when (course.title) {
+                    "HTML" -> ContextCompat.getColor(requireContext(), R.color.html_color)
+                    "CSS" -> ContextCompat.getColor(requireContext(), R.color.css_color)
+                    "SQL" -> ContextCompat.getColor(requireContext(), R.color.sql_color)
+                    else -> ContextCompat.getColor(requireContext(), R.color.html_color)
                 }
                 
                 HomeCourse(
                     course.title,
                     "Lesson $topicsWithProgress of $totalTopics",
                     averageProgress,
-                    iconResId,
+                    course.imageResId,
                     accentColor
                 )
             }
         } else {
-            // Fallback to hardcoded data if XML parsing fails
-            listOf(
-                HomeCourse(
-                    "HTML", 
-                    "Lesson 5 of 10", 
-                    50, 
-                    R.drawable.html_course,
-                    ContextCompat.getColor(requireContext(), R.color.html_color)
-                ),
-                HomeCourse(
-                    "CSS", 
-                    "Lesson 8 of 12", 
-                    67, 
-                    R.drawable.css_course,
-                    ContextCompat.getColor(requireContext(), R.color.css_color)
-                ),
-                HomeCourse(
-                    "SQL", 
-                    "Lesson 3 of 8", 
-                    38, 
-                    R.drawable.sql_course,
-                    ContextCompat.getColor(requireContext(), R.color.sql_color)
-                )
-            )
+//            TODO: Display a nice error and take appropiate actions
+            emptyList()
         }
 
         val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)

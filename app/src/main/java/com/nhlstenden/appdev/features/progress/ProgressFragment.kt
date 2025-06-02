@@ -156,14 +156,6 @@ class ProgressFragment : Fragment() {
                     topicsWithProgress / totalTopics
                 } else 0
                 
-                // Map image resource based on course title
-                val imageResId = when (course.title) {
-                    "HTML" -> R.drawable.html_course
-                    "CSS" -> R.drawable.css_course
-                    "SQL" -> R.drawable.sql_course
-                    else -> R.drawable.html_course // Default fallback
-                }
-                
                 // Calculate completed topics based on progress > 0
                 val completedTopics = 30
                 
@@ -171,16 +163,12 @@ class ProgressFragment : Fragment() {
                     course.title,
                     "$completedTopics/$totalTopics",
                     averageProgress,
-                    imageResId
+                    course.imageResId
                 )
             }
         } else {
-            // Fallback to hardcoded data if XML parsing fails
-            listOf(
-                CourseProgress("HTML", "5/10", 50, R.drawable.html_course),
-                CourseProgress("CSS", "8/12", 67, R.drawable.css_course),
-                CourseProgress("SQL", "3/8", 38, R.drawable.sql_course)
-            )
+//            TODO: Display a nice error and take appropiate actions
+            emptyList<CourseProgress>()
         }
 
         courseProgressList.apply {
