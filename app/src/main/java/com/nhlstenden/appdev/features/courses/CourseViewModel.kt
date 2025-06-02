@@ -24,40 +24,15 @@ class CourseViewModel @Inject constructor(
 
     fun loadCourses() {
         viewModelScope.launch {
-            _courses.value = listOf(
-                Course(
-                    id = "1",
-                    title = "HTML",
-                    description = "Learn the fundamentals of HTML markup language",
-                    difficulty = "Beginner",
-                    imageResId = com.nhlstenden.appdev.R.drawable.html_course,
-                    topics = emptyList()
-                ),
-                Course(
-                    id = "2",
-                    title = "CSS",
-                    description = "Master CSS styling and layout techniques",
-                    difficulty = "Intermediate",
-                    imageResId = com.nhlstenden.appdev.R.drawable.css_course,
-                    topics = emptyList()
-                ),
-                Course(
-                    id = "3",
-                    title = "SQL",
-                    description = "Learn database management with SQL",
-                    difficulty = "Advanced",
-                    imageResId = com.nhlstenden.appdev.R.drawable.sql_course,
-                    topics = emptyList()
-                )
-            )
+            _courses.value = courseRepository.getCourses()
         }
     }
 
-    fun loadTopics(courseTitle: String) {
+    fun loadTopics(courseId: String) {
         _topicsState.value = TopicsState.Loading
         viewModelScope.launch {
             try {
-                val topics = courseRepository.getTopics(courseTitle)
+                val topics = courseRepository.getTopics(courseId)
                 _topicsState.value = TopicsState.Success(topics)
             } catch (e: Exception) {
                 _topicsState.value = TopicsState.Error(e.message ?: "Failed to load topics")

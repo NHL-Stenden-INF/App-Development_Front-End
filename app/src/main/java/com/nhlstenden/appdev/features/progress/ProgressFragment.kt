@@ -63,13 +63,19 @@ class ProgressFragment : Fragment() {
         // Calculate overall progress
         var totalTopics = 0
         var completedTopicsEquivalent = 0
-        
-        courses.forEach { course ->
-            course.topics.forEach { topic ->
-                totalTopics++
-                completedTopicsEquivalent += topic.progress / 100 // Convert percentage to completion fraction
-            }
+
+//  TODO: Replace with Supabase values
+        for (i in 0..100) {
+            totalTopics++
+            completedTopicsEquivalent += i / 100
         }
+
+//        courses.forEach { course ->
+//            course.topics.forEach { topic ->
+//                totalTopics++
+//                completedTopicsEquivalent += topic.progress / 100 // Convert percentage to completion fraction
+//            }
+//        }
         
         // If no data from XML, use mock data as fallback
         val totalTasks = if (totalTopics > 0) totalTopics else 30
@@ -143,9 +149,11 @@ class ProgressFragment : Fragment() {
         val courses = if (parsedCourses.isNotEmpty()) {
             parsedCourses.map { course ->
                 // Calculate completion status and percentage for this course
-                val totalTopics = course.topics.size
+//                TODO: Replace with Supabase values
+                val totalTopics = 100
+                val topicsWithProgress = 30
                 val averageProgress = if (totalTopics > 0) {
-                    course.topics.sumOf { it.progress } / totalTopics
+                    topicsWithProgress / totalTopics
                 } else 0
                 
                 // Map image resource based on course title
@@ -157,7 +165,7 @@ class ProgressFragment : Fragment() {
                 }
                 
                 // Calculate completed topics based on progress > 0
-                val completedTopics = course.topics.count { it.progress > 0 }
+                val completedTopics = 30
                 
                 CourseProgress(
                     course.title,

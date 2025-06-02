@@ -226,10 +226,11 @@ class HomeFragment : Fragment() {
         val courses = if (parsedCourses.isNotEmpty()) {
             parsedCourses.map { course ->
                 // Calculate progress information
-                val totalTopics = course.topics.size
-                val topicsWithProgress = course.topics.count { it.progress > 0 }
+//                TODO: Replace with Supabase values
+                val totalTopics = 100
+                val topicsWithProgress = 30
                 val averageProgress = if (totalTopics > 0) {
-                    course.topics.sumOf { it.progress } / totalTopics
+                    topicsWithProgress / totalTopics
                 } else 0
                 
                 // Get appropriate icon and accent color based on course title

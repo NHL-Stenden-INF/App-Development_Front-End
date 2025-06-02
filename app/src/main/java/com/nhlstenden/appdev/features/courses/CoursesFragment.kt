@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.courses.screens
+package com.nhlstenden.appdev.features.courses
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -15,6 +15,7 @@ import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.features.courses.screens.CourseAdapter
 import com.nhlstenden.appdev.features.courses.viewmodels.CourseViewModel
 import com.nhlstenden.appdev.core.utils.NavigationManager
+import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.shared.ui.base.BaseFragment
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
@@ -66,7 +67,7 @@ class CoursesFragment : BaseFragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.courses.collect { courses ->
                     val mapped = courses.map { domainCourse ->
-                        com.nhlstenden.appdev.features.courses.model.Course(
+                        Course(
                             id = domainCourse.id,
                             title = domainCourse.title,
                             difficulty = domainCourse.difficulty,
