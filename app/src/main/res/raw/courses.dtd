@@ -1,0 +1,6 @@
+<!ELEMENT courses (course)+>
+<!ELEMENT course (title, description, difficulty, image)>
+<!ELEMENT title (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT difficulty (#PCDATA)>
+<!ELEMENT image (#PCDATA)>
