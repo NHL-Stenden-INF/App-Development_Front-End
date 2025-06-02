@@ -1,0 +1,3 @@
+// TaskModule temporarily disabled for kapt troubleshooting
+// package com.nhlstenden.appdev.features.task
+// ... entire file commented out ... 
