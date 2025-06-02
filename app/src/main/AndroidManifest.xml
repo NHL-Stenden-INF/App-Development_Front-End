@@ -57,6 +57,11 @@
         </activity>
 
         <activity
+            android:name=".features.task.screens.TaskActivity"
+            android:exported="false">
+        </activity>
+
+        <activity
             android:name="com.yalantis.ucrop.UCropActivity"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppdevNHL.NoActionBar" />
