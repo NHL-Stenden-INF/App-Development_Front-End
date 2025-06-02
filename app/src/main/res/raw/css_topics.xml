@@ -11,12 +11,12 @@
         <description>Master CSS layout techniques</description>
     </topic>
     <topic>
-        <title>CSS Flexbox</title>
+        <title>CSS Selectors</title>
         <difficulty>Advanced</difficulty>
         <description>Create flexible layouts with CSS Flexbox</description>
     </topic>
     <topic>
-        <title>CSS Grid</title>
+        <title>CSS Animations</title>
         <difficulty>Advanced</difficulty>
         <description>Build complex layouts with CSS Grid</description>
     </topic>
