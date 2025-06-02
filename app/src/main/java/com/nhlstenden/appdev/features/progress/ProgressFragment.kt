@@ -19,7 +19,7 @@ import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.features.courses.screens.CourseFragment
+import com.nhlstenden.appdev.features.courses.CourseFragment
 import com.nhlstenden.appdev.features.courses.CourseParser
 import dagger.hilt.android.AndroidEntryPoint
 

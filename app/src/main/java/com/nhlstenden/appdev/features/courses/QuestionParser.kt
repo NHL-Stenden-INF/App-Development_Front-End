@@ -1,14 +1,12 @@
-package com.nhlstenden.appdev.features.courses.parser
+package com.nhlstenden.appdev.features.courses
 
 import android.content.Context
 import android.util.Log
-import com.nhlstenden.appdev.features.task.models.Option
 import com.nhlstenden.appdev.features.task.models.Question
 import com.nhlstenden.appdev.features.task.models.QuestionType
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.InputStream
-import javax.xml.parsers.DocumentBuilderFactory
 import org.json.JSONException
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
@@ -125,7 +123,7 @@ class QuestionParser(private val context: Context) {
                                 val text = parser.text
                                 currentQuestion = Question(
                                     id = questionId.toString(),
-                                    type = com.nhlstenden.appdev.features.task.models.QuestionType.MULTIPLE_CHOICE,
+                                    type = QuestionType.MULTIPLE_CHOICE,
                                     text = text ?: "",
                                     options = emptyList()
                                 )

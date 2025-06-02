@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.courses.repositories
+package com.nhlstenden.appdev.features.courses
 
 import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.features.courses.model.Topic

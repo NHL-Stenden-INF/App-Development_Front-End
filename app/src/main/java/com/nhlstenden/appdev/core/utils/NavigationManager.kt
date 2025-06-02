@@ -1,7 +1,7 @@
 package com.nhlstenden.appdev.core.utils
 
 import android.app.Activity
-import com.nhlstenden.appdev.features.courses.screens.CourseFragment
+import com.nhlstenden.appdev.features.courses.CourseFragment
 
 object NavigationManager {
     fun navigateToCourseTopics(activity: Activity, courseId: String) {

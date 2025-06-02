@@ -13,7 +13,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.ChipGroup
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.features.courses.screens.CourseAdapter
-import com.nhlstenden.appdev.features.courses.viewmodels.CourseViewModel
 import com.nhlstenden.appdev.core.utils.NavigationManager
 import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.shared.ui.base.BaseFragment

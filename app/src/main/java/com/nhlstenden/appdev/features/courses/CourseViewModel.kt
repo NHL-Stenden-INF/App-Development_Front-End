@@ -1,9 +1,8 @@
-package com.nhlstenden.appdev.features.courses.viewmodels
+package com.nhlstenden.appdev.features.courses
 
 import androidx.lifecycle.ViewModel
 import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.features.courses.model.Topic
-import com.nhlstenden.appdev.features.courses.repositories.CourseRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

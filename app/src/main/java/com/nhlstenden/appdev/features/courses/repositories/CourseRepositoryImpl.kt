@@ -3,9 +3,10 @@ package com.nhlstenden.appdev.features.courses.repositories
 import android.app.Application
 import com.nhlstenden.appdev.features.courses.model.Topic
 import com.nhlstenden.appdev.features.courses.CourseParser
+import com.nhlstenden.appdev.features.courses.CourseRepository
 import com.nhlstenden.appdev.features.courses.TopicParser
 import com.nhlstenden.appdev.features.courses.model.Course
-import com.nhlstenden.appdev.features.courses.parser.QuestionParser
+import com.nhlstenden.appdev.features.courses.QuestionParser
 import com.nhlstenden.appdev.features.task.models.Question
 import javax.inject.Inject
 import javax.inject.Singleton

@@ -3,7 +3,6 @@ package com.nhlstenden.appdev.features.courses
 import android.content.Context
 import android.util.Log
 import com.nhlstenden.appdev.features.courses.model.Course
-import com.nhlstenden.appdev.features.courses.model.Topic
 import org.w3c.dom.Element
 import java.io.InputStream
 import javax.xml.parsers.DocumentBuilderFactory

@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.courses.screens
+package com.nhlstenden.appdev.features.courses
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,7 +11,6 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.nhlstenden.appdev.features.courses.model.Topic
-import com.nhlstenden.appdev.features.courses.viewmodels.CourseViewModel
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.FragmentCourseBinding
 import com.google.android.material.progressindicator.LinearProgressIndicator
@@ -20,7 +19,6 @@ import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 import com.nhlstenden.appdev.features.task.screens.TaskActivity
 import com.nhlstenden.appdev.core.utils.NavigationManager
-import com.nhlstenden.appdev.features.courses.CourseParser
 
 @AndroidEntryPoint
 class CourseFragment : Fragment() {

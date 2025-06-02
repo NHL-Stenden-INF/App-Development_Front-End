@@ -3,8 +3,6 @@ package com.nhlstenden.appdev.features.task.repositories
 import android.app.Application
 import com.nhlstenden.appdev.features.task.models.Question
 import com.nhlstenden.appdev.core.repositories.TaskRepository
-import com.nhlstenden.appdev.features.courses.CourseParser
-import com.nhlstenden.appdev.features.courses.parser.QuestionParser
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import javax.inject.Inject
 
