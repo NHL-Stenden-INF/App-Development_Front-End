@@ -15,10 +15,10 @@ import org.xmlpull.v1.XmlPullParserFactory
 
 class QuestionParser(private val context: Context) {
     
-    fun loadQuestionsForTopic(topicTitle: String): List<Question> {
-        val resourceId = getResourceIdForTopic(topicTitle)
+    fun loadQuestionsForTopic(topicId: String): List<Question> {
+        val resourceId = context.resources.getIdentifier("${topicId}_questions", "raw", context.packageName)
         if (resourceId == 0) {
-            Log.e("QuestionParser", "No resource found for topic: $topicTitle")
+            Log.e("QuestionParser", "No resource found for topic: $topicId")
             return emptyList()
         }
         
@@ -37,41 +37,11 @@ class QuestionParser(private val context: Context) {
                 result
             }
         } catch (e: Exception) {
-            Log.e("QuestionParser", "Error loading questions for topic: $topicTitle", e)
+            Log.e("QuestionParser", "Error loading questions for topic: $topicId", e)
             return emptyList()
         } finally {
             inputStream?.close()
         }
-    }
-    
-    private fun getResourceIdForTopic(topicTitle: String): Int {
-        // Split topicTitle into course and topic part
-        val lower = topicTitle.lowercase()
-        val resourceName = when {
-            lower.contains("html") -> when {
-                lower.contains("basics") -> "html_basics_questions"
-                lower.contains("structure") -> "html_structure_questions"
-                lower.contains("forms") -> "html_forms_questions"
-                lower.contains("elements") -> "html_elements_questions"
-                else -> "html_basics_questions"
-            }
-            lower.contains("css") -> when {
-                lower.contains("basics") -> "css_basics_questions"
-                lower.contains("layout") -> "css_layout_questions"
-                lower.contains("selectors") -> "css_selectors_questions"
-                lower.contains("animation") -> "css_animation_questions"
-                else -> "css_basics_questions"
-            }
-            lower.contains("sql") -> when {
-                lower.contains("basics") -> "sql_basics_questions"
-                lower.contains("queries") -> "sql_queries_questions"
-                lower.contains("joins") -> "sql_joins_questions"
-                lower.contains("database") -> "sql_database_questions"
-                else -> "sql_basics_questions"
-            }
-            else -> "default_questions"
-        }
-        return context.resources.getIdentifier(resourceName, "raw", context.packageName)
     }
     
     private fun parseQuestionsJson(inputStream: InputStream): List<Question> {
