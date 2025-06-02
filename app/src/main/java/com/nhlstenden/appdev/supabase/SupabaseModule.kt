@@ -1,0 +1,3 @@
+// SupabaseModule temporarily disabled for kapt troubleshooting
+// package com.nhlstenden.appdev.supabase
+// ... entire file commented out ... 

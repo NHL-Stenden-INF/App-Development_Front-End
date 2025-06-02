@@ -1,0 +1,3 @@
+// CourseModule temporarily disabled for kapt troubleshooting
+// package com.nhlstenden.appdev.features.courses.di
+// ... entire file commented out ... 

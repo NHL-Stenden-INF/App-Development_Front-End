@@ -4,28 +4,56 @@ This is the Android frontend application for the AppDev NHL project. It allows u
 
 ## Project Structure
 
-The project follows a modular and feature-based structure to keep code organized and maintainable as the application grows. Here is an overview:
+```
+appdev/
+│
+├── core/                   # Reusable/shared code across features
+│   ├── components/         # Shared UI components (e.g., ImageCropActivity)
+│   ├── di/                 # Dependency injection setup (e.g., Hilt modules)
+│   ├── network/            # Retrofit setup, API service
+│   ├── database/           # Room setup
+│   ├── utils/              # Shared helpers, extensions
+│   ├── repositories/       # Shared repositories/interfaces
+│   ├── models/             # Shared domain models
+│   ├── ui/
+│   │   └── base/           # BaseFragment, BaseViewModel, etc.
+│   └── AppConstants.kt     # Global constants
+│
+├── features/               # Each feature in its own folder
+│   ├── friends/            # Friends management (includes FriendsFragment, utils, viewmodels, etc.)
+│   ├── profile/            # Profile management (ProfileFragment, viewmodels, adapters, etc.)
+│   ├── rewards/            # Rewards and achievements system
+│   ├── courses/            # Course browsing and topic exploration
+│   ├── progress/           # Progress tracking
+│   ├── task/               # Task management
+│   ├── login/              # Login and registration
+│   └── home/               # Home dashboard
+│
+├── MainApplication.kt      # Application class
+├── MainActivity.kt         # Main activity (fragment container)
+└── supabase/               # Supabase client and related code
+```
 
-- `/app/src/main/java/com/nhlstenden/appdev/`: Main Kotlin source code for the Android app, organized by feature and domain.
-    - `courses/`, `friends/`, `home/`, `login/`, `main/`, `profile/`, `progress/`, `rewards/`, `shared/`, `supabase/`, `task/`: Each feature or domain has its own directory, further split into `data/`, `domain/`, and `ui/` layers, following clean architecture principles.
-        - `data/`: Data sources, repositories, and related logic.
-        - `domain/`: Business models and repository interfaces.
-        - `ui/`: UI components, adapters, screens, viewmodels, and fragments.
-    - `di/`: Dependency injection setup (e.g., Hilt modules).
-    - `models/`: Shared data models and managers.
-    - `SupabaseClient.kt`: Handles backend communication.
-    - `AppDevApplication.kt`: Application class with Hilt setup.
+- All feature-specific code (fragments, viewmodels, adapters, repositories, etc.) is inside its respective feature folder.
+- Shared code (UI components, base classes, models, utils, constants) is in `core/`.
+- `AppConstants.kt` is now in `core/`.
+- `FriendsFragment.kt` is now in `features/friends/`.
 
-- `/app/src/main/res/`: Android resources.
-    - `layout/`: XML layout files for activities and fragments.
-    - `drawable/`: Image assets and custom drawables (see below for conventions).
-    - `values/`: XML files for strings, colors, styles, and themes.
-    - `navigation/`: Navigation graphs for the application.
-    - `animator/`, `anim/`: Animation resources.
+## SOLID Principles
 
-- `/app/build.gradle.kts` and `/app/build.gradle`: Gradle build scripts for the application module.
+| Principle                     | How it's simplified but respected                               |
+| ----------------------------- | --------------------------------------------------------------- |
+| **S** – Single Responsibility | Each file does one thing: e.g., ViewModel handles UI logic only |
+| **O** – Open/Closed           | You can add new features without modifying others               |
+| **L** – Liskov                | Interfaces (e.g., repositories) let you swap implementations    |
+| **I** – Interface Segregation | Simple interfaces per feature, small and focused                |
+| **D** – Dependency Inversion  | Core depends on interfaces; Hilt injects implementations        |
 
-This structure allows for clear separation of concerns, easier navigation, and scalable development as new features are added.
+## Notes
+- Each feature folder contains all files for that feature (UI, ViewModel, Repository, etc.).
+- Shared code (network, DI, database, utils, shared models, base UI) lives in `core/`.
+- Global constants go in `core/AppConstants.kt`.
+- This structure is scalable, easy to navigate, and respects SOLID.
 
 ## Drawable Resource Naming Convention
 
