@@ -1,114 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <courses>
     <course>
-        <id>1</id>
         <title>HTML</title>
         <description>Learn the fundamentals of HTML markup language and web structure</description>
         <difficulty>Beginner</difficulty>
         <image>html_course</image>
-        <topics>
-            <topic>
-                <id>1</id>
-                <title>HTML Basics</title>
-                <difficulty>Beginner</difficulty>
-                <description>Learn the fundamentals of HTML markup language</description>
-                <progress>75</progress>
-            </topic>
-            <topic>
-                <id>2</id>
-                <title>HTML Structure</title>
-                <difficulty>Beginner</difficulty>
-                <description>Learn about the basic structure of HTML documents</description>
-                <progress>50</progress>
-            </topic>
-            <topic>
-                <id>3</id>
-                <title>HTML Forms</title>
-                <difficulty>Intermediate</difficulty>
-                <description>Create interactive forms with HTML</description>
-                <progress>25</progress>
-            </topic>
-            <topic>
-                <id>4</id>
-                <title>HTML Tables</title>
-                <difficulty>Intermediate</difficulty>
-                <description>Organize data with HTML tables</description>
-                <progress>0</progress>
-            </topic>
-        </topics>
     </course>
     <course>
-        <id>2</id>
         <title>CSS</title>
         <description>Master CSS styling, layout techniques, and responsive design</description>
         <difficulty>Intermediate</difficulty>
         <image>css_course</image>
-        <topics>
-            <topic>
-                <id>1</id>
-                <title>CSS Basics</title>
-                <difficulty>Beginner</difficulty>
-                <description>Learn the fundamentals of CSS styling</description>
-                <progress>100</progress>
-            </topic>
-            <topic>
-                <id>2</id>
-                <title>CSS Layout</title>
-                <difficulty>Intermediate</difficulty>
-                <description>Master CSS layout techniques</description>
-                <progress>75</progress>
-            </topic>
-            <topic>
-                <id>3</id>
-                <title>CSS Flexbox</title>
-                <difficulty>Advanced</difficulty>
-                <description>Create flexible layouts with CSS Flexbox</description>
-                <progress>50</progress>
-            </topic>
-            <topic>
-                <id>4</id>
-                <title>CSS Grid</title>
-                <difficulty>Advanced</difficulty>
-                <description>Build complex layouts with CSS Grid</description>
-                <progress>25</progress>
-            </topic>
-        </topics>
     </course>
     <course>
-        <id>3</id>
         <title>SQL</title>
         <description>Learn database management, queries, and data manipulation</description>
         <difficulty>Advanced</difficulty>
         <image>sql_course</image>
-        <topics>
-            <topic>
-                <id>1</id>
-                <title>SQL Basics</title>
-                <difficulty>Beginner</difficulty>
-                <description>Learn the fundamentals of SQL</description>
-                <progress>100</progress>
-            </topic>
-            <topic>
-                <id>2</id>
-                <title>SQL Queries</title>
-                <difficulty>Intermediate</difficulty>
-                <description>Write complex SQL queries</description>
-                <progress>75</progress>
-            </topic>
-            <topic>
-                <id>3</id>
-                <title>SQL Joins</title>
-                <difficulty>Advanced</difficulty>
-                <description>Combine data from multiple tables</description>
-                <progress>50</progress>
-            </topic>
-            <topic>
-                <id>4</id>
-                <title>SQL Optimization</title>
-                <difficulty>Advanced</difficulty>
-                <description>Optimize your SQL queries</description>
-                <progress>25</progress>
-            </topic>
-        </topics>
     </course>
 </courses> 
