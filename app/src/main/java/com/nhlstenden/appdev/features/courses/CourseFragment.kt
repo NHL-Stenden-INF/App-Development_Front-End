@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.courses.screens
+package com.nhlstenden.appdev.features.courses
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,14 +11,12 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.nhlstenden.appdev.features.courses.model.Topic
-import com.nhlstenden.appdev.features.courses.viewmodels.CourseViewModel
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.FragmentCourseBinding
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import android.widget.TextView
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
-import android.content.Intent
 import com.nhlstenden.appdev.features.task.screens.TaskActivity
 import com.nhlstenden.appdev.core.utils.NavigationManager
 
@@ -47,8 +45,8 @@ class CourseFragment : Fragment() {
         if (courseId != null) {
             viewModel.loadTopics(courseId)
             // Set course title and description from XML or mock data
-            val parser = com.nhlstenden.appdev.features.courses.parser.CourseParser(requireContext())
-            val course = parser.loadCourseById(courseId)
+            val parser = CourseParser(requireContext())
+            val course = parser.loadCourseByTitle(courseId)
             if (course != null) {
                 binding.courseTitle.text = course.title
                 binding.courseDescription.text = course.description

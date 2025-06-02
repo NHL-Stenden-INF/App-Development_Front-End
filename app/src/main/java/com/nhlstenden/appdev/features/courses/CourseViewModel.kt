@@ -1,10 +1,8 @@
-package com.nhlstenden.appdev.features.courses.viewmodels
+package com.nhlstenden.appdev.features.courses
 
 import androidx.lifecycle.ViewModel
 import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.features.courses.model.Topic
-import com.nhlstenden.appdev.features.courses.repositories.CourseRepository
-import com.nhlstenden.appdev.features.courses.parser.CourseParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,44 +23,7 @@ class CourseViewModel @Inject constructor(
 
     fun loadCourses() {
         viewModelScope.launch {
-            _courses.value = listOf(
-                Course(
-                    id = "1",
-                    title = "HTML",
-                    description = "Learn the fundamentals of HTML markup language",
-                    difficulty = "Beginner",
-                    imageResId = com.nhlstenden.appdev.R.drawable.html_course,
-                    topics = emptyList()
-                ),
-                Course(
-                    id = "2",
-                    title = "CSS",
-                    description = "Master CSS styling and layout techniques",
-                    difficulty = "Intermediate",
-                    imageResId = com.nhlstenden.appdev.R.drawable.css_course,
-                    topics = emptyList()
-                ),
-                Course(
-                    id = "3",
-                    title = "SQL",
-                    description = "Learn database management with SQL",
-                    difficulty = "Advanced",
-                    imageResId = com.nhlstenden.appdev.R.drawable.sql_course,
-                    topics = emptyList()
-                )
-            )
-        }
-    }
-
-    fun loadTopics() {
-        _topicsState.value = TopicsState.Loading
-        viewModelScope.launch {
-            try {
-                val topics = courseRepository.getTopics()
-                _topicsState.value = TopicsState.Success(topics)
-            } catch (e: Exception) {
-                _topicsState.value = TopicsState.Error(e.message ?: "Failed to load topics")
-            }
+            _courses.value = courseRepository.getCourses()
         }
     }
 

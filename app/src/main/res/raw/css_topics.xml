@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE topics SYSTEM "topics.dtd">
+<topics>
+    <topic>
+        <title>CSS Basics</title>
+        <difficulty>Beginner</difficulty>
+        <description>Learn the fundamentals of CSS styling</description>
+    </topic>
+    <topic>
+        <title>CSS Layout</title>
+        <difficulty>Intermediate</difficulty>
+        <description>Master CSS layout techniques</description>
+    </topic>
+    <topic>
+        <title>CSS Selectors</title>
+        <difficulty>Advanced</difficulty>
+        <description>Create flexible layouts with CSS Flexbox</description>
+    </topic>
+    <topic>
+        <title>CSS Animations</title>
+        <difficulty>Advanced</difficulty>
+        <description>Build complex layouts with CSS Grid</description>
+    </topic>
+</topics>

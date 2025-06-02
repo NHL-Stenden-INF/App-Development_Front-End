@@ -37,6 +37,7 @@ class CourseAdapter(
             courseDescription.text = course.description
             difficultyLevel.text = course.difficulty
             courseImage.setImageResource(course.imageResId)
+            progressBar.progress = 0
             // If you want to show progress, you can set progressBar.progress here if available
             itemView.setOnClickListener { onClick(course) }
         }

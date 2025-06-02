@@ -19,8 +19,8 @@ import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.features.courses.screens.CourseFragment
-import com.nhlstenden.appdev.features.courses.parser.CourseParser
+import com.nhlstenden.appdev.features.courses.CourseFragment
+import com.nhlstenden.appdev.features.courses.CourseParser
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -63,13 +63,19 @@ class ProgressFragment : Fragment() {
         // Calculate overall progress
         var totalTopics = 0
         var completedTopicsEquivalent = 0
-        
-        courses.forEach { course ->
-            course.topics.forEach { topic ->
-                totalTopics++
-                completedTopicsEquivalent += topic.progress / 100 // Convert percentage to completion fraction
-            }
+
+//  TODO: Replace with Supabase values
+        for (i in 0..100) {
+            totalTopics++
+            completedTopicsEquivalent += i / 100
         }
+
+//        courses.forEach { course ->
+//            course.topics.forEach { topic ->
+//                totalTopics++
+//                completedTopicsEquivalent += topic.progress / 100 // Convert percentage to completion fraction
+//            }
+//        }
         
         // If no data from XML, use mock data as fallback
         val totalTasks = if (totalTopics > 0) totalTopics else 30
@@ -143,36 +149,26 @@ class ProgressFragment : Fragment() {
         val courses = if (parsedCourses.isNotEmpty()) {
             parsedCourses.map { course ->
                 // Calculate completion status and percentage for this course
-                val totalTopics = course.topics.size
+//                TODO: Replace with Supabase values
+                val totalTopics = 100
+                val topicsWithProgress = 30
                 val averageProgress = if (totalTopics > 0) {
-                    course.topics.sumOf { it.progress } / totalTopics
+                    topicsWithProgress / totalTopics
                 } else 0
                 
-                // Map image resource based on course title
-                val imageResId = when (course.title) {
-                    "HTML" -> R.drawable.html_course
-                    "CSS" -> R.drawable.css_course
-                    "SQL" -> R.drawable.sql_course
-                    else -> R.drawable.html_course // Default fallback
-                }
-                
                 // Calculate completed topics based on progress > 0
-                val completedTopics = course.topics.count { it.progress > 0 }
+                val completedTopics = 30
                 
                 CourseProgress(
                     course.title,
                     "$completedTopics/$totalTopics",
                     averageProgress,
-                    imageResId
+                    course.imageResId
                 )
             }
         } else {
-            // Fallback to hardcoded data if XML parsing fails
-            listOf(
-                CourseProgress("HTML", "5/10", 50, R.drawable.html_course),
-                CourseProgress("CSS", "8/12", 67, R.drawable.css_course),
-                CourseProgress("SQL", "3/8", 38, R.drawable.sql_course)
-            )
+//            TODO: Display a nice error and take appropiate actions
+            emptyList<CourseProgress>()
         }
 
         courseProgressList.apply {

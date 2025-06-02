@@ -1,22 +1,21 @@
 package com.nhlstenden.appdev.features.task
 
+import android.app.Application
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.commit
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.ChipGroup
 import com.nhlstenden.appdev.features.courses.model.Course
-import com.nhlstenden.appdev.features.courses.screens.CourseFragment
-import androidx.viewpager2.widget.ViewPager2
-import android.widget.FrameLayout
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.utils.NavigationManager
+import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import dagger.hilt.android.AndroidEntryPoint
 import com.nhlstenden.appdev.features.courses.screens.CourseAdapter
+import kotlinx.coroutines.runBlocking
 
 @AndroidEntryPoint
 class TasksFragment : Fragment() {
@@ -50,30 +49,10 @@ class TasksFragment : Fragment() {
     }
 
     private fun setupTasksList() {
-        val courses = listOf(
-            Course(
-                id = "1",
-                title = "HTML",
-                difficulty = "Beginner",
-                description = "Learn the fundamentals of HTML markup language",
-                imageResId = R.drawable.html_course
-            ),
-            Course(
-                id = "2",
-                title = "CSS",
-                difficulty = "Intermediate",
-                description = "Master CSS styling and layout techniques",
-                imageResId = R.drawable.css_course
-            ),
-            Course(
-                id = "3",
-                title = "SQL",
-                difficulty = "Advanced",
-                description = "Learn database management with SQL",
-                imageResId = R.drawable.sql_course
-            )
-        )
-        adapter.submitList(courses)
+        runBlocking {
+            val courses = CourseRepositoryImpl(context as Application).getCourses()
+            adapter.submitList(courses)
+        }
     }
 
     private fun setupFilterChips() {

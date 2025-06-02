@@ -1,0 +1,5 @@
+<!ELEMENT topics (topic)+>
+<!ELEMENT topic (title, difficulty, description)>
+<!ELEMENT title (#PCDATA)>
+<!ELEMENT difficulty (#PCDATA)>
+<!ELEMENT description (#PCDATA)>

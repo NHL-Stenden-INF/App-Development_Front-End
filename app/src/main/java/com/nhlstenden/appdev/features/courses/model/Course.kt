@@ -10,5 +10,4 @@ data class Course(
     val description: String,
     val difficulty: String,
     val imageResId: Int,
-    val topics: List<Topic> = emptyList()
 ) : Parcelable 
