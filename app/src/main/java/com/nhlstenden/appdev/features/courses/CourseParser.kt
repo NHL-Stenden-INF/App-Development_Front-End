@@ -48,8 +48,13 @@ class CourseParser(private val context: Context) {
 
         val imageResName = courseElement.getElementsByTagName("image").item(0).textContent
         val imageResId = context.resources.getIdentifier(imageResName, "drawable", context.packageName)
-        
+
+        val id = title
+            .lowercase()
+            .replace(' ', '_' )
+
         return Course(
+            id = id,
             title = title,
             description = description,
             difficulty = difficulty,

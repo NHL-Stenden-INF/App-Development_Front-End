@@ -7,15 +7,15 @@ import org.w3c.dom.Element
 import java.io.InputStream
 import javax.xml.parsers.DocumentBuilderFactory
 
-class TaskParser(private val context: Context) {
+class TopicParser(private val context: Context) {
     fun loadAllCoursesOfTopic(courseTitle: String): List<Topic> {
         val courseIdentifier: String = courseTitle
             .lowercase()
             .trim()
-        val resourceId = context.resources.getIdentifier("${courseIdentifier}_topic", "raw", context.packageName)
+        val resourceId = context.resources.getIdentifier("${courseIdentifier}_topics", "raw", context.packageName)
 
         if (resourceId == 0) {
-            Log.e("CourseParser", "No courses.xml resource found")
+            Log.e("CourseParser", "No ${courseIdentifier}_topics.xml resource found")
             return emptyList()
         }
 
@@ -44,7 +44,12 @@ class TaskParser(private val context: Context) {
         val description = topicElement.getElementsByTagName("description").item(0).textContent
         val difficulty = topicElement.getElementsByTagName("difficulty").item(0).textContent
 
+        val id = title
+            .lowercase()
+            .replace(' ', '_' )
+
         return Topic(
+            id = id,
             title = title,
             description = description,
             difficulty = difficulty,
