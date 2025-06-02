@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.features.courses.model.Topic
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepository
-import com.nhlstenden.appdev.features.courses.parser.CourseParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,23 +53,11 @@ class CourseViewModel @Inject constructor(
         }
     }
 
-    fun loadTopics() {
+    fun loadTopics(courseTitle: String) {
         _topicsState.value = TopicsState.Loading
         viewModelScope.launch {
             try {
-                val topics = courseRepository.getTopics()
-                _topicsState.value = TopicsState.Success(topics)
-            } catch (e: Exception) {
-                _topicsState.value = TopicsState.Error(e.message ?: "Failed to load topics")
-            }
-        }
-    }
-
-    fun loadTopics(courseId: String) {
-        _topicsState.value = TopicsState.Loading
-        viewModelScope.launch {
-            try {
-                val topics = courseRepository.getTopics(courseId)
+                val topics = courseRepository.getTopics(courseTitle)
                 _topicsState.value = TopicsState.Success(topics)
             } catch (e: Exception) {
                 _topicsState.value = TopicsState.Error(e.message ?: "Failed to load topics")

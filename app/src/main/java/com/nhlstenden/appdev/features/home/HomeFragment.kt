@@ -19,8 +19,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.features.profile.screens.ProfileFragment
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.core.models.User
-import com.nhlstenden.appdev.features.courses.parser.CourseParser
+import com.nhlstenden.appdev.features.courses.CourseParser
 import android.app.AlertDialog
 import android.os.Build
 import android.widget.EditText
@@ -33,7 +32,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import com.bumptech.glide.Glide
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.nhlstenden.appdev.home.manager.StreakManager
-import com.nhlstenden.appdev.core.utils.UserManager
 import java.time.LocalDate
 import android.util.Log
 import com.nhlstenden.appdev.home.data.repositories.StreakRepository
@@ -41,7 +39,6 @@ import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.temporal.ChronoUnit
-import com.nhlstenden.appdev.core.utils.NavigationManager
 
 // Data class for course info
 data class HomeCourse(
