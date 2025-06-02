@@ -87,6 +87,22 @@ To keep the `drawable` folder organized and maintainable, we follow strict namin
 
 This convention makes it easy to locate, reference, and maintain drawable resources, especially as the project grows. While the project may not yet be fully consistent with this convention, this is the intended standard moving forward.
 
+# Courses/ Tasks/ Questions naming conventions
+
+- **Courses file:**
+  - All are stored in `coures.xml`
+  - The title of a course is used as an ID to find the related `topics` file
+  - Title can contain spaces and capital letters
+
+- **Topic files**
+  - Suffix with `_topics`
+  - Prefix with the title of the related course in lowercase and with ` ` replaced wiht `_`
+  - The title of a topic is used as an ID to fin the related `questions` file
+
+- **Question files**
+  - Suffix with `_questions`
+  - Prefix with the title of the related topic in lowercase and with ` ` replaced with `_`
+
 ## Prerequisites
 
 - Android Studio (latest stable version recommended)
