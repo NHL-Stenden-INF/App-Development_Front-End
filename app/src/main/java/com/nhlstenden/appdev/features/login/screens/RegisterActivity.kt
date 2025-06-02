@@ -118,7 +118,7 @@ class RegisterActivity : AppCompatActivity() {
 
     private fun setupGestureDetector() {
         gestureDetector = GestureDetectorCompat(this, object : GestureDetector.SimpleOnGestureListener() {
-            // Remove any 'override fun onFling' method here if present, as it is not needed.
+            // No need to override onFling for this activity
         })
     }
 

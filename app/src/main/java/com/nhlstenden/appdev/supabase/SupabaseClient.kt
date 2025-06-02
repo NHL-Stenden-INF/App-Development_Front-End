@@ -22,8 +22,7 @@ class SupabaseClient() {
     val supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdncGRzdGJ5bHlpd2tmY3Vjb3hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczMDg4MzYsImV4cCI6MjA2Mjg4NDgzNn0.2ZGOttYWxBJkNcPmAtJh6dzlm3G6vwpIonEtRvtNNa8"
 
     suspend fun getUser(email: String, password: String): User {
-        // The old getUser method has been removed to resolve compilation errors.
-        // The new flow uses `login` and then `fetchProfile` and `fetchUserAttributes`.
+        // This method is not implemented. Use login, fetchProfile, and fetchUserAttributes instead.
         throw UnsupportedOperationException("Method not implemented")
     }
 

@@ -340,25 +340,18 @@ class FriendsFragment : Fragment() {
                             val responseBody = friendIdsResponse.body?.string()
                             Log.d(TAG, "Fresh friend IDs response: $responseBody")
                             
-                            // Parse the response - the response is a JSON array of UUIDs
+                            // Parse the response as a JSON array of UUIDs
                             val jsonArray = JSONArray(responseBody ?: "[]")
-                            
-                            // Create a completely new friends list
                             val freshFriends = ArrayList<UUID>()
-                            
                             for (i in 0 until jsonArray.length()) {
                                 try {
-                                    // Each item is a JSON object with a "friend_id" field
                                     val friendObject = jsonArray.getJSONObject(i)
                                     val friendId = friendObject.getString("friend_id")
-                                    Log.d(TAG, "Found friend ID: $friendId")
                                     freshFriends.add(UUID.fromString(friendId))
                                 } catch (e: Exception) {
                                     Log.e(TAG, "Error during friend IDs refresh: ${e.message}", e)
                                 }
                             }
-                            
-                            // Log the total count for debugging
                             Log.d(TAG, "Retrieved ${freshFriends.size} friend IDs from database")
                             
                             if (freshFriends.size > 0 || jsonArray.length() == 0) {
