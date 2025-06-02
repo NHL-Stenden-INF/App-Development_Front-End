@@ -41,15 +41,12 @@ class MainActivity : AppCompatActivity() {
         
         // Configure window to handle system bars
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        
-        // Set up the window insets controller
+        // Set up the window insets controller for light status/navigation bars
         val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
         windowInsetsController.isAppearanceLightStatusBars = true
         windowInsetsController.isAppearanceLightNavigationBars = true
-        
         setContentView(R.layout.activity_main)
-
-        // Disable system back gesture
+        // Disable system back gesture to control navigation
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (supportFragmentManager.backStackEntryCount > 0) {
@@ -59,14 +56,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
-
-        // Get user data from UserManager singleton only
         userData = UserManager.getCurrentUser()
-
         viewPager = findViewById(R.id.viewPager)
         bottomNavigation = findViewById(R.id.bottom_navigation)
-
-        // Set up ViewPager2
         viewPager.adapter = MainPagerAdapter(this)
         viewPager.offscreenPageLimit = 1
         viewPager.overScrollMode = View.OVER_SCROLL_NEVER
