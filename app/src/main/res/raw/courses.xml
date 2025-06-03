@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE courses SYSTEM "courses.dtd">
+<!DOCTYPE courses SYSTEM "courses_conventions">
 <courses>
     <course>
         <title>HTML</title>
