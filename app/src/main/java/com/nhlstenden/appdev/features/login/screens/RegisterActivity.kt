@@ -2,6 +2,7 @@ package com.nhlstenden.appdev.features.login.screens
 
 import android.animation.AnimatorInflater
 import android.content.Intent
+import android.graphics.drawable.AnimationDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -29,15 +30,21 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var gestureDetector: GestureDetectorCompat
     private val sleepHandler = Handler(Looper.getMainLooper())
     private var isMascotSleeping = false
-    private val SLEEP_DELAY = 60000L // 1 minute in milliseconds
+    private val SLEEP_DELAY = 30000L // 30 seconds in milliseconds
 
     private val sleepRunnable = Runnable {
         if (!isFinishing) {
             isMascotSleeping = true
-            Glide.with(this@RegisterActivity)
-                .asGif()
-                .load(R.drawable.mascot_sleep)
-                .into(binding.imageViewLogo)
+            // First play the closed eye animation
+            binding.imageViewLogo.setImageResource(R.drawable.mascot_closed_eye_animation)
+            val closedEyeAnimation = binding.imageViewLogo.drawable as? AnimationDrawable
+            closedEyeAnimation?.start()
+            
+            // After closed eye animation completes (200ms), start sleep animation
+            sleepHandler.postDelayed({
+                binding.imageViewLogo.setImageResource(R.drawable.mascot_sleep_animation)
+                (binding.imageViewLogo.drawable as? AnimationDrawable)?.start()
+            }, 200) // 4 frames * 50ms = 200ms
         }
     }
 
@@ -46,10 +53,15 @@ class RegisterActivity : AppCompatActivity() {
         
         if (isMascotSleeping) {
             isMascotSleeping = false
-            Glide.with(this)
-                .asGif()
-                .load(R.drawable.mascot)
-                .into(binding.imageViewLogo)
+            binding.imageViewLogo.setImageResource(R.drawable.mascot_wakeup_animation)
+            val wakeupAnimation = binding.imageViewLogo.drawable as? AnimationDrawable
+            wakeupAnimation?.start()
+            
+            // After wake-up animation completes (750ms), start normal animation
+            sleepHandler.postDelayed({
+                binding.imageViewLogo.setImageResource(R.drawable.mascot_animation)
+                (binding.imageViewLogo.drawable as? AnimationDrawable)?.start()
+            }, 750) // 5 frames * 150ms = 750ms
         }
         
         sleepHandler.postDelayed(sleepRunnable, SLEEP_DELAY)
@@ -68,10 +80,8 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private fun setupViews() {
-        Glide.with(this)
-            .asGif()
-            .load(R.drawable.mascot)
-            .into(binding.imageViewLogo)
+        binding.imageViewLogo.setImageResource(R.drawable.mascot_animation)
+        (binding.imageViewLogo.drawable as? AnimationDrawable)?.start()
             
         binding.imageViewArrow.let { arrow ->
             val animator = AnimatorInflater.loadAnimator(this, R.animator.arrow_animation)
