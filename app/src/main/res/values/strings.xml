@@ -41,4 +41,8 @@
     <string name="wrong">Wrong</string>
     <string name="enter_answer">Enter your answer</string>
     <string name="submit">Submit</string>
+
+    <string name="loading">Loading…</string>
+
+    <string name="login">Login</string>
 </resources>
