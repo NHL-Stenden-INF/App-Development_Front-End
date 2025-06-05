@@ -7,6 +7,7 @@ import com.nhlstenden.appdev.features.task.models.Question
 
 interface CourseRepository {
     suspend fun getCourses(user: User): List<Course>?
+    suspend fun getCoursesWithoutProgress(): List<Course>
     suspend fun getTaskById(courseTitle: String, taskTitle: String): Task?
     suspend fun updateTaskProgress(user: User, taskId: String, progress: Int)
     suspend fun getTotalTaskOfCourse(courseId: String): Int

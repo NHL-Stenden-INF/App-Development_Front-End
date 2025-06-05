@@ -71,7 +71,9 @@ class CoursesFragment : BaseFragment() {
                             title = domainCourse.title,
                             difficulty = domainCourse.difficulty,
                             description = domainCourse.description,
-                            imageResId = domainCourse.imageResId
+                            imageResId = domainCourse.imageResId,
+                            progress = 0,
+                            totalTasks = domainCourse.totalTasks,
                         )
                     }
                     adapter.submitList(mapped)

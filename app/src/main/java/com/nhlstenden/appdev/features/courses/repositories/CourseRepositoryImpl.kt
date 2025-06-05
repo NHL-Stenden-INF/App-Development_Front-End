@@ -8,10 +8,8 @@ import com.nhlstenden.appdev.features.courses.CourseRepository
 import com.nhlstenden.appdev.features.courses.TaskParser
 import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.features.courses.QuestionParser
-import com.nhlstenden.appdev.features.courses.model.TaskProgress
 import com.nhlstenden.appdev.features.task.models.Question
 import com.nhlstenden.appdev.supabase.SupabaseClient
-import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,6 +41,16 @@ class CourseRepositoryImpl @Inject constructor(
         courses.forEach { course ->
             course.totalTasks = this.getTotalTaskOfCourse(course.id)
             course.progress = userProgressMap[course.id] ?: 0
+        }
+
+        return courses
+    }
+
+    override suspend fun getCoursesWithoutProgress(): List<Course> {
+        var courses = courseParser.loadAllCourses()
+
+        courses.forEach { course ->
+            course.totalTasks = this.getTotalTaskOfCourse(course.id)
         }
 
         return courses

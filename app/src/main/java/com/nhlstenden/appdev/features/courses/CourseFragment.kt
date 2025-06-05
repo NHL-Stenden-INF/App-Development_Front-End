@@ -124,7 +124,8 @@ class CourseFragment : Fragment() {
                 titleText.text = task.title
                 descriptionText.text = task.description
                 difficultyText.text = task.difficulty
-                progressBar.progress = task.progress
+//                TODO: Fix progress bar
+                progressBar.progress = 0
                 itemView.setOnClickListener { onClick(task) }
             }
         }
