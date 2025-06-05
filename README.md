@@ -74,16 +74,4 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
     *   Click the "Run 'app'" button (often a green play icon) or select "Run" > "Run 'app'".
     *   The application will be installed and launched on the selected device/emulator.
 
-## Features
-
--   User registration and authentication
--   Home dashboard with activity overview
--   Course browsing and topic exploration
--   Task management
--   Progress tracking with visual charts
--   Social features including friends management
--   Rewards and achievements system
--   QR code scanning functionality
--   Profile management and customization
-
 ---
