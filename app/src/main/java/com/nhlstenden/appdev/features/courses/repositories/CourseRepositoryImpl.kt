@@ -42,6 +42,10 @@ class CourseRepositoryImpl @Inject constructor(
         return taskParser.loadAllCoursesOfTask(courseId)
     }
 
+    override suspend fun getTotalTaskOfCourse(courseId: String): Int {
+        return getTasks(courseId).size
+    }
+
     override suspend fun getQuestions(taskId: String): List<Question> {
         return questionParser.loadQuestionsForTask(taskId)
     }
