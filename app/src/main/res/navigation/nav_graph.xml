@@ -15,7 +15,7 @@
         android:id="@+id/nav_tasks"
         android:name="com.nhlstenden.appdev.features.task.TasksFragment"
         android:label="Courses"
-        tools:layout="@layout/fragment_tasks">
+        tools:layout="@layout/fragment_courses">
         <action
             android:id="@+id/action_tasks_to_course_topics"
             app:destination="@id/nav_course_tasks"
@@ -39,7 +39,7 @@
         android:id="@+id/nav_course_tasks"
         android:name="com.nhlstenden.appdev.features.task.TasksFragment"
         android:label="Course Tasks"
-        tools:layout="@layout/fragment_course_tasks">
+        tools:layout="@layout/fragment_course">
         <argument
             android:name="courseName"
             app:argType="string" />
