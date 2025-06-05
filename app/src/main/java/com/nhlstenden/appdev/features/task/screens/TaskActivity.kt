@@ -162,12 +162,43 @@ class TaskActivity : AppCompatActivity() {
         if (currentIndex < currentQuestions.size - 1) {
             binding.viewPager.currentItem = currentIndex + 1
         } else {
-            // End of round: always repeat all questions, shuffled
-            currentQuestions = allQuestions.shuffled().toMutableList()
-            currentIndex = 0
-            updateQuestionNumber()
-            taskPagerAdapter.submitList(currentQuestions)
-            binding.viewPager.setCurrentItem(0, false)
+            // End of round: only repeat questions that were answered incorrectly
+            val incorrectQuestions = allQuestions.filter { question -> 
+                !correctQuestionIds.contains(question.id)
+            }
+            
+            if (incorrectQuestions.isEmpty()) {
+                // All questions were answered correctly, complete the task
+                viewModel.completeTask()
+            } else {
+                // Create fresh instances of incorrect questions to reset their state
+                currentQuestions = incorrectQuestions.map { question ->
+                    Question(
+                        id = question.id,
+                        type = question.type,
+                        text = question.text,
+                        options = question.options,
+                        correctOptionId = question.correctOptionId,
+                        correctAnswer = question.correctAnswer,
+                        explanation = question.explanation,
+                        front = question.front,
+                        back = question.back,
+                        mistakes = question.mistakes,
+                        correctText = question.correctText,
+                        isCompleted = false
+                    )
+                }.shuffled().toMutableList()
+                
+                currentIndex = 0
+                updateQuestionNumber()
+                
+                // Force ViewPager to recreate all fragments
+                binding.viewPager.setCurrentItem(0, false)
+                taskPagerAdapter.submitList(emptyList())
+                binding.viewPager.post {
+                    taskPagerAdapter.submitList(currentQuestions)
+                }
+            }
         }
     }
 

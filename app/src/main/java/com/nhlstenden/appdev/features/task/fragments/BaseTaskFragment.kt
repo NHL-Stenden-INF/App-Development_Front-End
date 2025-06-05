@@ -25,6 +25,12 @@ abstract class BaseTaskFragment : Fragment() {
         bindQuestion()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Reset the fragment state when it becomes visible
+        bindQuestion()
+    }
+
     protected abstract fun setupViews(view: View)
     protected abstract fun bindQuestion()
 

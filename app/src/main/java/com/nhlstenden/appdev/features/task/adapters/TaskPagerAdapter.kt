@@ -14,8 +14,11 @@ class TaskPagerAdapter(
 ) : FragmentStateAdapter(fragmentActivity) {
 
     private var questions: List<Question> = emptyList()
+    private var fragmentCache: MutableMap<Int, Fragment> = mutableMapOf()
 
     fun submitList(newQuestions: List<Question>) {
+        // Clear the fragment cache
+        fragmentCache.clear()
         questions = newQuestions
         notifyDataSetChanged()
     }
@@ -23,6 +26,7 @@ class TaskPagerAdapter(
     override fun getItemCount(): Int = questions.size
 
     override fun createFragment(position: Int): Fragment {
+        // Create a new fragment instance
         val question = questions[position]
         val fragment = when (question.type) {
             QuestionType.MULTIPLE_CHOICE -> MultipleChoiceFragment.newInstance(question)
@@ -39,5 +43,15 @@ class TaskPagerAdapter(
         }
         
         return fragment
+    }
+
+    override fun getItemId(position: Int): Long {
+        // Generate a unique ID for each question to force recreation
+        return questions[position].id.hashCode().toLong()
+    }
+
+    override fun containsItem(itemId: Long): Boolean {
+        // Always return false to force recreation of fragments
+        return false
     }
 } 
