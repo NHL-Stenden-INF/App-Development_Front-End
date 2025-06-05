@@ -20,11 +20,13 @@ import com.nhlstenden.appdev.features.task.models.Question
 import com.nhlstenden.appdev.features.task.adapters.TaskPagerAdapter
 import com.nhlstenden.appdev.features.task.viewmodels.TaskViewModel
 import com.nhlstenden.appdev.features.task.TaskCompleteListener
+import com.nhlstenden.appdev.supabase.SupabaseClient
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import java.time.LocalDate
 import javax.inject.Inject
+import org.json.JSONArray
 
 @AndroidEntryPoint
 class TaskActivity : AppCompatActivity() {
@@ -41,6 +43,10 @@ class TaskActivity : AppCompatActivity() {
 
     @Inject
     lateinit var streakRepository: StreakRepository
+
+    @Inject
+    lateinit var supabaseClient: SupabaseClient
+
     private val streakManager = StreakManager()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -140,7 +146,10 @@ class TaskActivity : AppCompatActivity() {
                     Toast.makeText(this, state.message, Toast.LENGTH_SHORT).show()
                 }
                 is TaskViewModel.TaskState.Completed -> {
-                    Toast.makeText(this, "Task completed!", Toast.LENGTH_SHORT).show()
+                    // Calculate points based on correct answers
+                    val pointsEarned = calculatePoints()
+                    updateUserPoints(pointsEarned)
+                    Toast.makeText(this, "Task completed! You earned $pointsEarned points!", Toast.LENGTH_SHORT).show()
                     finish()
                 }
             }
@@ -155,6 +164,46 @@ class TaskActivity : AppCompatActivity() {
 
     private fun updateQuestionNumber() {
         binding.taskProgress.text = "${currentIndex + 1} of ${currentQuestions.size}"
+    }
+
+    private fun calculatePoints(): Int {
+        // Base points for completing the task
+        var points = 50
+        
+        // Additional points for each correct answer
+        points += correctQuestionIds.size * 10
+        
+        // Bonus points if all questions were answered correctly
+        if (correctQuestionIds.size == allQuestions.size) {
+            points += 50 // Bonus for perfect score
+        }
+        
+        return points
+    }
+
+    private fun updateUserPoints(pointsEarned: Int) {
+        val currentUser = UserManager.getCurrentUser()
+        if (currentUser != null) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    // Get current points
+                    val response = supabaseClient.getUserAttributes(currentUser.id, currentUser.authToken)
+                    if (response.isSuccessful) {
+                        val responseBody = response.body?.string()
+                        if (!responseBody.isNullOrEmpty()) {
+                            val userData = JSONArray(responseBody).getJSONObject(0)
+                            val currentPoints = userData.optInt("points", 0)
+                            
+                            // Update points
+                            val newPoints = currentPoints + pointsEarned
+                            supabaseClient.updateUserPoints(currentUser.id, newPoints, currentUser.authToken)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("TaskActivity", "Error updating points: ${e.message}")
+                }
+            }
+        }
     }
 
     fun onNextQuestion() {
