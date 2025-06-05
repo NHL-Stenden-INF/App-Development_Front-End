@@ -466,7 +466,7 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
-    suspend fun getUserProgress(userId: String, authToken: String): JSONObject {
+    suspend fun getUserProgress(userId: String, authToken: String): JSONArray {
         val request = Request.Builder()
             .url("$supabaseUrl/rest/v1/user_progress?id=eq.$userId")
             .get()
@@ -487,7 +487,7 @@ class SupabaseClient() {
         val body = response.body?.string() ?: throw RuntimeException("No response body")
         val arr = org.json.JSONArray(body)
         if (arr.length() == 0) throw RuntimeException("Progress fetching failed")
-        return arr.getJSONObject(0)
+        return arr
     }
 
     fun updateUserProgress(userId: String, taskId: String, newProgress: Int, authToken: String): Response {
