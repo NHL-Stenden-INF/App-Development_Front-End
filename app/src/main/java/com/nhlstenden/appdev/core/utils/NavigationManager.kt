@@ -20,6 +20,13 @@ object NavigationManager {
 
     fun navigateBack(activity: Activity) {
         val fragmentManager = (activity as androidx.fragment.app.FragmentActivity).supportFragmentManager
-        fragmentManager.popBackStack()
+        if (fragmentManager.backStackEntryCount > 0) {
+            fragmentManager.popBackStack()
+            // If we're going back to the main view, show the ViewPager and hide the fragment container
+            if (fragmentManager.backStackEntryCount == 0) {
+                activity.findViewById<androidx.viewpager2.widget.ViewPager2>(com.nhlstenden.appdev.R.id.viewPager)?.visibility = android.view.View.VISIBLE
+                activity.findViewById<android.widget.FrameLayout>(com.nhlstenden.appdev.R.id.fragment_container)?.visibility = android.view.View.GONE
+            }
+        }
     }
 } 

@@ -50,6 +50,11 @@ class MainActivity : AppCompatActivity() {
             override fun handleOnBackPressed() {
                 if (supportFragmentManager.backStackEntryCount > 0) {
                     supportFragmentManager.popBackStack()
+                    // If we're going back to the main view, show the ViewPager and hide the fragment container
+                    if (supportFragmentManager.backStackEntryCount == 0) {
+                        findViewById<ViewPager2>(R.id.viewPager).visibility = View.VISIBLE
+                        findViewById<FrameLayout>(R.id.fragment_container).visibility = View.GONE
+                    }
                 } else {
                     finish()
                 }

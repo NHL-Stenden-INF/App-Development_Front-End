@@ -25,6 +25,7 @@ import android.util.Log
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel
+import com.nhlstenden.appdev.main.MainActivity
 
 @AndroidEntryPoint
 class CourseFragment : Fragment() {
@@ -77,7 +78,8 @@ class CourseFragment : Fragment() {
 
         // Set up back button
         binding.backButton.setOnClickListener {
-            NavigationManager.navigateBack(requireActivity())
+            // Navigate to courses tab instead of just popping back
+            (requireActivity() as? MainActivity)?.navigateToTab("courses")
         }
     }
 

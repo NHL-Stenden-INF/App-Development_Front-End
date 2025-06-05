@@ -36,6 +36,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.content.Context
+import android.widget.FrameLayout
 
 class RewardsFragment : Fragment(), SensorEventListener {
     private lateinit var pointsValue: TextView
@@ -181,7 +182,7 @@ class RewardsFragment : Fragment(), SensorEventListener {
     }
 
     private fun setupDailyRewardTimer() {
-        val today = LocalDate.now(ZoneOffset.UTC).toString()
+        val today = LocalDate.now().toString()
         if (openedDailyAt == null || openedDailyAt != today) {
             timerText.text = "Ready to collect!"
             openChestButton.isEnabled = true
@@ -189,8 +190,8 @@ class RewardsFragment : Fragment(), SensorEventListener {
             openChestButton.alpha = 1.0f
             openChestButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.colorPrimary))
         } else {
-            val now = ZonedDateTime.now(ZoneOffset.UTC)
-            val midnight = now.toLocalDate().plusDays(1).atStartOfDay(ZoneOffset.UTC)
+            val now = ZonedDateTime.now()
+            val midnight = now.toLocalDate().plusDays(1).atStartOfDay(now.zone)
             val msUntilMidnight = java.time.Duration.between(now, midnight).toMillis()
             startCountDownTimer(msUntilMidnight)
             openChestButton.isEnabled = false
@@ -207,7 +208,7 @@ class RewardsFragment : Fragment(), SensorEventListener {
                 var success = false
                 while (!success && retryCount < maxRetries) {
                     try {
-                        val todayDate = LocalDate.now(ZoneOffset.UTC).toString()
+                        val todayDate = LocalDate.now().toString()
                         val response = supabaseClient.updateUserOpenedDaily(userId, todayDate, authToken)
                         if (response.code == 204 || response.code == 200) {
                             openedDailyAt = todayDate
@@ -221,8 +222,8 @@ class RewardsFragment : Fragment(), SensorEventListener {
                                     openChestButton.text = "Wait for next reward"
                                     openChestButton.alpha = 0.6f
                                     openChestButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.gray))
-                                    val now = ZonedDateTime.now(ZoneOffset.UTC)
-                                    val midnight = now.toLocalDate().plusDays(1).atStartOfDay(ZoneOffset.UTC)
+                                    val now = ZonedDateTime.now()
+                                    val midnight = now.toLocalDate().plusDays(1).atStartOfDay(now.zone)
                                     val msUntilMidnight = java.time.Duration.between(now, midnight).toMillis()
                                     startCountDownTimer(msUntilMidnight)
                                 }
@@ -414,12 +415,19 @@ class RewardsFragment : Fragment(), SensorEventListener {
             holder.bind(rewards[position], position)
         }
         override fun getItemCount() = rewards.size
-        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            private val rewardIcon: ImageView = itemView.findViewById(R.id.rewardIcon)
+            private val rewardTitle: TextView = itemView.findViewById(R.id.rewardTitle)
+            private val rewardDescription: TextView = itemView.findViewById(R.id.rewardDescription)
+            private val unlockButton: MaterialButton = itemView.findViewById(R.id.unlockButton)
+            private val comingSoonSticker: FrameLayout = itemView.findViewById(R.id.comingSoonSticker)
+
             fun bind(reward: Reward, position: Int) {
-                itemView.findViewById<TextView>(R.id.rewardTitle).text = reward.title
-                itemView.findViewById<TextView>(R.id.rewardDescription).text = reward.description
-                itemView.findViewById<ImageView>(R.id.rewardIcon).setImageResource(reward.iconResId)
-                val unlockButton = itemView.findViewById<MaterialButton>(R.id.unlockButton)
+                rewardIcon.setImageResource(reward.iconResId)
+                rewardTitle.text = reward.title
+                rewardDescription.text = reward.description
+
+                // Handle unlocked state
                 if (reward.unlocked) {
                     val pointsText = "${reward.pointsCost} pts"
                     val spannableString = SpannableString(pointsText)
@@ -427,17 +435,25 @@ class RewardsFragment : Fragment(), SensorEventListener {
                     unlockButton.text = spannableString
                     unlockButton.isEnabled = false
                     unlockButton.alpha = 0.5f
-                    itemView.findViewById<ImageView>(R.id.rewardIcon).alpha = 0.5f
-                    itemView.findViewById<TextView>(R.id.rewardTitle).alpha = 0.5f
-                    itemView.findViewById<TextView>(R.id.rewardDescription).alpha = 0.5f
+                    rewardIcon.alpha = 0.5f
+                    rewardTitle.alpha = 0.5f
+                    rewardDescription.alpha = 0.5f
                 } else {
                     unlockButton.text = "${reward.pointsCost} pts"
                     unlockButton.isEnabled = canAffordReward(reward.pointsCost)
                     unlockButton.alpha = 1.0f
-                    itemView.findViewById<ImageView>(R.id.rewardIcon).alpha = 1.0f
-                    itemView.findViewById<TextView>(R.id.rewardTitle).alpha = 1.0f
-                    itemView.findViewById<TextView>(R.id.rewardDescription).alpha = 1.0f
+                    rewardIcon.alpha = 1.0f
+                    rewardTitle.alpha = 1.0f
+                    rewardDescription.alpha = 1.0f
                 }
+
+                // Handle coming soon sticker
+                if (reward.id != 11) { // Not the course lobby music
+                    comingSoonSticker.visibility = View.VISIBLE
+                } else {
+                    comingSoonSticker.visibility = View.GONE
+                }
+
                 unlockButton.setOnClickListener {
                     if (!reward.unlocked && onUnlockClick(reward)) {
                         onSaveReward(reward.id)
