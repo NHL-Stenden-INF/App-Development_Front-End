@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp">
@@ -24,120 +25,139 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_margin="16dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp"
-                    app:layout_constraintTop_toTopOf="parent">
-
-                    <androidx.constraintlayout.widget.ConstraintLayout
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="8dp">
+                    <FrameLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:padding="16dp">
-
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:id="@+id/profileImageView"
-                            android:layout_width="120dp"
-                            android:layout_height="120dp"
+                        android:layout_height="wrap_content">
+                        <ImageView
+                            android:id="@+id/holoCardBg"
+                            android:layout_width="800dp"
+                            android:layout_height="800dp"
+                            android:layout_gravity="center"
                             android:scaleType="centerCrop"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toTopOf="parent"
-                            app:shapeAppearanceOverlay="@style/CircleImageView" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/changePhotoButton"
-                            style="@style/Widget.MaterialComponents.Button.TextButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:text="Change Photo"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toBottomOf="@id/profileImageView" />
-
-                        <LinearLayout
-                            android:id="@+id/levelXpContainer"
+                            android:src="@drawable/holo_pokemon_card_bg"
+                            android:translationZ="-1dp"
+                            android:layout_marginTop="-300dp"
+                            android:layout_marginBottom="-300dp" />
+                        <androidx.constraintlayout.widget.ConstraintLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:layout_marginTop="12dp"
-                            app:layout_constraintTop_toBottomOf="@id/changePhotoButton"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintEnd_toEndOf="parent">
+                            android:background="@android:color/transparent"
+                            android:padding="20dp">
 
-                            <TextView
-                                android:id="@+id/levelTextView"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Level 1"
-                                android:textStyle="bold"
-                                android:textSize="16sp"
-                                android:layout_gravity="center_horizontal" />
-
-                            <TextView
-                                android:id="@+id/xpLabelTextView"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="0/100 XP"
-                                android:textSize="12sp"
-                                android:textColor="@android:color/darker_gray"
-                                android:layout_gravity="center_horizontal"
-                                android:layout_marginTop="2dp" />
-
-                            <com.google.android.material.progressindicator.LinearProgressIndicator
-                                android:id="@+id/xpProgressBar"
-                                android:layout_width="match_parent"
-                                android:layout_height="12dp"
+                            <!-- Settings Icon (top right) -->
+                            <ImageView
+                                android:id="@+id/settingsIcon"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_settings"
+                                android:contentDescription="Settings"
+                                android:elevation="8dp"
+                                app:layout_constraintTop_toTopOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
                                 android:layout_marginTop="4dp"
-                                android:progress="0"
-                                android:max="100"
-                                app:trackColor="@color/gray"
+                                android:layout_marginEnd="4dp" />
+
+                            <!-- Circular Progress Indicator around profile image -->
+                            <com.google.android.material.progressindicator.CircularProgressIndicator
+                                android:id="@+id/xpCircularProgress"
+                                android:layout_width="160dp"
+                                android:layout_height="160dp"
+                                app:indicatorSize="160dp"
+                                app:indicatorInset="0dp"
+                                app:trackThickness="8dp"
                                 app:indicatorColor="@color/colorPrimary"
-                                app:trackThickness="12dp"
-                                style="@style/Widget.MaterialComponents.LinearProgressIndicator" />
-                        </LinearLayout>
+                                app:trackColor="#e0e0e0"
+                                app:layout_constraintTop_toTopOf="parent"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                android:layout_marginTop="32dp" />
 
-                    </androidx.constraintlayout.widget.ConstraintLayout>
+                            <!-- Profile Image with centered camera icon -->
+                            <FrameLayout
+                                android:id="@+id/profileImageFrame"
+                                android:layout_width="140dp"
+                                android:layout_height="140dp"
+                                app:layout_constraintTop_toTopOf="parent"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                android:layout_marginTop="42dp">
 
-                </com.google.android.material.card.MaterialCardView>
+                                <com.google.android.material.imageview.ShapeableImageView
+                                    android:id="@+id/profileImageView"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:scaleType="centerCrop"
+                                    app:shapeAppearanceOverlay="@style/CircleImageView"
+                                    android:background="@drawable/profile_image_border" />
 
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cardViewInputs"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="16dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp"
-                    app:layout_constraintTop_toBottomOf="@id/profileCard">
+                                <!-- Level badge overlay -->
+                                <TextView
+                                    android:id="@+id/levelBadge"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="top|end"
+                                    android:background="@drawable/level_badge_bg"
+                                    android:paddingLeft="12dp"
+                                    android:paddingRight="12dp"
+                                    android:paddingTop="4dp"
+                                    android:paddingBottom="4dp"
+                                    android:text="Lv. 1"
+                                    android:textColor="@android:color/white"
+                                    android:textStyle="bold"
+                                    android:textSize="14sp"
+                                    android:elevation="4dp" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
+                                <!-- Camera icon overlay as ImageView -->
+                            </FrameLayout>
 
-                        <TextView
-                            android:id="@+id/usernameTextView"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
+                            <!-- Name below image -->
+                            <TextView
+                                android:id="@+id/profileCardUsername"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                app:layout_constraintTop_toBottomOf="@id/profileImageFrame"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                android:layout_marginTop="16dp"
+                                android:textSize="22sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/colorPrimaryDark"
+                                android:gravity="center" />
 
-                        <TextView
-                            android:id="@+id/emailTextView"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:textSize="16sp" />
+                            <!-- Bio styled as a card description -->
+                            <TextView
+                                android:id="@+id/profileCardBio"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                app:layout_constraintTop_toBottomOf="@id/profileCardUsername"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                android:layout_marginTop="8dp"
+                                android:background="@drawable/bio_box_bg"
+                                android:padding="12dp"
+                                android:textColor="@android:color/black"
+                                android:textSize="16sp"
+                                android:gravity="center" />
 
-                        <TextView
-                            android:id="@+id/bioTextView"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:textSize="16sp" />
+                            <ImageView
+                                android:id="@+id/cameraOverlay"
+                                android:layout_width="35dp"
+                                android:layout_height="31dp"
+                                android:layout_gravity="bottom|center_horizontal"
+                                android:layout_marginStart="4dp"
+                                android:layout_marginTop="4dp"
+                                android:background="@android:color/transparent"
+                                android:clickable="true"
+                                android:contentDescription="Change Photo"
+                                android:focusable="true"
+                                android:src="@drawable/ic_camera"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent" />
 
-                    </LinearLayout>
-
+                        </androidx.constraintlayout.widget.ConstraintLayout>
+                    </FrameLayout>
                 </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
@@ -184,7 +204,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:text="Edit Profile"
-                    app:layout_constraintTop_toBottomOf="@id/cardViewInputs" />
+                    app:layout_constraintTop_toBottomOf="@id/rewardSettingsTitle" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/logoutButton"

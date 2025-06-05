@@ -43,7 +43,6 @@ class ProgressFragment : Fragment() {
         overallProgressPercentage = view.findViewById(R.id.overallProgressPercentage)
         
         // Set accessibility content descriptions
-        view.findViewById<ImageView>(R.id.settingsIcon).contentDescription = "Settings"
         courseProgressList.contentDescription = "List of course progress"
         
         // Set text from resources
