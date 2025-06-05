@@ -465,6 +465,34 @@ class SupabaseClient() {
             .build()
         return client.newCall(request).execute()
     }
+
+    suspend fun getUserProgress(userId: String, authToken: String) {
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/user_progress?id=eq.$userId")
+            .get()
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
+    }
+
+    fun updateUserProgress(userId: String, taskId: String, newProgress: Int, authToken: String): Response {
+        val json = """{"task_id": ${taskId}, "progress": ${newProgress}}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/user_progress?id=eq.$userId")
+            .post(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+
+        return client.newCall(request).execute()
+    }
 }
 
 @Parcelize
