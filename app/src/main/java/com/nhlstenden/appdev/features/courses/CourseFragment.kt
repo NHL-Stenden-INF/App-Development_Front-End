@@ -10,7 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.nhlstenden.appdev.features.courses.model.Topic
+import com.nhlstenden.appdev.features.courses.model.Task
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.FragmentCourseBinding
 import com.google.android.material.progressindicator.LinearProgressIndicator
@@ -27,7 +27,7 @@ class CourseFragment : Fragment() {
     private var _binding: FragmentCourseBinding? = null
     private val binding get() = _binding!!
     private val viewModel: CourseViewModel by viewModels()
-    private lateinit var topicAdapter: TopicAdapter
+    private lateinit var taskAdapter: TaskAdapter
     private var mediaPlayer: MediaPlayer? = null
     private val profileViewModel: ProfileViewModel by viewModels()
 
@@ -77,34 +77,34 @@ class CourseFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        topicAdapter = TopicAdapter { topic ->
-            // Open TaskActivity for the selected topic using the correct intent method
-            val intent = TaskActivity.newIntent(requireContext(), topic.id)
+        taskAdapter = TaskAdapter { task ->
+            // Open TaskActivity for the selected task using the correct intent method
+            val intent = TaskActivity.newIntent(requireContext(), task.id)
             startActivity(intent)
         }
-        binding.topicsList.adapter = topicAdapter
+        binding.tasksList.adapter = taskAdapter
     }
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.topicsState.collect { state ->
+            viewModel.tasksState.collect { state ->
                 when (state) {
-                    is CourseViewModel.TopicsState.Loading -> {
+                    is CourseViewModel.TasksState.Loading -> {
                         binding.loadingProgressBar.visibility = View.VISIBLE
-                        binding.topicsList.visibility = View.GONE
+                        binding.tasksList.visibility = View.GONE
                         binding.errorTextView.visibility = View.GONE
                         binding.swipeRefreshLayout.isRefreshing = false
                     }
-                    is CourseViewModel.TopicsState.Success -> {
+                    is CourseViewModel.TasksState.Success -> {
                         binding.loadingProgressBar.visibility = View.GONE
-                        binding.topicsList.visibility = View.VISIBLE
+                        binding.tasksList.visibility = View.VISIBLE
                         binding.errorTextView.visibility = View.GONE
-                        topicAdapter.submitList(state.topics)
+                        taskAdapter.submitList(state.tasks)
                         binding.swipeRefreshLayout.isRefreshing = false
                     }
-                    is CourseViewModel.TopicsState.Error -> {
+                    is CourseViewModel.TasksState.Error -> {
                         binding.loadingProgressBar.visibility = View.GONE
-                        binding.topicsList.visibility = View.GONE
+                        binding.tasksList.visibility = View.GONE
                         binding.errorTextView.visibility = View.VISIBLE
                         binding.errorTextView.text = state.message
                         binding.swipeRefreshLayout.isRefreshing = false
@@ -138,37 +138,37 @@ class CourseFragment : Fragment() {
         _binding = null
     }
 
-    private class TopicAdapter(
-        private val onClick: (Topic) -> Unit
-    ) : ListAdapter<Topic, TopicAdapter.TopicViewHolder>(DiffCallback) {
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TopicViewHolder {
+    private class TaskAdapter(
+        private val onClick: (Task) -> Unit
+    ) : ListAdapter<Task, TaskAdapter.TaskViewHolder>(DiffCallback) {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
             val view = LayoutInflater.from(parent.context)
                 .inflate(R.layout.item_course, parent, false)
-            return TopicViewHolder(view, onClick)
+            return TaskViewHolder(view, onClick)
         }
-        override fun onBindViewHolder(holder: TopicViewHolder, position: Int) {
+        override fun onBindViewHolder(holder: TaskViewHolder, position: Int) {
             holder.bind(getItem(position))
         }
-        class TopicViewHolder(
+        class TaskViewHolder(
             itemView: View,
-            private val onClick: (Topic) -> Unit
+            private val onClick: (Task) -> Unit
         ) : RecyclerView.ViewHolder(itemView) {
             private val titleText: TextView = itemView.findViewById(R.id.courseTitle)
             private val descriptionText: TextView = itemView.findViewById(R.id.courseDescription)
             private val difficultyText: TextView = itemView.findViewById(R.id.difficultyLevel)
             private val progressBar: LinearProgressIndicator = itemView.findViewById(R.id.progressBar)
-            fun bind(topic: Topic) {
-                titleText.text = topic.title
-                descriptionText.text = topic.description
-                difficultyText.text = topic.difficulty
-                progressBar.progress = topic.progress
-                itemView.setOnClickListener { onClick(topic) }
+            fun bind(task: Task) {
+                titleText.text = task.title
+                descriptionText.text = task.description
+                difficultyText.text = task.difficulty
+                progressBar.progress = task.progress
+                itemView.setOnClickListener { onClick(task) }
             }
         }
         companion object {
-            val DiffCallback = object : DiffUtil.ItemCallback<Topic>() {
-                override fun areItemsTheSame(oldItem: Topic, newItem: Topic): Boolean = oldItem.id == newItem.id
-                override fun areContentsTheSame(oldItem: Topic, newItem: Topic): Boolean = oldItem == newItem
+            val DiffCallback = object : DiffUtil.ItemCallback<Task>() {
+                override fun areItemsTheSame(oldItem: Task, newItem: Task): Boolean = oldItem.id == newItem.id
+                override fun areContentsTheSame(oldItem: Task, newItem: Task): Boolean = oldItem == newItem
             }
         }
     }

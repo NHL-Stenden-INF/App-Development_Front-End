@@ -2,7 +2,7 @@ package com.nhlstenden.appdev.features.courses
 
 import androidx.lifecycle.ViewModel
 import com.nhlstenden.appdev.features.courses.model.Course
-import com.nhlstenden.appdev.features.courses.model.Topic
+import com.nhlstenden.appdev.features.courses.model.Task
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,8 +18,8 @@ class CourseViewModel @Inject constructor(
     private val _courses = MutableStateFlow<List<Course>>(emptyList())
     val courses: StateFlow<List<Course>> = _courses.asStateFlow()
 
-    private val _topicsState = MutableStateFlow<TopicsState>(TopicsState.Loading)
-    val topicsState: StateFlow<TopicsState> = _topicsState.asStateFlow()
+    private val _tasksState = MutableStateFlow<TasksState>(TasksState.Loading)
+    val tasksState: StateFlow<TasksState> = _tasksState.asStateFlow()
 
     fun loadCourses() {
         viewModelScope.launch {
@@ -27,21 +27,21 @@ class CourseViewModel @Inject constructor(
         }
     }
 
-    fun loadTopics(courseId: String) {
-        _topicsState.value = TopicsState.Loading
+    fun loadTasks(courseId: String) {
+        _tasksState.value = TasksState.Loading
         viewModelScope.launch {
             try {
-                val topics = courseRepository.getTopics(courseId)
-                _topicsState.value = TopicsState.Success(topics)
+                val tasks = courseRepository.getTasks(courseId)
+                _tasksState.value = TasksState.Success(tasks)
             } catch (e: Exception) {
-                _topicsState.value = TopicsState.Error(e.message ?: "Failed to load topics")
+                _tasksState.value = TasksState.Error(e.message ?: "Failed to load tasks")
             }
         }
     }
 
-    sealed class TopicsState {
-        object Loading : TopicsState()
-        data class Success(val topics: List<Topic>) : TopicsState()
-        data class Error(val message: String) : TopicsState()
+    sealed class TasksState {
+        object Loading : TasksState()
+        data class Success(val tasks: List<Task>) : TasksState()
+        data class Error(val message: String) : TasksState()
     }
 } 

@@ -50,7 +50,7 @@ class CoursesFragment : BaseFragment() {
     private fun setupCoursesList() {
         coursesList.layoutManager = LinearLayoutManager(context)
         adapter = CourseAdapter { course ->
-            NavigationManager.navigateToCourseTopics(requireActivity(), course.id)
+            NavigationManager.navigateToCourseTasks(requireActivity(), course.id)
         }
         coursesList.adapter = adapter
     }

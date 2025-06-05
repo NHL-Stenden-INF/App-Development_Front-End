@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!DOCTYPE topics SYSTEM "topics.dtd">
-<topics>
-    <topic>
+<!DOCTYPE tasks SYSTEM "tasks.dtd">
+<tasks>
+    <task>
         <title>SQL Basics</title>
         <difficulty>Beginner</difficulty>
         <description>Learn the fundamentals of SQL</description>
-    </topic>
-    <topic>
+    </task>
+    <task>
         <title>SQL Queries</title>
         <difficulty>Intermediate</difficulty>
         <description>Write complex SQL queries</description>
-    </topic>
-    <topic>
+    </task>
+    <task>
         <title>SQL Joins</title>
         <difficulty>Advanced</difficulty>
         <description>Combine data from multiple tables</description>
-    </topic>
-    <topic>
+    </task>
+    <task>
         <title>SQL Database</title>
         <difficulty>Advanced</difficulty>
         <description>Optimize your SQL queries</description>
-    </topic>
-</topics>
+    </task>
+</tasks>

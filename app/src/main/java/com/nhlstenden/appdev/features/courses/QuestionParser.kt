@@ -13,10 +13,10 @@ import org.xmlpull.v1.XmlPullParserFactory
 
 class QuestionParser(private val context: Context) {
     
-    fun loadQuestionsForTopic(topicId: String): List<Question> {
-        val resourceId = context.resources.getIdentifier("${topicId}_questions", "raw", context.packageName)
+    fun loadQuestionsForTask(tasksId: String): List<Question> {
+        val resourceId = context.resources.getIdentifier("${tasksId}_questions", "raw", context.packageName)
         if (resourceId == 0) {
-            Log.e("QuestionParser", "No resource found for topic: $topicId")
+            Log.e("QuestionParser", "No resource found for task: $tasksId")
             return emptyList()
         }
         
@@ -35,7 +35,7 @@ class QuestionParser(private val context: Context) {
                 result
             }
         } catch (e: Exception) {
-            Log.e("QuestionParser", "Error loading questions for topic: $topicId", e)
+            Log.e("QuestionParser", "Error loading questions for task: $tasksId", e)
             return emptyList()
         } finally {
             inputStream?.close()
