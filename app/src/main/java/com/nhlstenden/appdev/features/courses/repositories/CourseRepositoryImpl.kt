@@ -8,8 +8,10 @@ import com.nhlstenden.appdev.features.courses.CourseRepository
 import com.nhlstenden.appdev.features.courses.TaskParser
 import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.features.courses.QuestionParser
+import com.nhlstenden.appdev.features.courses.model.TaskProgress
 import com.nhlstenden.appdev.features.task.models.Question
 import com.nhlstenden.appdev.supabase.SupabaseClient
+import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,8 +24,28 @@ class CourseRepositoryImpl @Inject constructor(
     val questionParser = QuestionParser(application.applicationContext)
     val supabaseClient = SupabaseClient()
 
-    override suspend fun getCourses(): List<Course> {
-        return courseParser.loadAllCourses()
+    override suspend fun getCourses(user: User): List<Course>? {
+        val userProgresses = try {
+            supabaseClient.getUserProgress(user.id, user.authToken)
+        } catch (e: Exception) {
+            return null
+        }
+        val userProgressMap = HashMap<String, Int>(userProgresses.length())
+        for(i in 0 until userProgresses.length()) {
+            val JsonObject = userProgresses.getJSONObject(i)
+            userProgressMap.put(
+                JsonObject.getString("course_id"),
+                JsonObject.getInt("progress")
+            )
+        }
+        var courses = courseParser.loadAllCourses()
+
+        courses.forEach { course ->
+            course.totalTasks = this.getTotalTaskOfCourse(course.id)
+            course.progress = userProgressMap[course.id] ?: 0
+        }
+
+        return courses
     }
 
     override suspend fun getTaskById(courseTitle: String, taskTitle: String): Task? {
@@ -32,10 +54,6 @@ class CourseRepositoryImpl @Inject constructor(
 
     override suspend fun updateTaskProgress(user: User, taskId: String, progress: Int) {
         supabaseClient.updateUserProgress(user.id, taskId, progress, user.authToken)
-    }
-
-    override suspend fun getTaskProgress(user: User) {
-        supabaseClient.getUserProgress(user.id, user.authToken)
     }
 
     override suspend fun getTasks(courseId: String): List<Task> {

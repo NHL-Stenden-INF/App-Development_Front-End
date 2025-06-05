@@ -468,7 +468,7 @@ class SupabaseClient() {
 
     suspend fun getUserProgress(userId: String, authToken: String): JSONArray {
         val request = Request.Builder()
-            .url("$supabaseUrl/rest/v1/user_progress?id=eq.$userId")
+            .url("$supabaseUrl/rest/v1/user_progress?user_id=eq.$userId")
             .get()
             .addHeader("apikey", supabaseKey)
             .addHeader("Authorization", "Bearer $authToken")
@@ -499,7 +499,7 @@ class SupabaseClient() {
             .addHeader("apikey", supabaseKey)
             .addHeader("Authorization", "Bearer $authToken")
             .addHeader("Content-Type", "application/json")
-            .addHeader("Prefer", "return=minimal")
+            .addHeader("Prefer", "resolution=merge-duplicates,return=minimal")
             .build()
 
         return client.newCall(request).execute()
