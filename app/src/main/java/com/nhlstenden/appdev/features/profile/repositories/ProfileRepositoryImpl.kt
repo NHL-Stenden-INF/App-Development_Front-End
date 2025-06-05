@@ -20,6 +20,7 @@ class ProfileRepositoryImpl @Inject constructor(
     override suspend fun getProfile(): Profile {
         val token = userData?.authToken ?: throw IllegalStateException("No auth token available")
         val profileJson = supabaseClient.fetchProfile(token)
+        val userAttributes = supabaseClient.fetchUserAttributes(token)
         // Fetch unlocked rewards
         val userId = userData?.id?.toString() ?: throw IllegalStateException("No user ID available")
         val unlockedRewardsResponse = withContext(Dispatchers.IO) {
@@ -36,13 +37,15 @@ class ProfileRepositoryImpl @Inject constructor(
                 }
             }
         }
+        val xp = userAttributes.optLong("xp", 0L)
+        val level = supabaseClient.calculateLevelFromXp(xp)
         return Profile(
             displayName = profileJson.optString("display_name", ""),
             email = profileJson.optString("email", ""),
             bio = profileJson.optString("bio", null),
             profilePicture = profileJson.optString("profile_picture", null),
-            level = 1,
-            experience = 0,
+            level = level,
+            experience = xp.toInt(),
             unlockedRewardIds = unlockedRewardIds
         )
     }

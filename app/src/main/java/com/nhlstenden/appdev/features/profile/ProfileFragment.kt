@@ -45,6 +45,8 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import javax.inject.Inject
 import com.google.android.material.switchmaterial.SwitchMaterial
+import android.widget.TextView
+import android.widget.ProgressBar
 
 @AndroidEntryPoint
 class ProfileFragment : BaseFragment() {
@@ -58,6 +60,10 @@ class ProfileFragment : BaseFragment() {
     private val MUSIC_LOBBY_KEY = "music_lobby_enabled"
     
     private val PROFILE_IMAGE_SIZE = 120
+    
+    private lateinit var levelTextView: TextView
+    private lateinit var xpProgressBar: ProgressBar
+    private lateinit var xpLabelTextView: TextView
     
     private fun setupViews() {
         binding.cardViewInputs.setCardBackgroundColor(
@@ -105,6 +111,10 @@ class ProfileFragment : BaseFragment() {
             android.util.Log.d("ProfileFragment", "user.id=${user.id}, user.authToken=${user.authToken}")
             viewModel.setUserData(user)
         }
+        
+        levelTextView = binding.root.findViewById(R.id.levelTextView)
+        xpProgressBar = binding.root.findViewById(R.id.xpProgressBar)
+        xpLabelTextView = binding.root.findViewById(R.id.xpLabelTextView)
         
         setupViews()
         observeProfileState()
@@ -166,6 +176,24 @@ class ProfileFragment : BaseFragment() {
                         // Check unlocked rewards and update toggle
                         val unlockedRewardIds = state.profile.unlockedRewardIds ?: emptyList()
                         updateRewardSettingsSection(unlockedRewardIds)
+
+                        // Set level and XP bar
+                        val level = state.profile.level
+                        val xp = state.profile.experience
+                        levelTextView.text = getString(R.string.level_format, level)
+                        // Calculate XP needed for next level
+                        var requiredXp = 100.0
+                        var totalXp = 0.0
+                        for (i in 1 until level) {
+                            totalXp += requiredXp
+                            requiredXp *= 1.1
+                        }
+                        val xpForCurrentLevel = xp - totalXp.toInt()
+                        val xpForNextLevel = requiredXp.toInt()
+                        xpProgressBar.max = xpForNextLevel
+                        xpProgressBar.progress = xpForCurrentLevel.coerceAtLeast(0)
+                        xpProgressBar.contentDescription = getString(R.string.experience_format, xpForCurrentLevel, xpForNextLevel)
+                        xpLabelTextView.text = getString(R.string.experience_format, xpForCurrentLevel, xpForNextLevel)
                     }
                     is ProfileState.Error -> {
                         binding.progressBar.visibility = View.GONE
