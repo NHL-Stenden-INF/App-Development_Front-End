@@ -480,13 +480,13 @@ class SupabaseClient() {
 
         if (!response.isSuccessful) {
             val errorBody = response.body?.string()
-            Log.e("SupabaseClient", "Profile update failed with response: $errorBody")
-            throw RuntimeException(errorBody ?: "Profile update failed with code ${response.code}")
+            Log.e("SupabaseClient", "Progress fetching failed with response: $errorBody")
+            throw RuntimeException(errorBody ?: "Progress fetching failed with code ${response.code}")
         }
 
         val body = response.body?.string() ?: throw RuntimeException("No response body")
         val arr = org.json.JSONArray(body)
-        if (arr.length() == 0) throw RuntimeException("Profile update failed")
+        if (arr.length() == 0) throw RuntimeException("Progress fetching failed")
         return arr.getJSONObject(0)
     }
 
