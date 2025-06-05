@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE topics SYSTEM "topics.dtd">
-<topics>
-    <topic>
+<!DOCTYPE tasks SYSTEM "tasks.dtd">
+<tasks>
+    <task>
         <title>HTML Basics</title>
         <difficulty>Beginner</difficulty>
         <description>Learn the fundamentals of HTML markup language</description>
-    </topic>
-    <topic>
+    </task>
+    <task>
         <title>HTML Structure</title>
         <difficulty>Beginner</difficulty>
         <description>Learn about the basic structure of HTML documents</description>
-    </topic>
-    <topic>
+    </task>
+    <task>
         <title>HTML Forms</title>
         <difficulty>Intermediate</difficulty>
         <description>Create interactive forms with HTML</description>
-    </topic>
-    <topic>
+    </task>
+    <task>
         <title>HTML Elements</title>
         <difficulty>Intermediate</difficulty>
         <description>Organize data with HTML tables</description>
-    </topic>
-</topics>
+    </task>
+</tasks>

@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE topics SYSTEM "topics.dtd">
-<topics>
-    <topic>
+<!DOCTYPE tasks SYSTEM "tasks.dtd">
+<tasks>
+    <task>
         <title>CSS Basics</title>
         <difficulty>Beginner</difficulty>
         <description>Learn the fundamentals of CSS styling</description>
-    </topic>
-    <topic>
+    </task>
+    <task>
         <title>CSS Layout</title>
         <difficulty>Intermediate</difficulty>
         <description>Master CSS layout techniques</description>
-    </topic>
-    <topic>
+    </task>
+    <task>
         <title>CSS Selectors</title>
         <difficulty>Advanced</difficulty>
         <description>Create flexible layouts with CSS Flexbox</description>
-    </topic>
-    <topic>
+    </task>
+    <task>
         <title>CSS Animations</title>
         <difficulty>Advanced</difficulty>
         <description>Build complex layouts with CSS Grid</description>
-    </topic>
-</topics>
+    </task>
+</tasks>

@@ -9,10 +9,10 @@ import javax.inject.Inject
 class TaskRepositoryImpl @Inject constructor(
     private val application: Application
 ) : TaskRepository {
-    override suspend fun getQuestionsForTopic(topicId: String): List<Question> {
-        // Get the topic title and difficulty from the XML using CourseParser
+    override suspend fun getQuestionsForTask(taskId: String): List<Question> {
+        // Get the task title and difficulty from the XML using CourseParser
         val courseRepository = CourseRepositoryImpl(application)
-        return courseRepository.getQuestions(topicId)
+        return courseRepository.getQuestions(taskId)
     }
 
     override suspend fun submitAnswer(questionId: String, answer: String): Boolean {
@@ -20,7 +20,7 @@ class TaskRepositoryImpl @Inject constructor(
         return true
     }
 
-    override suspend fun getTaskProgress(topicId: String): Int {
+    override suspend fun getTaskProgress(taskId: String): Int {
         // TODO: Replace with actual API call
         return 0
     }

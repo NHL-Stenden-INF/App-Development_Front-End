@@ -86,7 +86,7 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>, private val fragm
     private fun navigateToCourse(course: HomeCourse) {
         val activity = fragment.requireActivity() as androidx.fragment.app.FragmentActivity
         // Use NavigationManager and pass courseId (use title as fallback if no id)
-        com.nhlstenden.appdev.core.utils.NavigationManager.navigateToCourseTopics(activity, course.title)
+        com.nhlstenden.appdev.core.utils.NavigationManager.navigateToCourseTasks(activity, course.title)
     }
 
     override fun getItemCount() = courses.size

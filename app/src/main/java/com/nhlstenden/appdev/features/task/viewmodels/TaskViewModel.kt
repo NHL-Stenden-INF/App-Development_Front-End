@@ -5,10 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nhlstenden.appdev.core.repositories.TaskRepository
-import com.nhlstenden.appdev.features.task.models.Option
 import com.nhlstenden.appdev.features.task.models.Question
-import com.nhlstenden.appdev.features.task.models.QuestionType
-import com.nhlstenden.appdev.features.task.models.Task
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,11 +24,11 @@ class TaskViewModel @Inject constructor(
     private val _error = MutableLiveData<String>()
     val error: LiveData<String> = _error
 
-    fun loadTasks(topicId: String) {
+    fun loadTasks(taskId: String) {
         viewModelScope.launch {
             _taskState.value = TaskState.Loading
             try {
-                val questions = taskRepository.getQuestionsForTopic(topicId)
+                val questions = taskRepository.getQuestionsForTask(taskId)
                 _taskState.value = TaskState.Success(questions)
             } catch (e: Exception) {
                 _taskState.value = TaskState.Error(e.message ?: "Failed to load tasks")

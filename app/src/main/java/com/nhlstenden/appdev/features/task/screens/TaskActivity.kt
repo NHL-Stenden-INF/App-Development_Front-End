@@ -48,8 +48,8 @@ class TaskActivity : AppCompatActivity() {
         binding = ActivityTaskBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val topicId = intent.getStringExtra(EXTRA_TOPIC_ID) ?: run {
-            Toast.makeText(this, "Error: No topic ID provided", Toast.LENGTH_SHORT).show()
+        val taskId = intent.getStringExtra(EXTRA_TASK_ID) ?: run {
+            Toast.makeText(this, "Error: No task ID provided", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -57,7 +57,7 @@ class TaskActivity : AppCompatActivity() {
         setupViewPager()
         setupClickListeners()
         observeTaskState()
-        viewModel.loadTasks(topicId)
+        viewModel.loadTasks(taskId)
     }
 
     private fun setupViewPager() {
@@ -172,11 +172,11 @@ class TaskActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val EXTRA_TOPIC_ID = "extra_topic_id"
+        private const val EXTRA_TASK_ID = "extra_task_id"
 
-        fun newIntent(context: Context, topicId: String): Intent {
+        fun newIntent(context: Context, taskId: String): Intent {
             return Intent(context, TaskActivity::class.java).apply {
-                putExtra(EXTRA_TOPIC_ID, topicId)
+                putExtra(EXTRA_TASK_ID, taskId)
             }
         }
     }

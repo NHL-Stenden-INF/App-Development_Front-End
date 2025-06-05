@@ -1,13 +1,13 @@
 package com.nhlstenden.appdev.features.courses
 
 import com.nhlstenden.appdev.features.courses.model.Course
-import com.nhlstenden.appdev.features.courses.model.Topic
+import com.nhlstenden.appdev.features.courses.model.Task
 import com.nhlstenden.appdev.features.task.models.Question
 
 interface CourseRepository {
     suspend fun getCourses(): List<Course>
-    suspend fun getTopicById(courseTitle: String, topicTitle: String): Topic?
-    suspend fun updateTopicProgress(courseTitle: String, topicTitle: String, progress: Int)
-    suspend fun getTopics(courseId: String): List<Topic>
-    suspend fun getQuestions(topicId: String): List<Question>
+    suspend fun getTaskById(courseTitle: String, taskTitle: String): Task?
+    suspend fun updateTaskProgress(courseTitle: String, taskTitle: String, progress: Int)
+    suspend fun getTasks(courseId: String): List<Task>
+    suspend fun getQuestions(taskId: String): List<Question>
 } 
