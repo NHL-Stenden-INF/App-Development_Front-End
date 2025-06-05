@@ -231,10 +231,10 @@ class HomeFragment : Fragment() {
 
         val homeCourses: List<HomeCourse> = courses?.mapNotNull{ course ->
             if (course.progress == 0) {
-                Log.i("HomeFragment", "Not adding course: ${course.title}")
+                Log.d("HomeFragment", "Not adding course: ${course.title}")
                 return@mapNotNull null
             }
-            Log.i("HomeFragment", "Adding course: ${course.title}")
+            Log.d("HomeFragment", "Adding course: ${course.title}")
 
             val accentColor = when (course.id) {
                 "html" -> ContextCompat.getColor(requireContext(), R.color.html_color)
@@ -242,9 +242,6 @@ class HomeFragment : Fragment() {
                 "sql" -> ContextCompat.getColor(requireContext(), R.color.sql_color)
                 else -> ContextCompat.getColor(requireContext(), R.color.html_color)
             }
-
-            Log.i("HomeFragment", "Lesson: ${course.progress} of ${course.totalTasks}")
-            Log.i("HomeFragment", ((course.progress.toFloat() / course.totalTasks.toFloat()) * 100).toString())
 
             HomeCourse(
                 course.id,

@@ -49,7 +49,7 @@ class TasksFragment : Fragment() {
 
     private fun setupTasksList() {
         runBlocking {
-            val courses = CourseRepositoryImpl(context as Application).getCourses()
+            val courses = CourseRepositoryImpl(context as Application).getCoursesWithoutProgress()
             adapter.submitList(courses)
         }
     }
