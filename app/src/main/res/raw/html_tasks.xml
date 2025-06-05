@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE tasks SYSTEM "tasks.dtd">
+<tasks>
+    <task>
+        <title>HTML Basics</title>
+        <difficulty>Beginner</difficulty>
+        <description>Learn the fundamentals of HTML markup language</description>
+    </task>
+    <task>
+        <title>HTML Structure</title>
+        <difficulty>Beginner</difficulty>
+        <description>Learn about the basic structure of HTML documents</description>
+    </task>
+    <task>
+        <title>HTML Forms</title>
+        <difficulty>Intermediate</difficulty>
+        <description>Create interactive forms with HTML</description>
+    </task>
+    <task>
+        <title>HTML Elements</title>
+        <difficulty>Intermediate</difficulty>
+        <description>Organize data with HTML tables</description>
+    </task>
+</tasks>

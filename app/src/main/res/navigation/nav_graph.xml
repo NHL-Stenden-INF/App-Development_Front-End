@@ -7,39 +7,39 @@
 
     <fragment
         android:id="@+id/nav_home"
-        android:name="com.nhlstenden.appdev.HomeFragment"
+        android:name="com.nhlstenden.appdev.home.ui.HomeFragment"
         android:label="Home"
         tools:layout="@layout/fragment_home" />
 
     <fragment
         android:id="@+id/nav_tasks"
-        android:name="com.nhlstenden.appdev.TasksFragment"
+        android:name="com.nhlstenden.appdev.features.task.TasksFragment"
         android:label="Courses"
-        tools:layout="@layout/fragment_tasks">
+        tools:layout="@layout/fragment_courses">
         <action
             android:id="@+id/action_tasks_to_course_topics"
-            app:destination="@id/nav_course_topics"
+            app:destination="@id/nav_course_tasks"
             app:popUpTo="@id/nav_tasks"
             app:popUpToInclusive="false" />
     </fragment>
 
     <fragment
         android:id="@+id/nav_courses"
-        android:name="com.nhlstenden.appdev.CoursesFragment"
+        android:name="com.nhlstenden.appdev.features.courses.CourseFragment"
         android:label="Courses"
         tools:layout="@layout/fragment_courses">
         <action
             android:id="@+id/action_courses_to_course_topics"
-            app:destination="@id/nav_course_topics"
+            app:destination="@id/nav_course_tasks"
             app:popUpTo="@id/nav_courses"
             app:popUpToInclusive="false" />
     </fragment>
 
     <fragment
-        android:id="@+id/nav_course_topics"
-        android:name="com.nhlstenden.appdev.CourseTopicsFragment"
-        android:label="Course Topics"
-        tools:layout="@layout/fragment_course_topics">
+        android:id="@+id/nav_course_tasks"
+        android:name="com.nhlstenden.appdev.features.task.TasksFragment"
+        android:label="Course Tasks"
+        tools:layout="@layout/fragment_course">
         <argument
             android:name="courseName"
             app:argType="string" />
@@ -47,19 +47,19 @@
 
     <fragment
         android:id="@+id/nav_rewards"
-        android:name="com.nhlstenden.appdev.RewardsFragment"
+        android:name="com.nhlstenden.appdev.rewards.ui.RewardsFragment"
         android:label="Rewards"
         tools:layout="@layout/fragment_rewards" />
 
     <fragment
         android:id="@+id/nav_friends"
-        android:name="com.nhlstenden.appdev.FriendsFragment"
+        android:name="com.nhlstenden.appdev.friends.ui.screens.FriendsFragment"
         android:label="Friends"
         tools:layout="@layout/fragment_friends" />
 
     <fragment
         android:id="@+id/nav_progress"
-        android:name="com.nhlstenden.appdev.ProgressFragment"
+        android:name="com.nhlstenden.appdev.progress.ui.ProgressFragment"
         android:label="Progress"
         tools:layout="@layout/fragment_progress" />
 

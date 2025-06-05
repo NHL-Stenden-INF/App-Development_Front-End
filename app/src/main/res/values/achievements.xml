@@ -24,7 +24,7 @@
         <item>Complete a task after midnight</item>
         <item>Complete a task before 7am</item>
         <item>Finish 10 tasks in one day</item>
-        <item>Get all answers correct in a topic</item>
+        <item>Get all answers correct in a task</item>
         <item>Unlock 10 achievements</item>
         <item>Add 5 friends</item>
     </array>
@@ -42,4 +42,18 @@
         <item>ic_achievement_hunter</item>
         <item>ic_achievement_social</item>
     </array>
+    <integer-array name="achievement_ids">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+        <item>7</item>
+        <item>8</item>
+        <item>9</item>
+        <item>10</item>
+        <item>11</item>
+        <item>12</item>
+    </integer-array>
 </resources> 

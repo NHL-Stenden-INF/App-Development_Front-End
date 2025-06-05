@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">App Development</string>
     <!-- TODO: Remove or change this placeholder text -->
@@ -25,6 +26,23 @@
 
     <!-- Motivational Area Strings -->
     <string name="motivational_title">Friend Challenge</string>
-    <string name="motivational_message">%1$s leads by %2$d tasks</string>
+    <string name="motivational_message" formatted="false">%1$s leads by %2$d tasks</string>
     <string name="motivational_subtitle">Keep pushing to catch up!</string>
+
+    <string name="level_format" formatted="false">Level %d</string>
+    <string name="experience_format" formatted="false">%d/%d XP</string>
+    <string name="progress_format" formatted="false">%d/%d</string>
+
+    <string name="profile_picture">Profile picture</string>
+    <string name="achievements">Achievements</string>
+    <string name="achievement_icon">Achievement icon</string>
+
+    <string name="correct">Correct</string>
+    <string name="wrong">Wrong</string>
+    <string name="enter_answer">Enter your answer</string>
+    <string name="submit">Submit</string>
+
+    <string name="loading">Loading…</string>
+
+    <string name="login">Login</string>
 </resources>

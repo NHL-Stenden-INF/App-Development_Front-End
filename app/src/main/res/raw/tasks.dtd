@@ -1,0 +1,5 @@
+<!ELEMENT tasks (task)+>
+<!ELEMENT task (title, difficulty, description)>
+<!ELEMENT title (#PCDATA)>
+<!ELEMENT difficulty (#PCDATA)>
+<!ELEMENT description (#PCDATA)>

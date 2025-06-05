@@ -4,39 +4,111 @@ This is the Android frontend application for the AppDev NHL project. It allows u
 
 ## Project Structure
 
--   `/app/src/main/java/com/nhlstenden/appdev/`: Contains the Kotlin source code for the Android activities, fragments, and UI components.
-    -   `LoginActivity.kt`: Handles user login.
-    -   `RegisterActivity.kt`: Handles new user registration.
-    -   `MainActivity.kt`: The main container activity housing navigation between fragments.
-    -   `SupabaseClient.kt`: Configures and manages communication with Supabase backend services.
-    -   `AnimatedButton.kt`: Custom UI component for interactive buttons.
-    -   `HomeFragment.kt`: Home screen display.
-    -   `ProfileFragment.kt`: User profile management.
-    -   `FriendsFragment.kt`: Friends list and social features.
-    -   `TasksFragment.kt`: Task management interface.
-    -   `CoursesFragment.kt`: Courses overview.
-    -   `CourseTopicsFragment.kt`: Individual course topic details.
-    -   `ProgressFragment.kt`: User progress tracking and visualization.
-    -   `RewardsFragment.kt`: User rewards and achievements.
-    -   `QRScannerActivity.kt`: QR code scanning functionality.
-    -   `ImageCropActivity.kt`: Image editing for profile pictures or uploads.
-    -   `models/`: Data models and managers.
-        -   `CourseModels.kt`: Data classes for course-related information.
-        -   `RewardsManager.kt`: Logic for managing user rewards.
--   `/app/src/main/res/`: Contains Android resources.
-    -   `layout/`: XML layout files for activities and fragments.
-    -   `drawable/`: Image assets and custom drawables.
-    -   `values/`: XML files for strings, colors, styles, and themes.
-    -   `navigation/`: Navigation graphs for the application.
-    -   `animator/`, `anim/`: Animation resources.
--   `/app/build.gradle.kts`: Gradle build script for the application module.
+```
+appdev/
+│
+├── core/                   # Reusable/shared code across features
+│   ├── components/         # Shared UI components (e.g., ImageCropActivity)
+│   ├── di/                 # Dependency injection setup (e.g., Hilt modules)
+│   ├── network/            # Retrofit setup, API service
+│   ├── database/           # Room setup
+│   ├── utils/              # Shared helpers, extensions
+│   ├── repositories/       # Shared repositories/interfaces
+│   ├── models/             # Shared domain models
+│   ├── ui/
+│   │   └── base/           # BaseFragment, BaseViewModel, etc.
+│   └── AppConstants.kt     # Global constants
+│
+├── features/               # Each feature in its own folder
+│   ├── friends/            # Friends management (includes FriendsFragment, utils, viewmodels, etc.)
+│   ├── profile/            # Profile management (ProfileFragment, viewmodels, adapters, etc.)
+│   ├── rewards/            # Rewards and achievements system
+│   ├── courses/            # Course browsing and topic exploration
+│   ├── progress/           # Progress tracking
+│   ├── task/               # Task management
+│   ├── login/              # Login and registration
+│   └── home/               # Home dashboard
+│
+├── MainApplication.kt      # Application class
+├── MainActivity.kt         # Main activity (fragment container)
+└── supabase/               # Supabase client and related code
+```
+
+- All feature-specific code (fragments, viewmodels, adapters, repositories, etc.) is inside its respective feature folder.
+- Shared code (UI components, base classes, models, utils, constants) is in `core/`.
+- `AppConstants.kt` is now in `core/`.
+- `FriendsFragment.kt` is now in `features/friends/`.
+
+## SOLID Principles
+
+| Principle                     | How it's simplified but respected                               |
+| ----------------------------- | --------------------------------------------------------------- |
+| **S** – Single Responsibility | Each file does one thing: e.g., ViewModel handles UI logic only |
+| **O** – Open/Closed           | You can add new features without modifying others               |
+| **L** – Liskov                | Interfaces (e.g., repositories) let you swap implementations    |
+| **I** – Interface Segregation | Simple interfaces per feature, small and focused                |
+| **D** – Dependency Inversion  | Core depends on interfaces; Hilt injects implementations        |
+
+## Notes
+- Each feature folder contains all files for that feature (UI, ViewModel, Repository, etc.).
+- Shared code (network, DI, database, utils, shared models, base UI) lives in `core/`.
+- Global constants go in `core/AppConstants.kt`.
+- This structure is scalable, easy to navigate, and respects SOLID.
+
+## Drawable Resource Naming Convention
+
+To keep the `drawable` folder organized and maintainable, we follow strict naming conventions:
+
+- **General Rule:**
+  - The feature, page, or domain should always be the prefix for all drawable file names. This makes it easy to locate and group related resources.
+  - Use lowercase letters and underscores.
+  - Be descriptive and consistent.
+  - For different file types (XML, PNG, GIF), keep the naming consistent across types.
+
+- **Course Images:**
+  - Prefix with `course_` followed by the course name or type.
+  - Example: `course_html.xml`, `course_css.xml`, `course_sql.xml`
+
+- **Profile & Lives:**
+  - Prefix with `profile_` for all profile-related assets.
+  - Example: `profile_lives_anim_one.png`, `profile_lives_zero_lifes.png`, `profile_placeholder.png`
+
+- **Rewards & Achievements:**
+  - Prefix with `reward_` or `achievement_` followed by the reward or achievement name.
+  - Example: `reward_point_multiplier.xml`, `achievement_nightowl.xml`, `achievement_perfect.xml`, `achievement_css.xml`
+
+- **Icons:**
+  - Prefix with the feature or page, then `_icon_`, then the icon's purpose and optionally a size or variant.
+  - Example: `home_icon_arrow_left.xml`, `profile_icon_placeholder.xml`, `rewards_icon_medal_gold.xml`, `qr_icon_code_scanner.xml`
+
+- **Other Assets:**
+  - Use the feature or page as a prefix, followed by a descriptive name.
+  - Example: `mascot_static.xml`, `mascot.gif`, `app_logo.png`, `scanner_overlay.xml`, `input_background.xml`
+
+This convention makes it easy to locate, reference, and maintain drawable resources, especially as the project grows. While the project may not yet be fully consistent with this convention, this is the intended standard moving forward.
+
+# Courses/ Tasks/ Questions naming conventions
+
+- **Courses file:**
+  - All are stored in `coures.xml`
+  - The title of a course is used as an ID to find the related `topics` file
+  - Title can contain spaces and capital letters
+
+- **Topic files**
+  - Suffix with `_topics`
+  - Prefix with the title of the related course in lowercase and with ` ` replaced wiht `_`
+  - The title of a topic is used as an ID to fin the related `questions` file
+
+- **Question files**
+  - Suffix with `_questions`
+  - Prefix with the title of the related topic in lowercase and with ` ` replaced with `_`
 
 ## Prerequisites
 
--   Android Studio (latest stable version recommended)
--   Android SDK (target SDK is 33, min SDK is 33 - ensure these are installed via Android Studio's SDK Manager)
--   An Android Emulator (configured in Android Studio) or a physical Android device (with USB debugging enabled)
--   The backend services (Supabase) must be properly configured and accessible.
+- Android Studio (latest stable version recommended)
+- Android SDK (target SDK is 33, min SDK is 33 - ensure these are installed via Android Studio's SDK Manager)
+- An Android Emulator (configured in Android Studio) or a physical Android device (with USB debugging enabled)
+- The backend services (Supabase) must be properly configured and accessible.
 
 ## Setup and Running the Application
 

@@ -1,0 +1,3 @@
+// ProfileModule temporarily disabled for kapt troubleshooting
+// package com.nhlstenden.appdev.features.profile.di
+// ... entire file commented out ... 

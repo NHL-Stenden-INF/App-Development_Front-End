@@ -1,47 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="8dp">
 
-    <ImageView
-        android:id="@+id/achievementIcon"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:src="@drawable/ic_achievement"
-        android:contentDescription="Achievement icon"
-        android:background="@drawable/circle_background"
-        android:padding="12dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    <FrameLayout
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="center"
+        android:background="@drawable/circle_background">
+
+        <ImageView
+            android:id="@+id/achievementIcon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/achievement_icon" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/achievementTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Achievement Title"
-        android:textSize="14sp"
+        android:textAppearance="?attr/textAppearanceCaption"
         android:textStyle="bold"
-        android:layout_marginTop="8dp"
         android:gravity="center"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/achievementIcon" />
+        android:layout_marginTop="4dp"
+        android:maxLines="1"
+        android:ellipsize="end" />
 
     <TextView
         android:id="@+id/achievementDescription"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Achievement description"
-        android:textSize="12sp"
+        android:textAppearance="?attr/textAppearanceCaption"
         android:gravity="center"
-        android:maxWidth="100dp"
-        android:maxLines="2"
+        android:maxLines="1"
         android:ellipsize="end"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/achievementTitle" />
+        android:layout_marginTop="2dp" />
 
-</androidx.constraintlayout.widget.ConstraintLayout> 
+</LinearLayout> 
