@@ -34,6 +34,10 @@ class CourseRepositoryImpl @Inject constructor(
         supabaseClient.updateUserProgress(user.id, taskId, progress, user.authToken)
     }
 
+    override suspend fun getTaskProgress(user: User) {
+        supabaseClient.getUserProgress(user.id, user.authToken)
+    }
+
     override suspend fun getTasks(courseId: String): List<Task> {
         return taskParser.loadAllCoursesOfTask(courseId)
     }

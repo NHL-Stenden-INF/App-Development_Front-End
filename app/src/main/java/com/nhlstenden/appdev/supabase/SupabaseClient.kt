@@ -466,7 +466,7 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
-    suspend fun getUserProgress(userId: String, authToken: String) {
+    suspend fun getUserProgress(userId: String, authToken: String): JSONObject {
         val request = Request.Builder()
             .url("$supabaseUrl/rest/v1/user_progress?id=eq.$userId")
             .get()
@@ -477,6 +477,17 @@ class SupabaseClient() {
             .build()
 
         val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
+
+        if (!response.isSuccessful) {
+            val errorBody = response.body?.string()
+            Log.e("SupabaseClient", "Profile update failed with response: $errorBody")
+            throw RuntimeException(errorBody ?: "Profile update failed with code ${response.code}")
+        }
+
+        val body = response.body?.string() ?: throw RuntimeException("No response body")
+        val arr = org.json.JSONArray(body)
+        if (arr.length() == 0) throw RuntimeException("Profile update failed")
+        return arr.getJSONObject(0)
     }
 
     fun updateUserProgress(userId: String, taskId: String, newProgress: Int, authToken: String): Response {
