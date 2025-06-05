@@ -17,8 +17,11 @@
     <!-- Holo symbols pattern -->
     <item>
         <bitmap
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0.4"
+            android:gravity="fill"
             android:src="@drawable/holo_symbols_pattern"
-            android:tileMode="repeat"
-            android:gravity="center" />
+            android:tileMode="repeat" />
     </item>
 </layer-list> 
