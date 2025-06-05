@@ -42,12 +42,6 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 - Built with [Kotlin](https://kotlinlang.org/), [Android Jetpack](https://developer.android.com/jetpack), and [Material Design](https://material.io/).
 - Special thanks to all open-source library authors.
 
-## 🙏 Acknowledgments
-
-- NHL Stenden University of Applied Sciences
-- Android Development Team
-- Open Source Community
-
 ## Setup and Running the Application
 
 1.  **Clone the Repository:**
