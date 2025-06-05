@@ -72,8 +72,12 @@ class MultipleChoiceFragment : BaseTaskFragment() {
                         btn.setBackgroundColor(
                             if (isCorrect) 0xFF4CAF50.toInt() else 0xFFF44336.toInt()
                         )
+                        btn.setTextColor(0xFFFFFFFF.toInt()) // White text for selected button
                     } else if (shuffledOptions[i].isCorrect) {
                         btn.setBackgroundColor(0xFF4CAF50.toInt())
+                        btn.setTextColor(0xFFFFFFFF.toInt()) // White text for correct answer
+                    } else {
+                        btn.setTextColor(0xFF757575.toInt()) // Gray text for unselected incorrect answers
                     }
                 }
                 submitButton.visibility = View.GONE
@@ -102,6 +106,7 @@ class MultipleChoiceFragment : BaseTaskFragment() {
                 btn.isActivated = false
                 btn.visibility = View.VISIBLE
                 btn.setBackgroundColor(0xFFEEEEEE.toInt()) // Always reset to default
+                btn.setTextColor(0xFF000000.toInt()) // Reset text color to default
             } else {
                 btn.visibility = View.GONE
             }
