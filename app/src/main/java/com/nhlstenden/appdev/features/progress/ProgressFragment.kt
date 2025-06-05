@@ -61,30 +61,30 @@ class ProgressFragment : Fragment() {
         val courses = courseParser.loadAllCourses()
         
         // Calculate overall progress
-        var totalTopics = 0
-        var completedTopicsEquivalent = 0
+        var totalTasks = 0
+        var completedTasksEquivalent = 0
 
 //  TODO: Replace with Supabase values
         for (i in 0..100) {
-            totalTopics++
-            completedTopicsEquivalent += i / 100
+            totalTasks++
+            completedTasksEquivalent += i / 100
         }
 
 //        courses.forEach { course ->
-//            course.topics.forEach { topic ->
-//                totalTopics++
-//                completedTopicsEquivalent += topic.progress / 100 // Convert percentage to completion fraction
+//            course.tasks.forEach { task ->
+//                totalTasks++
+//                completedTasksEquivalent += task.progress / 100 // Convert percentage to completion fraction
 //            }
 //        }
         
         // If no data from XML, use mock data as fallback
-        val totalTasks = if (totalTopics > 0) totalTopics else 30
-        val completedTasks = if (completedTopicsEquivalent > 0) completedTopicsEquivalent else 18
-        val remainingTasks = totalTasks - completedTasks
-        val completionPercentage = if (totalTopics > 0) 
-            (completedTopicsEquivalent.toFloat() / totalTopics.toFloat() * 100).toInt()
+        val totalMockTasks = if (totalTasks > 0) totalTasks else 30
+        val completedTasks = if (completedTasksEquivalent > 0) completedTasksEquivalent else 18
+        val remainingTasks = totalMockTasks - completedTasks
+        val completionPercentage = if (totalTasks > 0)
+            (completedTasksEquivalent.toFloat() / totalTasks.toFloat() * 100).toInt()
         else 
-            (completedTasks.toFloat() / totalTasks.toFloat() * 100).toInt()
+            (completedTasks.toFloat() / totalMockTasks.toFloat() * 100).toInt()
         
         // Update overall progress percentage
         overallProgressPercentage.text = getString(R.string.overall_progress_percentage, completionPercentage)
@@ -112,7 +112,7 @@ class ProgressFragment : Fragment() {
         data.setValueTextColor(Color.WHITE)
         data.setValueFormatter(object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
-                val percentage = (value / totalTasks * 100).toInt()
+                val percentage = (value / totalMockTasks * 100).toInt()
 
                 return "$percentage%"
             }
@@ -127,7 +127,7 @@ class ProgressFragment : Fragment() {
             setDrawEntryLabels(false)
             legend.isEnabled = false
             animateY(1000)
-            centerText = "$completedTasks/$totalTasks\ntasks"
+            centerText = "$completedTasks/$totalMockTasks\ntasks"
             setCenterTextSize(14f) // Make center text slightly smaller
             setCenterTextColor(Color.BLACK)
             setDrawCenterText(true)
@@ -150,18 +150,18 @@ class ProgressFragment : Fragment() {
             parsedCourses.map { course ->
                 // Calculate completion status and percentage for this course
 //                TODO: Replace with Supabase values
-                val totalTopics = 100
-                val topicsWithProgress = 30
-                val averageProgress = if (totalTopics > 0) {
-                    topicsWithProgress / totalTopics
+                val totalTasks = 100
+                val tasksWithProgress = 30
+                val averageProgress = if (totalTasks > 0) {
+                    tasksWithProgress / totalTasks
                 } else 0
                 
-                // Calculate completed topics based on progress > 0
-                val completedTopics = 30
+                // Calculate completed tasks based on progress > 0
+                val completedTasks = 30
                 
                 CourseProgress(
                     course.title,
-                    "$completedTopics/$totalTopics",
+                    "$completedTasks/$totalTasks",
                     averageProgress,
                     course.imageResId
                 )
