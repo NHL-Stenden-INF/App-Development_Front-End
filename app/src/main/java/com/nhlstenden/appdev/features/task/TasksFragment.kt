@@ -9,7 +9,6 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.ChipGroup
-import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.utils.NavigationManager
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
@@ -39,7 +38,7 @@ class TasksFragment : Fragment() {
 
         adapter = CourseAdapter { course ->
             // Use NavigationManager for consistent navigation and back behavior
-            NavigationManager.navigateToCourseTopics(requireActivity(), course.id)
+            NavigationManager.navigateToCourseTasks(requireActivity(), course.id)
         }
         tasksList.layoutManager = LinearLayoutManager(context)
         tasksList.adapter = adapter

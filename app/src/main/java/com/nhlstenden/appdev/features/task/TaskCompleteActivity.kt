@@ -2,16 +2,13 @@ package com.nhlstenden.appdev.features.task
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.core.models.User
-import com.nhlstenden.appdev.features.courses.model.Topic
+import com.nhlstenden.appdev.features.courses.model.Task
 import com.nhlstenden.appdev.main.MainActivity
-import com.nhlstenden.appdev.core.utils.UserManager
 
 class TaskCompleteActivity : AppCompatActivity() {
     private lateinit var returnButton: Button
@@ -33,8 +30,8 @@ class TaskCompleteActivity : AppCompatActivity() {
             finish()
         }
 
-        val topic = intent.getParcelableExtra("TOPIC_DATA", Topic::class.java)
-        taskName.text = topic?.title
+        val task = intent.getParcelableExtra("TASK_DATA", Task::class.java)
+        taskName.text = task?.title
         
         // Get and display points earned
         val pointsEarned = intent.getIntExtra("POINTS_EARNED", 0)

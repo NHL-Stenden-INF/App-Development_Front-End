@@ -4,7 +4,7 @@ import android.app.Activity
 import com.nhlstenden.appdev.features.courses.CourseFragment
 
 object NavigationManager {
-    fun navigateToCourseTopics(activity: Activity, courseId: String) {
+    fun navigateToCourseTasks(activity: Activity, courseId: String) {
         val fragment = CourseFragment()
         val args = android.os.Bundle()
         args.putString("COURSE_ID", courseId)
