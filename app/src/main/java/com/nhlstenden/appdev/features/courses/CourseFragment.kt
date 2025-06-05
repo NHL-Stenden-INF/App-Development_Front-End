@@ -19,6 +19,8 @@ import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 import com.nhlstenden.appdev.features.task.screens.TaskActivity
 import com.nhlstenden.appdev.core.utils.NavigationManager
+import android.media.MediaPlayer
+import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel
 
 @AndroidEntryPoint
 class CourseFragment : Fragment() {
@@ -26,6 +28,8 @@ class CourseFragment : Fragment() {
     private val binding get() = _binding!!
     private val viewModel: CourseViewModel by viewModels()
     private lateinit var topicAdapter: TopicAdapter
+    private var mediaPlayer: MediaPlayer? = null
+    private val profileViewModel: ProfileViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -40,18 +44,32 @@ class CourseFragment : Fragment() {
         setupRecyclerView()
         observeViewModel()
 
-        // Get the courseId from arguments and load topics
-        val courseId = arguments?.getString("COURSE_ID")
-        if (courseId != null) {
-            viewModel.loadTopics(courseId)
-            // Set course title and description from XML or mock data
-            val parser = CourseParser(requireContext())
-            val course = parser.loadCourseByTitle(courseId)
-            if (course != null) {
-                binding.courseTitle.text = course.title
-                binding.courseDescription.text = course.description
+        // Set user data for ProfileViewModel (required for profile loading)
+        val userData = arguments?.getParcelable<com.nhlstenden.appdev.core.models.User>("USER_DATA")
+            ?: com.nhlstenden.appdev.core.utils.UserManager.getCurrentUser()
+        userData?.let { user ->
+            android.util.Log.d("CourseFragment", "user.id=${user.id}, user.authToken=${user.authToken}")
+            profileViewModel.setUserData(user)
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            profileViewModel.profileState.collect { state ->
+                if (state is ProfileViewModel.ProfileState.Success) {
+                    val courseId = arguments?.getString("COURSE_ID")
+                    if (courseId != null) {
+                        val parser = CourseParser(requireContext())
+                        val course = parser.loadCourseByTitle(courseId)
+                        if (course != null) {
+                            binding.courseTitle.text = course.title
+                            binding.courseDescription.text = course.description
+                            maybePlayLobbyMusic(course.title, state.profile.unlockedRewardIds ?: emptyList())
+                        }
+                    }
+                }
             }
         }
+        profileViewModel.loadProfile()
+
         // Set up back button
         binding.backButton.setOnClickListener {
             NavigationManager.navigateBack(requireActivity())
@@ -96,8 +114,27 @@ class CourseFragment : Fragment() {
         }
     }
 
+    private fun maybePlayLobbyMusic(courseTitle: String, unlockedRewardIds: List<Int>) {
+        val sharedPrefs = requireContext().getSharedPreferences("reward_settings", android.content.Context.MODE_PRIVATE)
+        val isMusicLobbyEnabled = sharedPrefs.getBoolean("music_lobby_enabled", true)
+        val unlocked = unlockedRewardIds.contains(11)
+        if (!isMusicLobbyEnabled || !unlocked) return
+        val musicResId = when (courseTitle.trim().uppercase()) {
+            "CSS" -> com.nhlstenden.appdev.R.raw.css_themesong
+            "HTML" -> com.nhlstenden.appdev.R.raw.html_themesong
+            "SQL" -> com.nhlstenden.appdev.R.raw.sql_themesong
+            else -> com.nhlstenden.appdev.R.raw.default_themesong
+        }
+        mediaPlayer = MediaPlayer.create(requireContext(), musicResId)
+        mediaPlayer?.isLooping = true
+        mediaPlayer?.start()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+        mediaPlayer = null
         _binding = null
     }
 

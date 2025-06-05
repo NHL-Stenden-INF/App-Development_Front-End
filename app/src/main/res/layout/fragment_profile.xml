@@ -122,6 +122,54 @@
                     android:layout_marginTop="16dp"
                     android:nestedScrollingEnabled="false" />
 
+                <!-- Reward Settings Section -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/rewardSettingsCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="4dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:id="@+id/rewardSettingsTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Reward Settings"
+                            android:textStyle="bold"
+                            android:textSize="18sp"
+                            android:layout_marginBottom="8dp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <TextView
+                                android:id="@+id/musicLobbyLabel"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Course Lobby Music"
+                                android:textSize="16sp" />
+
+                            <com.google.android.material.switchmaterial.SwitchMaterial
+                                android:id="@+id/musicLobbySwitch"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:checked="false"
+                                android:enabled="true" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
             </LinearLayout>
 
         </androidx.core.widget.NestedScrollView>

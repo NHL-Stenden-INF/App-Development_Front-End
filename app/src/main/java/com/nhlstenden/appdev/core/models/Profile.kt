@@ -6,5 +6,6 @@ data class Profile(
     val bio: String?,
     val profilePicture: String?,
     val level: Int,
-    val experience: Int
+    val experience: Int,
+    val unlockedRewardIds: List<Int>? = null
 ) 

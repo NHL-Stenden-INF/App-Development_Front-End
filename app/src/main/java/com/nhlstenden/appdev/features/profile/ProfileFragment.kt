@@ -44,6 +44,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import javax.inject.Inject
+import com.google.android.material.switchmaterial.SwitchMaterial
 
 @AndroidEntryPoint
 class ProfileFragment : BaseFragment() {
@@ -51,6 +52,10 @@ class ProfileFragment : BaseFragment() {
     private val binding get() = _binding!!
     private val viewModel: ProfileViewModel by viewModels()
     private lateinit var achievementAdapter: AchievementAdapter
+    private lateinit var musicLobbySwitch: SwitchMaterial
+    private val MUSIC_LOBBY_REWARD_ID = 11
+    private val PREFS_NAME = "reward_settings"
+    private val MUSIC_LOBBY_KEY = "music_lobby_enabled"
     
     private val PROFILE_IMAGE_SIZE = 120
     
@@ -78,6 +83,15 @@ class ProfileFragment : BaseFragment() {
         binding.swipeRefreshLayout.setOnRefreshListener {
             viewModel.loadProfile()
         }
+
+        musicLobbySwitch = binding.root.findViewById(R.id.musicLobbySwitch)
+        val sharedPrefs = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
+        val isMusicLobbyEnabled = sharedPrefs.getBoolean(MUSIC_LOBBY_KEY, true)
+        musicLobbySwitch.isChecked = isMusicLobbyEnabled
+        musicLobbySwitch.setOnCheckedChangeListener { _, isChecked ->
+            sharedPrefs.edit().putBoolean(MUSIC_LOBBY_KEY, isChecked).apply()
+        }
+        musicLobbySwitch.isEnabled = false
     }
     
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -88,6 +102,7 @@ class ProfileFragment : BaseFragment() {
             ?: UserManager.getCurrentUser()
         
         userData?.let { user ->
+            android.util.Log.d("ProfileFragment", "user.id=${user.id}, user.authToken=${user.authToken}")
             viewModel.setUserData(user)
         }
         
@@ -147,6 +162,10 @@ class ProfileFragment : BaseFragment() {
                         binding.bioTextView.text = if (bio.isNullOrEmpty() || bio == "null") "No bio set yet" else bio
                         binding.usernameTextView.text = state.profile.displayName
                         binding.emailTextView.text = state.profile.email
+
+                        // Check unlocked rewards and update toggle
+                        val unlockedRewardIds = state.profile.unlockedRewardIds ?: emptyList()
+                        updateRewardSettingsSection(unlockedRewardIds)
                     }
                     is ProfileState.Error -> {
                         binding.progressBar.visibility = View.GONE
@@ -281,6 +300,12 @@ class ProfileFragment : BaseFragment() {
         viewModel.logout()
         startActivity(Intent(requireContext(), LoginActivity::class.java))
         requireActivity().finish()
+    }
+
+    private fun updateRewardSettingsSection(unlockedRewardIds: List<Int>) {
+        val isUnlocked = unlockedRewardIds.contains(MUSIC_LOBBY_REWARD_ID)
+        musicLobbySwitch.isEnabled = isUnlocked
+        musicLobbySwitch.alpha = if (isUnlocked) 1.0f else 0.5f
     }
 
     override fun onCreateView(
