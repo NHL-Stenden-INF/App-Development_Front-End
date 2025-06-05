@@ -91,12 +91,12 @@ This convention makes it easy to locate, reference, and maintain drawable resour
 
 - **Courses file:**
   - All are stored in `coures.xml`
-  - The title of a course is used as an ID to find the related `topics` file
+  - The title of a course is used as an ID to find the related `tasks` file
   - Title can contain spaces and capital letters
 
-- **Topic files**
-  - Suffix with `_topics`
-  - Prefix with the title of the related course in lowercase and with ` ` replaced wiht `_`
+- **Task files**
+  - Suffix with `_tasks`
+  - Prefix with the title of the related course in lowercase and with ` ` replaced with `_`
   - The title of a topic is used as an ID to fin the related `questions` file
 
 - **Question files**
