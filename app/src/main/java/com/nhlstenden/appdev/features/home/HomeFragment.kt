@@ -41,6 +41,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.time.temporal.ChronoUnit
+import com.mikhaellopez.circularprogressbar.CircularProgressBar
 
 // Data class for course info
 data class HomeCourse(
@@ -103,6 +104,8 @@ class HomeFragment : Fragment() {
     private lateinit var greetingText: TextView
     private lateinit var motivationalMessage: TextView
     private lateinit var profilePicture: ImageView
+    private lateinit var circularXpBar: CircularProgressBar
+    private lateinit var levelInCircleText: TextView
     private val profileViewModel: ProfileViewModel by viewModels()
     private var displayNameDialogShown = false
     private lateinit var courseRepositoryImpl: CourseRepositoryImpl
@@ -126,6 +129,8 @@ class HomeFragment : Fragment() {
         greetingText = view.findViewById(R.id.greetingText)
         motivationalMessage = view.findViewById(R.id.motivationalMessage)
         profilePicture = view.findViewById(R.id.profileImage)
+        circularXpBar = view.findViewById(R.id.circularXpBar)
+        levelInCircleText = view.findViewById(R.id.levelInCircleText)
 
         // Listen for profile picture updates from ProfileFragment
         parentFragmentManager.setFragmentResultListener("profile_picture_updated", viewLifecycleOwner) { _, bundle ->
@@ -192,6 +197,21 @@ class HomeFragment : Fragment() {
                     } else {
                         profilePicture.setImageResource(R.drawable.zorotlpf)
                     }
+                    // Set circular XP bar and level
+                    val level = state.profile.level
+                    val xp = state.profile.experience
+                    levelInCircleText.text = level.toString()
+                    // Calculate XP needed for next level
+                    var requiredXp = 100.0
+                    var totalXp = 0.0
+                    for (i in 1 until level) {
+                        totalXp += requiredXp
+                        requiredXp *= 1.1
+                    }
+                    val xpForCurrentLevel = xp - totalXp.toInt()
+                    val xpForNextLevel = requiredXp.toInt()
+                    circularXpBar.progressMax = xpForNextLevel.toFloat()
+                    circularXpBar.setProgressWithAnimation(xpForCurrentLevel.coerceAtLeast(0).toFloat(), 800)
                 }
             }
         }

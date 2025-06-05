@@ -44,6 +44,9 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import javax.inject.Inject
+import com.google.android.material.switchmaterial.SwitchMaterial
+import android.widget.TextView
+import android.widget.ProgressBar
 
 @AndroidEntryPoint
 class ProfileFragment : BaseFragment() {
@@ -51,8 +54,16 @@ class ProfileFragment : BaseFragment() {
     private val binding get() = _binding!!
     private val viewModel: ProfileViewModel by viewModels()
     private lateinit var achievementAdapter: AchievementAdapter
+    private lateinit var musicLobbySwitch: SwitchMaterial
+    private val MUSIC_LOBBY_REWARD_ID = 11
+    private val PREFS_NAME = "reward_settings"
+    private val MUSIC_LOBBY_KEY = "music_lobby_enabled"
     
     private val PROFILE_IMAGE_SIZE = 120
+    
+    private lateinit var levelTextView: TextView
+    private lateinit var xpProgressBar: ProgressBar
+    private lateinit var xpLabelTextView: TextView
     
     private fun setupViews() {
         binding.cardViewInputs.setCardBackgroundColor(
@@ -78,6 +89,15 @@ class ProfileFragment : BaseFragment() {
         binding.swipeRefreshLayout.setOnRefreshListener {
             viewModel.loadProfile()
         }
+
+        musicLobbySwitch = binding.root.findViewById(R.id.musicLobbySwitch)
+        val sharedPrefs = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
+        val isMusicLobbyEnabled = sharedPrefs.getBoolean(MUSIC_LOBBY_KEY, true)
+        musicLobbySwitch.isChecked = isMusicLobbyEnabled
+        musicLobbySwitch.setOnCheckedChangeListener { _, isChecked ->
+            sharedPrefs.edit().putBoolean(MUSIC_LOBBY_KEY, isChecked).apply()
+        }
+        musicLobbySwitch.isEnabled = false
     }
     
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -88,8 +108,13 @@ class ProfileFragment : BaseFragment() {
             ?: UserManager.getCurrentUser()
         
         userData?.let { user ->
+            android.util.Log.d("ProfileFragment", "user.id=${user.id}, user.authToken=${user.authToken}")
             viewModel.setUserData(user)
         }
+        
+        levelTextView = binding.root.findViewById(R.id.levelTextView)
+        xpProgressBar = binding.root.findViewById(R.id.xpProgressBar)
+        xpLabelTextView = binding.root.findViewById(R.id.xpLabelTextView)
         
         setupViews()
         observeProfileState()
@@ -99,6 +124,9 @@ class ProfileFragment : BaseFragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        // Ensure ViewPager is visible and fragment_container is hidden when leaving profile
+        activity?.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)?.visibility = View.VISIBLE
+        activity?.findViewById<android.widget.FrameLayout>(R.id.fragment_container)?.visibility = View.GONE
     }
     
     private fun observeProfileState() {
@@ -147,6 +175,28 @@ class ProfileFragment : BaseFragment() {
                         binding.bioTextView.text = if (bio.isNullOrEmpty() || bio == "null") "No bio set yet" else bio
                         binding.usernameTextView.text = state.profile.displayName
                         binding.emailTextView.text = state.profile.email
+
+                        // Check unlocked rewards and update toggle
+                        val unlockedRewardIds = state.profile.unlockedRewardIds ?: emptyList()
+                        updateRewardSettingsSection(unlockedRewardIds)
+
+                        // Set level and XP bar
+                        val level = state.profile.level
+                        val xp = state.profile.experience
+                        levelTextView.text = getString(R.string.level_format, level)
+                        // Calculate XP needed for next level
+                        var requiredXp = 100.0
+                        var totalXp = 0.0
+                        for (i in 1 until level) {
+                            totalXp += requiredXp
+                            requiredXp *= 1.1
+                        }
+                        val xpForCurrentLevel = xp - totalXp.toInt()
+                        val xpForNextLevel = requiredXp.toInt()
+                        xpProgressBar.max = xpForNextLevel
+                        xpProgressBar.progress = xpForCurrentLevel.coerceAtLeast(0)
+                        xpProgressBar.contentDescription = getString(R.string.experience_format, xpForCurrentLevel, xpForNextLevel)
+                        xpLabelTextView.text = getString(R.string.experience_format, xpForCurrentLevel, xpForNextLevel)
                     }
                     is ProfileState.Error -> {
                         binding.progressBar.visibility = View.GONE
@@ -281,6 +331,12 @@ class ProfileFragment : BaseFragment() {
         viewModel.logout()
         startActivity(Intent(requireContext(), LoginActivity::class.java))
         requireActivity().finish()
+    }
+
+    private fun updateRewardSettingsSection(unlockedRewardIds: List<Int>) {
+        val isUnlocked = unlockedRewardIds.contains(MUSIC_LOBBY_REWARD_ID)
+        musicLobbySwitch.isEnabled = isUnlocked
+        musicLobbySwitch.alpha = if (isUnlocked) 1.0f else 0.5f
     }
 
     override fun onCreateView(

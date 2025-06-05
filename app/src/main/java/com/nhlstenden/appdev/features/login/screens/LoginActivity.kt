@@ -22,6 +22,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import android.graphics.Rect
+import android.graphics.drawable.AnimationDrawable
 
 @AndroidEntryPoint
 class LoginActivity : AppCompatActivity() {
@@ -29,7 +30,7 @@ class LoginActivity : AppCompatActivity() {
     private val viewModel: LoginViewModel by viewModels()
     private val sleepHandler = Handler(Looper.getMainLooper())
     private var isMascotSleeping = false
-    private val SLEEP_DELAY = 60000L // 1 minute in milliseconds
+    private val SLEEP_DELAY = 30000L // 30 seconds in milliseconds
 
     companion object {
         const val PAGE_LOGIN = 0
@@ -39,10 +40,16 @@ class LoginActivity : AppCompatActivity() {
     private val sleepRunnable = Runnable {
         if (!isFinishing) {
             isMascotSleeping = true
-            Glide.with(this@LoginActivity)
-                .asGif()
-                .load(R.drawable.mascot_sleep)
-                .into(binding.imageViewLogo)
+            // First play the closed eye animation
+            binding.imageViewLogo.setImageResource(R.drawable.mascot_closed_eye_animation)
+            val closedEyeAnimation = binding.imageViewLogo.drawable as? AnimationDrawable
+            closedEyeAnimation?.start()
+            
+            // After closed eye animation completes (200ms), start sleep animation
+            sleepHandler.postDelayed({
+                binding.imageViewLogo.setImageResource(R.drawable.mascot_sleep_animation)
+                (binding.imageViewLogo.drawable as? AnimationDrawable)?.start()
+            }, 200) // 4 frames * 50ms = 200ms
         }
     }
 
@@ -51,10 +58,15 @@ class LoginActivity : AppCompatActivity() {
         
         if (isMascotSleeping) {
             isMascotSleeping = false
-            Glide.with(this)
-                .asGif()
-                .load(R.drawable.mascot)
-                .into(binding.imageViewLogo)
+            binding.imageViewLogo.setImageResource(R.drawable.mascot_wakeup_animation)
+            val wakeupAnimation = binding.imageViewLogo.drawable as? AnimationDrawable
+            wakeupAnimation?.start()
+            
+            // After wake-up animation completes (750ms), start normal animation
+            sleepHandler.postDelayed({
+                binding.imageViewLogo.setImageResource(R.drawable.mascot_animation)
+                (binding.imageViewLogo.drawable as? AnimationDrawable)?.start()
+            }, 750) // 5 frames * 150ms = 750ms
         }
         
         sleepHandler.postDelayed(sleepRunnable, SLEEP_DELAY)
@@ -67,13 +79,17 @@ class LoginActivity : AppCompatActivity() {
         setupViews()
         observeLoginState()
         resetSleepTimer()
+
+        // Add touch listener to root view
+        binding.root.setOnTouchListener { _, _ ->
+            resetSleepTimer()
+            false // Return false to allow other touch events to be processed
+        }
     }
 
     private fun setupViews() {
-        Glide.with(this)
-            .asGif()
-            .load(R.drawable.mascot)
-            .into(binding.imageViewLogo)
+        binding.imageViewLogo.setImageResource(R.drawable.mascot_animation)
+        (binding.imageViewLogo.drawable as? AnimationDrawable)?.start()
             
         binding.imageViewArrow.let { arrow ->
             val animator = AnimatorInflater.loadAnimator(this, R.animator.arrow_animation)
@@ -100,11 +116,6 @@ class LoginActivity : AppCompatActivity() {
             val scale = if (position < 0) 1f + position * 0.1f else 1f - position * 0.1f
             page.scaleX = scale
             page.scaleY = scale
-        }
-
-        binding.root.setOnTouchListener { _, _ ->
-            resetSleepTimer()
-            false
         }
     }
 

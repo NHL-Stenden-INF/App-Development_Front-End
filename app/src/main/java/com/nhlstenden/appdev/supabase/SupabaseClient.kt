@@ -502,7 +502,20 @@ class SupabaseClient() {
             .addHeader("Prefer", "resolution=merge-duplicates,return=minimal")
             .build()
 
-        return client.newCall(request).execute()
+        return client.newCall(request).execute()   
+    }
+    
+    fun calculateLevelFromXp(xp: Long): Int {
+        // Example: Level 1 at 0 XP, each level requires 100 * level XP more than previous
+        var level = 1
+        var requiredXp = 100L
+        var totalXp = 0L
+        while (xp >= totalXp + requiredXp) {
+            totalXp += requiredXp
+            level++
+            requiredXp = (requiredXp * 1.1).toLong() // 10% more XP per level
+        }
+        return level
     }
 }
 

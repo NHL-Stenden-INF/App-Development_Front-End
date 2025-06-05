@@ -7,6 +7,8 @@ import com.nhlstenden.appdev.core.models.User as CoreUser
 import com.nhlstenden.appdev.supabase.User
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Singleton
 class ProfileRepositoryImpl @Inject constructor(
@@ -18,13 +20,33 @@ class ProfileRepositoryImpl @Inject constructor(
     override suspend fun getProfile(): Profile {
         val token = userData?.authToken ?: throw IllegalStateException("No auth token available")
         val profileJson = supabaseClient.fetchProfile(token)
+        val userAttributes = supabaseClient.fetchUserAttributes(token)
+        // Fetch unlocked rewards
+        val userId = userData?.id?.toString() ?: throw IllegalStateException("No user ID available")
+        val unlockedRewardsResponse = withContext(Dispatchers.IO) {
+            supabaseClient.getUserUnlockedRewards(userId, token)
+        }
+        val unlockedRewardIds = mutableListOf<Int>()
+        if (unlockedRewardsResponse.isSuccessful) {
+            val body = unlockedRewardsResponse.body?.string()
+            if (!body.isNullOrEmpty()) {
+                val arr = org.json.JSONArray(body)
+                for (i in 0 until arr.length()) {
+                    val obj = arr.getJSONObject(i)
+                    unlockedRewardIds.add(obj.optInt("reward_id"))
+                }
+            }
+        }
+        val xp = userAttributes.optLong("xp", 0L)
+        val level = supabaseClient.calculateLevelFromXp(xp)
         return Profile(
             displayName = profileJson.optString("display_name", ""),
             email = profileJson.optString("email", ""),
             bio = profileJson.optString("bio", null),
             profilePicture = profileJson.optString("profile_picture", null),
-            level = 1,
-            experience = 0
+            level = level,
+            experience = xp.toInt(),
+            unlockedRewardIds = unlockedRewardIds
         )
     }
 

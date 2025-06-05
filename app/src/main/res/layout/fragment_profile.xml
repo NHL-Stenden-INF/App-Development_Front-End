@@ -23,8 +23,8 @@
                     android:id="@+id/profileCard"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    app:cardCornerRadius="8dp"
+                    android:layout_margin="16dp"
+                    app:cardCornerRadius="12dp"
                     app:cardElevation="4dp"
                     app:layout_constraintTop_toTopOf="parent">
 
@@ -54,6 +54,48 @@
                             app:layout_constraintStart_toStartOf="parent"
                             app:layout_constraintTop_toBottomOf="@id/profileImageView" />
 
+                        <LinearLayout
+                            android:id="@+id/levelXpContainer"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginTop="12dp"
+                            app:layout_constraintTop_toBottomOf="@id/changePhotoButton"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent">
+
+                            <TextView
+                                android:id="@+id/levelTextView"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Level 1"
+                                android:textStyle="bold"
+                                android:textSize="16sp"
+                                android:layout_gravity="center_horizontal" />
+
+                            <TextView
+                                android:id="@+id/xpLabelTextView"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0/100 XP"
+                                android:textSize="12sp"
+                                android:textColor="@android:color/darker_gray"
+                                android:layout_gravity="center_horizontal"
+                                android:layout_marginTop="2dp" />
+
+                            <com.google.android.material.progressindicator.LinearProgressIndicator
+                                android:id="@+id/xpProgressBar"
+                                android:layout_width="match_parent"
+                                android:layout_height="12dp"
+                                android:layout_marginTop="4dp"
+                                android:progress="0"
+                                android:max="100"
+                                app:trackColor="@color/gray"
+                                app:indicatorColor="@color/colorPrimary"
+                                app:trackThickness="12dp"
+                                style="@style/Widget.MaterialComponents.LinearProgressIndicator" />
+                        </LinearLayout>
+
                     </androidx.constraintlayout.widget.ConstraintLayout>
 
                 </com.google.android.material.card.MaterialCardView>
@@ -62,8 +104,8 @@
                     android:id="@+id/cardViewInputs"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    app:cardCornerRadius="8dp"
+                    android:layout_margin="16dp"
+                    app:cardCornerRadius="12dp"
                     app:cardElevation="4dp"
                     app:layout_constraintTop_toBottomOf="@id/profileCard">
 
@@ -98,6 +140,44 @@
 
                 </com.google.android.material.card.MaterialCardView>
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/rewardSettingsTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Reward Settings"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/musicLobbyLabel"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Course Lobby Music"
+                            android:textSize="16sp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/musicLobbySwitch"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            android:enabled="true" />
+                    </LinearLayout>
+                </LinearLayout>
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/editProfileButton"
                     android:layout_width="match_parent"
@@ -121,6 +201,17 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:nestedScrollingEnabled="false" />
+
+                <!-- Reward Settings Section -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/rewardSettingsCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp">
+
+                </com.google.android.material.card.MaterialCardView>
 
             </LinearLayout>
 
