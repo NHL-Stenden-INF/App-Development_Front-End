@@ -19,8 +19,8 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.features.profile.screens.ProfileFragment
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.features.courses.CourseParser
 import android.app.AlertDialog
+import android.app.Application
 import android.os.Build
 import android.widget.EditText
 import androidx.annotation.RequiresApi
@@ -34,9 +34,11 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.nhlstenden.appdev.home.manager.StreakManager
 import java.time.LocalDate
 import android.util.Log
+import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import com.nhlstenden.appdev.home.data.repositories.StreakRepository
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.time.temporal.ChronoUnit
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
@@ -106,6 +108,7 @@ class HomeFragment : Fragment() {
     private lateinit var levelInCircleText: TextView
     private val profileViewModel: ProfileViewModel by viewModels()
     private var displayNameDialogShown = false
+    private lateinit var courseRepositoryImpl: CourseRepositoryImpl
 
     @Inject
     lateinit var streakRepository: StreakRepository
@@ -114,6 +117,7 @@ class HomeFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
+        courseRepositoryImpl = CourseRepositoryImpl(requireContext().applicationContext as Application)
         return inflater.inflate(R.layout.fragment_home, container, false)
     }
 
@@ -228,55 +232,49 @@ class HomeFragment : Fragment() {
     
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     fun setupUI(view: View) {
-        // Get user data from arguments
-        val userData = arguments?.getParcelable<com.nhlstenden.appdev.core.models.User>("USER_DATA") ?: com.nhlstenden.appdev.core.utils.UserManager.getCurrentUser()
+        val userData = arguments?.getParcelable<com.nhlstenden.appdev.core.models.User>("USER_DATA")
+            ?: com.nhlstenden.appdev.core.utils.UserManager.getCurrentUser()
         userData?.let { user ->
             greetingText.text = getString(R.string.greeting_format, user.username)
             updateMotivationalMessage(user)
-            
-            // Load profile picture
+
             loadProfilePicture(user.profilePicture ?: "")
         }
 
-        // Get course data from XML
-        val courseParser = CourseParser(requireContext())
-        val parsedCourses = courseParser.loadAllCourses()
-        
-        // Process course data for the UI
-        val courses = if (parsedCourses.isNotEmpty()) {
-            parsedCourses.map { course ->
-                // Calculate progress information
-//                TODO: Replace with Supabase values
-                val totalTopics = 100
-                val topicsWithProgress = 30
-                val averageProgress = if (totalTopics > 0) {
-                    topicsWithProgress / totalTopics
-                } else 0
-                
-                // Get appropriate icon and accent color based on course title
-                val accentColor = when (course.title) {
-                    "HTML" -> ContextCompat.getColor(requireContext(), R.color.html_color)
-                    "CSS" -> ContextCompat.getColor(requireContext(), R.color.css_color)
-                    "SQL" -> ContextCompat.getColor(requireContext(), R.color.sql_color)
-                    else -> ContextCompat.getColor(requireContext(), R.color.html_color)
-                }
-                
-                HomeCourse(
-                    course.title,
-                    "Lesson $topicsWithProgress of $totalTopics",
-                    averageProgress,
-                    course.imageResId,
-                    accentColor
-                )
+        val courses = runBlocking {
+            try {
+                courseRepositoryImpl.getCourses(userData!!)
+            } catch (e: RuntimeException) {
+                null
             }
-        } else {
-//            TODO: Display a nice error and take appropiate actions
-            emptyList()
         }
+
+        val homeCourses: List<HomeCourse> = courses?.mapNotNull{ course ->
+            if (course.progress == 0) {
+                Log.d("HomeFragment", "Not adding course: ${course.title}")
+                return@mapNotNull null
+            }
+            Log.d("HomeFragment", "Adding course: ${course.title}")
+
+            val accentColor = when (course.id) {
+                "html" -> ContextCompat.getColor(requireContext(), R.color.html_color)
+                "css" -> ContextCompat.getColor(requireContext(), R.color.css_color)
+                "sql" -> ContextCompat.getColor(requireContext(), R.color.sql_color)
+                else -> ContextCompat.getColor(requireContext(), R.color.html_color)
+            }
+
+            HomeCourse(
+                course.id,
+                "Lesson: ${course.progress} of ${course.totalTasks}",
+                ((course.progress.toFloat() / course.totalTasks.toFloat()) * 100).toInt(),
+                course.imageResId,
+                accentColor
+            )
+        } ?: emptyList()
 
         val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)
         recyclerView.layoutManager = LinearLayoutManager(context)
-        recyclerView.adapter = HomeCourseAdapter(courses, this)
+        recyclerView.adapter = HomeCourseAdapter(homeCourses, this)
     }
     
     private fun loadProfilePicture(profilePictureData: String) {

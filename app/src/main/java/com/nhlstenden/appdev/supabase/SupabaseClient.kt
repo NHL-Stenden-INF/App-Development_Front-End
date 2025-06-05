@@ -466,6 +466,45 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
+    suspend fun getUserProgress(userId: String, authToken: String): JSONArray {
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/user_progress?user_id=eq.$userId")
+            .get()
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
+
+        if (!response.isSuccessful) {
+            val errorBody = response.body?.string()
+            Log.e("SupabaseClient", "Progress fetching failed with response: $errorBody")
+            throw RuntimeException(errorBody ?: "Progress fetching failed with code ${response.code}")
+        }
+
+        val body = response.body?.string() ?: throw RuntimeException("No response body")
+        val arr = org.json.JSONArray(body)
+        if (arr.length() == 0) throw RuntimeException("Progress fetching failed")
+        return arr
+    }
+
+    fun updateUserProgress(userId: String, taskId: String, newProgress: Int, authToken: String): Response {
+        val json = """{"task_id": ${taskId}, "progress": ${newProgress}}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/user_progress?id=eq.$userId")
+            .post(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "resolution=merge-duplicates,return=minimal")
+            .build()
+
+        return client.newCall(request).execute()   
+    }
+    
     fun calculateLevelFromXp(xp: Long): Int {
         // Example: Level 1 at 0 XP, each level requires 100 * level XP more than previous
         var level = 1

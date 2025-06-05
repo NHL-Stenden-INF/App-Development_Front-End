@@ -53,7 +53,6 @@ class TaskParser(private val context: Context) {
             title = title,
             description = description,
             difficulty = difficulty,
-            progress = 0
         )
     }
 }

@@ -23,7 +23,7 @@ class CourseViewModel @Inject constructor(
 
     fun loadCourses() {
         viewModelScope.launch {
-            _courses.value = courseRepository.getCourses()
+            _courses.value = courseRepository.getCoursesWithoutProgress()
         }
     }
 

@@ -57,7 +57,9 @@ class CourseParser(private val context: Context) {
             title = title,
             description = description,
             difficulty = difficulty,
-            imageResId = imageResId
+            imageResId = imageResId,
+            progress = 0,
+            totalTasks = 0,
         )
     }
 } 
