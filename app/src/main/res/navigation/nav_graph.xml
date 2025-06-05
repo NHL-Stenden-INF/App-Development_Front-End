@@ -13,11 +13,11 @@
 
     <fragment
         android:id="@+id/nav_tasks"
-        android:name="com.nhlstenden.appdev.task.ui.TasksFragment"
+        android:name="com.nhlstenden.appdev.features.task.TasksFragment"
         android:label="Courses"
         tools:layout="@layout/fragment_tasks">
         <action
-            android:id="@+id/action_tasks_to_course_tasks"
+            android:id="@+id/action_tasks_to_course_topics"
             app:destination="@id/nav_course_tasks"
             app:popUpTo="@id/nav_tasks"
             app:popUpToInclusive="false" />
@@ -25,11 +25,11 @@
 
     <fragment
         android:id="@+id/nav_courses"
-        android:name="com.nhlstenden.appdev.courses.ui.screens.CoursesFragment"
+        android:name="com.nhlstenden.appdev.features.courses.CourseFragment"
         android:label="Courses"
         tools:layout="@layout/fragment_courses">
         <action
-            android:id="@+id/action_courses_to_course_tasks"
+            android:id="@+id/action_courses_to_course_topics"
             app:destination="@id/nav_course_tasks"
             app:popUpTo="@id/nav_courses"
             app:popUpToInclusive="false" />
@@ -37,7 +37,7 @@
 
     <fragment
         android:id="@+id/nav_course_tasks"
-        android:name="com.nhlstenden.appdev.courses.ui.CourseTasksFragment"
+        android:name="com.nhlstenden.appdev.features.task.TasksFragment"
         android:label="Course Tasks"
         tools:layout="@layout/fragment_course_tasks">
         <argument
@@ -53,7 +53,7 @@
 
     <fragment
         android:id="@+id/nav_friends"
-        android:name="com.nhlstenden.appdev.friends.ui.FriendsFragment"
+        android:name="com.nhlstenden.appdev.friends.ui.screens.FriendsFragment"
         android:label="Friends"
         tools:layout="@layout/fragment_friends" />
 
