@@ -124,6 +124,9 @@ class ProfileFragment : BaseFragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        // Ensure ViewPager is visible and fragment_container is hidden when leaving profile
+        activity?.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)?.visibility = View.VISIBLE
+        activity?.findViewById<android.widget.FrameLayout>(R.id.fragment_container)?.visibility = View.GONE
     }
     
     private fun observeProfileState() {
