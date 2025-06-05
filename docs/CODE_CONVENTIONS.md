@@ -72,8 +72,6 @@ We follow the SOLID principles for maintainable and scalable code:
 - **I**nterface Segregation
 - **D**ependency Inversion
 
-For detailed explanations and examples, see [SOLID.md](SOLID.md).
-
 ## Best Practices
 1. Follow Android Architecture Components
 2. Use ViewBinding
