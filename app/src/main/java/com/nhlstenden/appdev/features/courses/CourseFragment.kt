@@ -1,5 +1,6 @@
 package com.nhlstenden.appdev.features.courses
 
+import android.app.Application
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -20,6 +21,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import com.nhlstenden.appdev.features.task.screens.TaskActivity
 import com.nhlstenden.appdev.core.utils.NavigationManager
 import android.media.MediaPlayer
+import android.util.Log
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel
 
 @AndroidEntryPoint
@@ -57,6 +61,7 @@ class CourseFragment : Fragment() {
                 if (state is ProfileViewModel.ProfileState.Success) {
                     val courseId = arguments?.getString("COURSE_ID")
                     if (courseId != null) {
+                        viewModel.loadTasks(courseId)
                         val parser = CourseParser(requireContext())
                         val course = parser.loadCourseByTitle(courseId)
                         if (course != null) {
@@ -158,6 +163,8 @@ class CourseFragment : Fragment() {
             private val difficultyText: TextView = itemView.findViewById(R.id.difficultyLevel)
             private val progressBar: LinearProgressIndicator = itemView.findViewById(R.id.progressBar)
             fun bind(task: Task) {
+
+                Log.w("CourseFragment", "Creating task: ${task.title}")
                 titleText.text = task.title
                 descriptionText.text = task.description
                 difficultyText.text = task.difficulty
@@ -173,4 +180,4 @@ class CourseFragment : Fragment() {
             }
         }
     }
-} 
+}
