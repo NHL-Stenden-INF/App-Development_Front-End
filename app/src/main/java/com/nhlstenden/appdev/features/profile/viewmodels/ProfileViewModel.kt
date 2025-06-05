@@ -45,6 +45,7 @@ class ProfileViewModel @Inject constructor(
                 val profile = profileRepository.getProfile()
                 _profileState.value = ProfileState.Success(profile)
             } catch (e: Exception) {
+                android.util.Log.e("ProfileViewModel", "Profile load failed", e)
                 _profileState.value = ProfileState.Error(e.message ?: "Failed to load profile")
             }
         }

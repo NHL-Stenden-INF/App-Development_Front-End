@@ -82,9 +82,11 @@ class LoginFragment : Fragment() {
                 when (state) {
                     is LoginViewModel.LoginState.Loading -> {
                         binding.loginButton.isEnabled = false
+                        binding.loginButton.text = getString(R.string.loading)
                     }
                     is LoginViewModel.LoginState.Success -> {
                         binding.loginButton.isEnabled = true
+                        binding.loginButton.text = getString(R.string.login)
                         UserManager.setCurrentUser(state.user)
                         val intent = Intent(requireContext(), MainActivity::class.java)
                         startActivity(intent)
@@ -92,10 +94,12 @@ class LoginFragment : Fragment() {
                     }
                     is LoginViewModel.LoginState.Error -> {
                         binding.loginButton.isEnabled = true
+                        binding.loginButton.text = getString(R.string.login)
                         Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
                     }
                     is LoginViewModel.LoginState.Initial -> {
                         binding.loginButton.isEnabled = true
+                        binding.loginButton.text = getString(R.string.login)
                     }
                 }
             }

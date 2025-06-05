@@ -31,8 +31,13 @@ import androidx.core.content.ContextCompat
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.StrikethroughSpan
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.content.Context
 
-class RewardsFragment : Fragment() {
+class RewardsFragment : Fragment(), SensorEventListener {
     private lateinit var pointsValue: TextView
     private lateinit var timerText: TextView
     private lateinit var openChestButton: MaterialButton
@@ -44,6 +49,13 @@ class RewardsFragment : Fragment() {
     private lateinit var userId: String
     private lateinit var authToken: String
     private var openedDailyAt: String? = null
+    private var sensorManager: SensorManager? = null
+    private var accelerometer: Sensor? = null
+    private var lastShakeTime: Long = 0
+    private var lastX = 0f
+    private var lastY = 0f
+    private var lastZ = 0f
+    private var shakeThreshold = 12f // Adjust as needed
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -70,12 +82,48 @@ class RewardsFragment : Fragment() {
         userId = userData.id
         authToken = userData.authToken
         setupRewardShop()
+        sensorManager = requireContext().getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     }
 
     override fun onResume() {
         super.onResume()
         fetchUserAttributesAndUpdateUI()
+        accelerometer?.let {
+            sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        }
     }
+
+    override fun onPause() {
+        super.onPause()
+        sensorManager?.unregisterListener(this)
+    }
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
+            val x = event.values[0]
+            val y = event.values[1]
+            val z = event.values[2]
+            val now = System.currentTimeMillis()
+            if (lastX != 0f || lastY != 0f || lastZ != 0f) {
+                val deltaX = x - lastX
+                val deltaY = y - lastY
+                val deltaZ = z - lastZ
+                val delta = Math.sqrt((deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ).toDouble()).toFloat()
+                if (delta > shakeThreshold && now - lastShakeTime > 1000) { // 1s cooldown
+                    lastShakeTime = now
+                    if (openChestButton.isEnabled) {
+                        openChestButton.performClick()
+                    }
+                }
+            }
+            lastX = x
+            lastY = y
+            lastZ = z
+        }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
     private fun fetchUserAttributesAndUpdateUI() {
         val userData = UserManager.getCurrentUser()
