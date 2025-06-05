@@ -77,6 +77,12 @@ class RegisterActivity : AppCompatActivity() {
         observeRegisterState()
         
         resetSleepTimer()
+
+        // Add touch listener to root view
+        binding.root.setOnTouchListener { _, _ ->
+            resetSleepTimer()
+            false // Return false to allow other touch events to be processed
+        }
     }
 
     private fun setupViews() {
@@ -103,11 +109,6 @@ class RegisterActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show()
             }
-        }
-
-        binding.root.setOnTouchListener { _, event ->
-            resetSleepTimer()
-            false
         }
 
         binding.emailEditText.setOnTouchListener { _, _ ->

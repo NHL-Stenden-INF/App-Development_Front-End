@@ -79,6 +79,12 @@ class LoginActivity : AppCompatActivity() {
         setupViews()
         observeLoginState()
         resetSleepTimer()
+
+        // Add touch listener to root view
+        binding.root.setOnTouchListener { _, _ ->
+            resetSleepTimer()
+            false // Return false to allow other touch events to be processed
+        }
     }
 
     private fun setupViews() {
@@ -110,11 +116,6 @@ class LoginActivity : AppCompatActivity() {
             val scale = if (position < 0) 1f + position * 0.1f else 1f - position * 0.1f
             page.scaleX = scale
             page.scaleY = scale
-        }
-
-        binding.root.setOnTouchListener { _, _ ->
-            resetSleepTimer()
-            false
         }
     }
 
