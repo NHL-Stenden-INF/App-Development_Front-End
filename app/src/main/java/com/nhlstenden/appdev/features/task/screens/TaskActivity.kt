@@ -93,19 +93,43 @@ class TaskActivity : AppCompatActivity() {
                                 val today = LocalDate.now()
                                 Log.d("TaskActivity", "Updating streak for date: $today")
                                 
-                                // Get current streak from database
+                                // Get current streak and last task date from database
                                 val currentStreak = streakRepository.getCurrentStreak(currentUser.id.toString(), currentUser.authToken)
+                                val lastTaskDate = streakRepository.getLastTaskDate(currentUser.id.toString(), currentUser.authToken)
                                 
-                                // Update streak with today's date
-                                streakManager.updateStreak(today, currentStreak)
-                                
-                                // Update both last task date and streak in database
-                                val streakUpdated = streakRepository.updateLastTaskDate(currentUser.id.toString(), today, currentUser.authToken)
-                                val newStreak = streakManager.getCurrentStreak()
-                                val streakResponse = streakRepository.updateStreak(currentUser.id.toString(), newStreak, currentUser.authToken)
-                                
-                                Log.d("TaskActivity", "Streak update result: $streakUpdated")
-                                Log.d("TaskActivity", "New streak: $newStreak")
+                                // Only update streak if last task was from a previous day
+                                if (lastTaskDate == null || lastTaskDate.isBefore(today)) {
+                                    // Update streak with today's date
+                                    streakManager.updateStreak(today, currentStreak)
+                                    
+                                    // Update both last task date and streak in database
+                                    val streakUpdated = streakRepository.updateLastTaskDate(currentUser.id.toString(), today, currentUser.authToken)
+                                    val newStreak = streakManager.getCurrentStreak()
+                                    val streakResponse = streakRepository.updateStreak(currentUser.id.toString(), newStreak, currentUser.authToken)
+                                    
+                                    Log.d("TaskActivity", "Streak update result: $streakUpdated")
+                                    Log.d("TaskActivity", "New streak: $newStreak")
+                                } else {
+                                    Log.d("TaskActivity", "Task already completed today, no streak update needed")
+                                }
+
+                                // Update task progress
+                                try {
+                                    val taskId = intent.getStringExtra(EXTRA_TASK_ID)
+                                    if (taskId != null) {
+                                        val courseId = taskId.substringBefore("_")
+                                        val progressUpdated = courseRepository.updateTaskProgress(
+                                            currentUser.id.toString(),
+                                            courseId,
+                                            1
+                                        )
+                                        if (!progressUpdated) {
+                                            Log.e("TaskActivity", "Failed to update task progress")
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("TaskActivity", "Error updating task progress: ${e.message}")
+                                }
                             } else {
                                 Log.e("TaskActivity", "No current user found")
                             }
@@ -158,8 +182,9 @@ class TaskActivity : AppCompatActivity() {
                     val taskId = intent.getStringExtra(EXTRA_TASK_ID)
                     Log.d("TaskActivity", "Calling updateTaskProgress for userId=${currentUser?.id}, taskId=$taskId")
                     if (currentUser != null && taskId != null) {
+                        val courseId = taskId.substringBefore("_")
                         lifecycleScope.launch(Dispatchers.IO) {
-                            courseRepository.updateTaskProgress(currentUser, taskId, 0)
+                            courseRepository.updateTaskProgress(currentUser.id.toString(), courseId, 0)
                         }
                     }
                     Toast.makeText(this, "Task completed! You earned $pointsEarned points!", Toast.LENGTH_SHORT).show()

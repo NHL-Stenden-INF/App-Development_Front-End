@@ -199,36 +199,31 @@ class CourseFragment : Fragment() {
                 descriptionText.text = task.description
                 difficultyText.text = task.difficulty
                 progressBar.visibility = View.GONE
-                // If courseProgress is 0 and this is the first task, enable it; otherwise, gray out
-                if (courseProgress == 0) {
-                    if (task.index == 0) {
+
+                // Handle task state based on course progress
+                when {
+                    // If task index is less than progress, it's completed
+                    task.index < courseProgress -> {
+                        itemView.isEnabled = false
+                        itemView.alpha = 0.5f
+                        lockIcon.visibility = View.GONE
+                        itemView.setOnClickListener(null)
+                    }
+                    // If task index equals progress, it's the current task
+                    task.index == courseProgress -> {
                         itemView.isEnabled = true
                         itemView.alpha = 1.0f
                         lockIcon.visibility = View.GONE
                         itemView.setOnClickListener { onClick(task) }
-                    } else {
+                    }
+                    // If task index is greater than progress, it's locked
+                    else -> {
                         itemView.isEnabled = false
                         itemView.alpha = 0.3f
                         lockIcon.visibility = View.VISIBLE
-                    }
-                } else {
-                    when {
-                        task.index < courseProgress -> {
-                            itemView.isEnabled = false
-                            itemView.alpha = 0.5f
-                            lockIcon.visibility = View.GONE
-                        }
-                        task.index == courseProgress -> {
-                            itemView.isEnabled = true
-                            itemView.alpha = 1.0f
-                            lockIcon.visibility = View.GONE
-                            itemView.setOnClickListener { onClick(task) }
-                        }
-                        else -> {
-                            itemView.isEnabled = false
-                            itemView.alpha = 0.3f
-                            lockIcon.visibility = View.VISIBLE
-                        }
+                        itemView.setOnClickListener(null)
+                        // Make sure the lock icon is visible and properly positioned
+                        lockIcon.bringToFront()
                     }
                 }
             }
@@ -236,8 +231,13 @@ class CourseFragment : Fragment() {
 
         companion object {
             val DiffCallback = object : DiffUtil.ItemCallback<Task>() {
-                override fun areItemsTheSame(oldItem: Task, newItem: Task): Boolean = oldItem.id == newItem.id
-                override fun areContentsTheSame(oldItem: Task, newItem: Task): Boolean = oldItem == newItem
+                override fun areItemsTheSame(oldItem: Task, newItem: Task): Boolean {
+                    return oldItem.id == newItem.id
+                }
+
+                override fun areContentsTheSame(oldItem: Task, newItem: Task): Boolean {
+                    return oldItem == newItem
+                }
             }
         }
     }

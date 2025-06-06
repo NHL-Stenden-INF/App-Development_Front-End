@@ -150,7 +150,11 @@ class HomeFragment : Fragment() {
             try {
                 val courses = courseRepositoryImpl.getCourses(userData)
                 val homeCourses = courses?.mapNotNull { course ->
-                    if (course.progress == 0) {
+                    // Set default progress to 0 if no database entry exists
+                    val progress = course.progress ?: 0
+                    val totalTasks = course.totalTasks ?: 0
+                    
+                    if (progress == 0) {
                         Log.d("HomeFragment", "Not adding course: ${course.title}")
                         return@mapNotNull null
                     }
@@ -165,8 +169,8 @@ class HomeFragment : Fragment() {
 
                     HomeCourse(
                         course.id,
-                        "Lesson: ${course.progress} of ${course.totalTasks}",
-                        ((course.progress.toFloat() / course.totalTasks.toFloat()) * 100).toInt(),
+                        "Lesson: $progress of $totalTasks",
+                        ((progress.toFloat() / totalTasks.toFloat()) * 100).toInt(),
                         course.imageResId,
                         accentColor
                     )
@@ -325,11 +329,10 @@ class HomeFragment : Fragment() {
                                 )
                             }
 
-                            // Draw the checkmark
-                            val check = ImageView(requireContext()).apply {
+                            // Draw the fire icon for completed days
+                            val fireIcon = ImageView(requireContext()).apply {
                                 layoutParams = FrameLayout.LayoutParams(32, 32, Gravity.CENTER)
-                                setImageResource(R.drawable.ic_check)
-                                // Show checkmark only on completed days
+                                setImageResource(R.drawable.ic_fire)
                                 visibility = if (isCompleted) View.VISIBLE else View.INVISIBLE
                                 setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN)
                             }
@@ -342,7 +345,7 @@ class HomeFragment : Fragment() {
                                 gravity = Gravity.CENTER
                             }
 
-                            circle.addView(check)
+                            circle.addView(fireIcon)
                             dayLayout.addView(circle)
                             dayLayout.addView(label)
                             container.addView(dayLayout)

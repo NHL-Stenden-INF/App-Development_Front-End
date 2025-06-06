@@ -549,6 +549,40 @@ class SupabaseClient() {
         // Do not use response.body?.string() again after this!
         return response
     }
+
+    suspend fun createUserProgress(userId: String, courseId: String, progress: Int, authToken: String) {
+        withContext(Dispatchers.IO) {
+            val url = "$supabaseUrl/rest/v1/rpc/insert_user_progress"
+            val jsonObject = JSONObject().apply {
+                put("_user_id", userId)
+                put("_course_id", courseId)
+                put("_progress", progress)
+            }
+
+            val client = OkHttpClient.Builder()
+                .addInterceptor { chain ->
+                    val request = chain.request().newBuilder()
+                        .addHeader("apikey", supabaseKey)
+                        .addHeader("Authorization", "Bearer $authToken")
+                        .addHeader("Content-Type", "application/json")
+                        .addHeader("Prefer", "return=minimal")
+                        .build()
+                    chain.proceed(request)
+                }
+                .build()
+
+            val request = Request.Builder()
+                .url(url)
+                .post(jsonObject.toString().toRequestBody("application/json".toMediaType()))
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw Exception("Failed to create user progress: ${response.code}")
+                }
+            }
+        }
+    }
 }
 
 @Parcelize

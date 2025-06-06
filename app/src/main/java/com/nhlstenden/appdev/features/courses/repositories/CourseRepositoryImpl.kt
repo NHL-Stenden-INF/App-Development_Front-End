@@ -13,6 +13,9 @@ import com.nhlstenden.appdev.supabase.SupabaseClient
 import javax.inject.Inject
 import javax.inject.Singleton
 import android.util.Log
+import com.nhlstenden.appdev.core.utils.UserManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Singleton
 class CourseRepositoryImpl @Inject constructor(
@@ -27,8 +30,15 @@ class CourseRepositoryImpl @Inject constructor(
         val userProgresses = try {
             supabaseClient.getUserProgress(user.id, user.authToken)
         } catch (e: Exception) {
-            return null
+            // Return courses with 0 progress if there's an error
+            var courses = courseParser.loadAllCourses()
+            courses.forEach { course ->
+                course.totalTasks = this.getTotalTaskOfCourse(course.id)
+                course.progress = 0
+            }
+            return courses
         }
+        
         val userProgressMap = HashMap<String, Int>(userProgresses.length())
         for(i in 0 until userProgresses.length()) {
             val JsonObject = userProgresses.getJSONObject(i)
@@ -41,6 +51,7 @@ class CourseRepositoryImpl @Inject constructor(
 
         courses.forEach { course ->
             course.totalTasks = this.getTotalTaskOfCourse(course.id)
+            // Ensure progress is 0 if no database entry exists
             course.progress = userProgressMap[course.id] ?: 0
         }
 
@@ -62,6 +73,33 @@ class CourseRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getTasks(courseId: String): List<Task> {
+        // Get current user
+        val currentUser = UserManager.getCurrentUser() ?: return taskParser.loadAllCoursesOfTask(courseId)
+        
+        try {
+            withContext(Dispatchers.IO) {
+                // Try to get user progress for this course
+                val userProgresses = supabaseClient.getUserProgress(currentUser.id, currentUser.authToken)
+                var hasProgress = false
+                
+                // Check if user has progress for this course
+                for(i in 0 until userProgresses.length()) {
+                    val JsonObject = userProgresses.getJSONObject(i)
+                    if (JsonObject.getString("course_id") == courseId) {
+                        hasProgress = true
+                        break
+                    }
+                }
+                
+                // If no progress exists, create it
+                if (!hasProgress) {
+                    supabaseClient.createUserProgress(currentUser.id, courseId, 0, currentUser.authToken)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("CourseRepositoryImpl", "Error handling user progress", e)
+        }
+        
         return taskParser.loadAllCoursesOfTask(courseId)
     }
 
@@ -73,38 +111,18 @@ class CourseRepositoryImpl @Inject constructor(
         return questionParser.loadQuestionsForTask(taskId)
     }
 
-    override suspend fun updateTaskProgress(user: User, taskId: String, progress: Int) {
-        Log.d("CourseRepo", "updateTaskProgress called for userId=${user.id}, taskId=$taskId, progress=$progress")
-        val courseId = taskId.substringBefore("_")
-        val tasks = getTasks(courseId)
-        val task = tasks.find { it.id == taskId } ?: run {
-            Log.d("CourseRepo", "Task not found for id=$taskId in courseId=$courseId")
-            return
-        }
-        val userProgresses = try {
-            supabaseClient.getUserProgress(user.id, user.authToken)
-        } catch (e: Exception) {
-            Log.d("CourseRepo", "Exception in getUserProgress: ${e.message}")
-            return
-        }
-        var currentProgress: Int? = null
-        for(i in 0 until userProgresses.length()) {
-            val JsonObject = userProgresses.getJSONObject(i)
-            if (JsonObject.getString("course_id") == courseId) {
-                currentProgress = JsonObject.getInt("progress")
-                break
+    override suspend fun updateTaskProgress(userId: String, taskId: String, progress: Int): Boolean {
+        try {
+            val currentUser = UserManager.getCurrentUser()
+            if (currentUser == null) {
+                Log.e("CourseRepositoryImpl", "No current user found")
+                return false
             }
-        }
-        Log.d("CourseRepo", "currentProgress=$currentProgress, task.index=${task.index}")
-        if (currentProgress == null) {
-            Log.d("CourseRepo", "Calling insertUserProgressRPC for userId=${user.id}, courseId=$courseId")
-            val response = supabaseClient.insertUserProgressRPC(user.id, courseId, 1, user.authToken)
-            Log.d("CourseRepo", "insertUserProgressRPC response: code=${response.code}, body=${response.body?.string()}")
-        } else if (task.index >= currentProgress) {
-            Log.d("CourseRepo", "Updating progress for userId=${user.id}, courseId=$courseId to ${currentProgress + 1}")
-            supabaseClient.updateUserProgress(user.id, taskId, currentProgress + 1, user.authToken)
-        } else {
-            Log.d("CourseRepo", "No progress update: task.index=${task.index}, currentProgress=$currentProgress")
+            val response = supabaseClient.insertUserProgressRPC(userId, taskId, progress, currentUser.authToken)
+            return response.code == 200 || response.code == 204
+        } catch (e: Exception) {
+            Log.e("CourseRepositoryImpl", "Error updating task progress: ${e.message}")
+            return false
         }
     }
 } 
