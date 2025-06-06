@@ -119,7 +119,13 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         courseRepositoryImpl = CourseRepositoryImpl(requireContext().applicationContext as Application)
-        setupUI(view)
+        // Wait for user data to be set before setting up UI
+        val userData = UserManager.getCurrentUser()
+        if (userData != null && userData.authToken.isNotEmpty()) {
+            setupUI(view)
+        } else {
+            Log.e("HomeFragment", "No valid user data available")
+        }
         observeViewModel()
         dayCounter(view)
         
@@ -146,8 +152,8 @@ class HomeFragment : Fragment() {
         levelInCircleText = view.findViewById(R.id.levelInCircleText)
 
         val userData = UserManager.getCurrentUser()
-        if (userData == null) {
-            Log.e("HomeFragment", "No user data available")
+        if (userData == null || userData.authToken.isEmpty()) {
+            Log.e("HomeFragment", "No valid user data or auth token available")
             return
         }
 

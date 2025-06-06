@@ -123,9 +123,12 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         // Get user data from UserManager
         val userData = UserManager.getCurrentUser()
         
-        userData?.let { user ->
-            android.util.Log.d("ProfileFragment", "user.id=${user.id}, user.authToken=${user.authToken}")
-            viewModel.setUserData(user)
+        if (userData != null && userData.authToken.isNotEmpty()) {
+            android.util.Log.d("ProfileFragment", "user.id=${userData.id}, user.authToken=${userData.authToken}")
+            viewModel.setUserData(userData)
+            viewModel.loadProfile()
+        } else {
+            android.util.Log.e("ProfileFragment", "No valid user data or auth token available")
         }
         
         xpCircularProgress = binding.root.findViewById(R.id.xpCircularProgress)
@@ -139,7 +142,6 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         
         setupViews()
         observeProfileState()
-        viewModel.loadProfile()
     }
     
     override fun onDestroyView() {

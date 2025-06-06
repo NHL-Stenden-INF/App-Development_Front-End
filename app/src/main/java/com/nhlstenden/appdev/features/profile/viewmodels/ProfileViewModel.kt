@@ -8,6 +8,7 @@ import com.nhlstenden.appdev.core.models.Profile
 import com.nhlstenden.appdev.core.models.Achievement
 import com.nhlstenden.appdev.core.models.UserProfile
 import com.nhlstenden.appdev.core.repositories.ProfileRepository
+import com.nhlstenden.appdev.core.utils.UserManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,11 +35,13 @@ class ProfileViewModel @Inject constructor(
     private val _error = MutableLiveData<String>()
     val error: LiveData<String> = _error
 
-    init {
-        loadProfile()
-    }
-
     fun loadProfile() {
+        val user = UserManager.getCurrentUser()
+        if (user == null || user.authToken.isEmpty()) {
+            _profileState.value = ProfileState.Error("No valid user data available")
+            return
+        }
+
         viewModelScope.launch {
             _profileState.value = ProfileState.Loading
             try {
