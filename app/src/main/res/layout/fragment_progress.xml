@@ -7,16 +7,6 @@
     android:background="?android:attr/windowBackground"
     android:padding="16dp">
 
-    <!-- Settings Icon -->
-    <ImageView
-        android:id="@+id/settingsIcon"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:padding="4dp"
-        android:src="@drawable/ic_settings"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <!-- Progress Overview Card -->
     <androidx.cardview.widget.CardView
         android:id="@+id/progressOverviewCard"
@@ -29,7 +19,7 @@
         app:cardElevation="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/settingsIcon">
+        app:layout_constraintTop_toTopOf="parent">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"

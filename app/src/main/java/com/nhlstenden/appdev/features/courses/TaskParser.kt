@@ -35,11 +35,11 @@ class TaskParser(private val context: Context) {
 
         return List(taskElements.length) { index ->
             val taskElement = taskElements.item(index) as Element
-            parseTask(taskElement)
+            parseTask(taskElement, index)
         }
     }
 
-    private fun parseTask(taskElement: Element): Task {
+    private fun parseTask(taskElement: Element, index: Int): Task {
         val title = taskElement.getElementsByTagName("title").item(0).textContent
         val description = taskElement.getElementsByTagName("description").item(0).textContent
         val difficulty = taskElement.getElementsByTagName("difficulty").item(0).textContent
@@ -53,7 +53,7 @@ class TaskParser(private val context: Context) {
             title = title,
             description = description,
             difficulty = difficulty,
-            progress = 0
+            index = index
         )
     }
 }

@@ -1,7 +1,9 @@
-package com.nhlstenden.appdev.progress.ui
+package com.nhlstenden.appdev.features.progress
 
+import android.app.Application
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -9,6 +11,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
@@ -19,9 +22,19 @@ import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.nhlstenden.appdev.R
+import com.nhlstenden.appdev.core.utils.UserManager
 import com.nhlstenden.appdev.features.courses.CourseFragment
 import com.nhlstenden.appdev.features.courses.CourseParser
+import com.nhlstenden.appdev.features.courses.model.Course
+import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.runBlocking
+import com.daimajia.numberprogressbar.NumberProgressBar
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.nhlstenden.appdev.core.utils.NavigationManager
 
 @AndroidEntryPoint
 class ProgressFragment : Fragment() {
@@ -29,13 +42,15 @@ class ProgressFragment : Fragment() {
     private lateinit var courseProgressList: RecyclerView
     private lateinit var overallProgressTitle: TextView
     private lateinit var overallProgressPercentage: TextView
+    private lateinit var courseRepositoryImpl: CourseRepositoryImpl
+    private var courses: List<Course>? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_progress, container, false)
-        
+
         // Initialize views
         pieChart = view.findViewById(R.id.tasksPieChart)
         courseProgressList = view.findViewById(R.id.courseProgressList)
@@ -43,52 +58,61 @@ class ProgressFragment : Fragment() {
         overallProgressPercentage = view.findViewById(R.id.overallProgressPercentage)
         
         // Set accessibility content descriptions
-        view.findViewById<ImageView>(R.id.settingsIcon).contentDescription = "Settings"
         courseProgressList.contentDescription = "List of course progress"
         
         // Set text from resources
         overallProgressTitle.text = getString(R.string.overall_progress_title)
         
-        setupPieChart()
-        setupCourseList()
+        loadData()
         
         return view
     }
 
-    private fun setupPieChart() {
-        // Get all course data from XML
-        val courseParser = CourseParser(requireContext())
-        val courses = courseParser.loadAllCourses()
-        
-        // Calculate overall progress
-        var totalTasks = 0
-        var completedTasksEquivalent = 0
+    override fun onResume() {
+        super.onResume()
+        loadData()
+    }
 
-//  TODO: Replace with Supabase values
-        for (i in 0..100) {
-            totalTasks++
-            completedTasksEquivalent += i / 100
+    private fun loadData() {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                courseRepositoryImpl = CourseRepositoryImpl(requireContext().applicationContext as Application)
+                val currentUser = UserManager.getCurrentUser()
+                if (currentUser != null) {
+                    courses = courseRepositoryImpl.getCourses(currentUser)
+                    withContext(Dispatchers.Main) {
+                        setupPieChart()
+                        setupCourseList()
+                    }
+                }
+            } catch (e: RuntimeException) {
+                Log.e("ProgressFragment", "Error loading data", e)
+            }
+        }
+    }
+
+    private fun setupPieChart() {
+        var totalTasks = 0
+        var completedTasks = 0
+
+        courses?.forEach { course ->
+            if (course.progress != 0) {
+                totalTasks += course.totalTasks
+                completedTasks += course.progress
+            }
         }
 
-//        courses.forEach { course ->
-//            course.tasks.forEach { task ->
-//                totalTasks++
-//                completedTasksEquivalent += task.progress / 100 // Convert percentage to completion fraction
-//            }
-//        }
-        
-        // If no data from XML, use mock data as fallback
-        val totalMockTasks = if (totalTasks > 0) totalTasks else 30
-        val completedTasks = if (completedTasksEquivalent > 0) completedTasksEquivalent else 18
-        val remainingTasks = totalMockTasks - completedTasks
-        val completionPercentage = if (totalTasks > 0)
-            (completedTasksEquivalent.toFloat() / totalTasks.toFloat() * 100).toInt()
-        else 
-            (completedTasks.toFloat() / totalMockTasks.toFloat() * 100).toInt()
-        
+        val remainingTasks = totalTasks - completedTasks
+
+        val completionPercentage = if (totalTasks > 0) {
+            (completedTasks.toFloat() / totalTasks.toFloat() * 100).toInt()
+        } else {
+            0
+        }
+
         // Update overall progress percentage
         overallProgressPercentage.text = getString(R.string.overall_progress_percentage, completionPercentage)
-        
+
         val entries = listOf(
             PieEntry(completedTasks.toFloat(), "Completed"),
             PieEntry(remainingTasks.toFloat(), "Remaining")
@@ -112,8 +136,7 @@ class ProgressFragment : Fragment() {
         data.setValueTextColor(Color.WHITE)
         data.setValueFormatter(object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
-                val percentage = (value / totalMockTasks * 100).toInt()
-
+                val percentage = (value / totalTasks * 100).toInt()
                 return "$percentage%"
             }
         })
@@ -127,7 +150,7 @@ class ProgressFragment : Fragment() {
             setDrawEntryLabels(false)
             legend.isEnabled = false
             animateY(1000)
-            centerText = "$completedTasks/$totalMockTasks\ntasks"
+            centerText = "$completedTasks/$totalTasks\ntasks"
             setCenterTextSize(14f) // Make center text slightly smaller
             setCenterTextColor(Color.BLACK)
             setDrawCenterText(true)
@@ -140,41 +163,27 @@ class ProgressFragment : Fragment() {
         }
     }
 
+
     private fun setupCourseList() {
-        // Get course data from XML
-        val courseParser = CourseParser(requireContext())
-        val parsedCourses = courseParser.loadAllCourses()
-        
-        // Convert to CourseProgress objects for the adapter
-        val courses = if (parsedCourses.isNotEmpty()) {
-            parsedCourses.map { course ->
-                // Calculate completion status and percentage for this course
-//                TODO: Replace with Supabase values
-                val totalTasks = 100
-                val tasksWithProgress = 30
-                val averageProgress = if (totalTasks > 0) {
-                    tasksWithProgress / totalTasks
-                } else 0
-                
-                // Calculate completed tasks based on progress > 0
-                val completedTasks = 30
-                
-                CourseProgress(
-                    course.title,
-                    "$completedTasks/$totalTasks",
-                    averageProgress,
-                    course.imageResId
-                )
+        val progressCourses: List<CourseProgress> = courses?.mapNotNull{ course ->
+            if (course.progress == 0) {
+                Log.d("ProgressFragment", "Not adding course: ${course.title}")
+                return@mapNotNull null
             }
-        } else {
-//            TODO: Display a nice error and take appropiate actions
-            emptyList<CourseProgress>()
-        }
+            Log.d("ProgressFragment", "Adding course: ${course.title}")
+
+            CourseProgress(
+                course.id,
+                "${course.progress}/${course.totalTasks}",
+                ((course.progress.toFloat() / course.totalTasks.toFloat()) * 100).toInt(),
+                course.imageResId,
+            )
+        } ?: emptyList()
 
         courseProgressList.apply {
             layoutManager = LinearLayoutManager(context)
-            adapter = CourseProgressAdapter(courses) { courseName ->
-                navigateToCourse(courseName)
+            adapter = CourseProgressAdapter(progressCourses) { courseId ->
+                NavigationManager.navigateToCourseTasks(requireActivity(), courseId)
             }
         }
     }
@@ -211,10 +220,9 @@ class CourseProgressAdapter(
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val courseImage: ImageView = view.findViewById(R.id.courseImage)
         val courseTitle: TextView = view.findViewById(R.id.courseTitle)
-        val progressBar: LinearProgressIndicator = view.findViewById(R.id.progressBar)
-        val progressPercentage: TextView = view.findViewById(R.id.progressPercentage)
         val difficultyLevel: TextView = view.findViewById(R.id.difficultyLevel)
-        val courseDescription: TextView = view.findViewById(R.id.courseDescription)
+        val progressBar: NumberProgressBar = view.findViewById(R.id.progressBar)
+        val root: View = view
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -225,17 +233,14 @@ class CourseProgressAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val course = courses[position]
-        holder.courseImage.setImageResource(course.imageResId)
         holder.courseTitle.text = course.title
-        holder.difficultyLevel.text = ""
-        holder.difficultyLevel.visibility = View.GONE
-        holder.courseDescription.text = ""
-        holder.courseDescription.visibility = View.GONE
-        holder.progressBar.visibility = View.VISIBLE
+        holder.difficultyLevel.text = course.completionStatus
         holder.progressBar.progress = course.progressPercentage
-        holder.progressPercentage.visibility = View.VISIBLE
-        holder.progressPercentage.text = "${course.progressPercentage}%"
-        holder.itemView.setOnClickListener { onCourseClick(course.title) }
+        holder.courseImage.setImageResource(course.imageResId)
+
+        holder.root.setOnClickListener {
+            onCourseClick(course.title)
+        }
     }
 
     override fun getItemCount() = courses.size

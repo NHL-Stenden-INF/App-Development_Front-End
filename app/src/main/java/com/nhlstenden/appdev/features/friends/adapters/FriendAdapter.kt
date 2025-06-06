@@ -33,11 +33,8 @@ class FriendAdapter(
         
         fun bind(friend: Friend) {
             binding.friendUsername.text = friend.username
-            
-            // Set points and progress bar
-            binding.friendProgressBar.progress = friend.progress
-            binding.friendProgressText.text = "${friend.progress} points"
             binding.friendPoints.text = "${friend.progress} pts"
+            binding.friendBio.text = friend.bio ?: "No bio available"
             
             val profilePic = friend.profilePicture
             val invalidPics = listOf(null, "", "null")

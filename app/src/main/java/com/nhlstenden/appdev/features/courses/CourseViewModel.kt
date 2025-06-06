@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import com.nhlstenden.appdev.core.models.User
 
 @HiltViewModel
 class CourseViewModel @Inject constructor(
@@ -21,17 +22,29 @@ class CourseViewModel @Inject constructor(
     private val _tasksState = MutableStateFlow<TasksState>(TasksState.Loading)
     val tasksState: StateFlow<TasksState> = _tasksState.asStateFlow()
 
+    private val _courseProgress = MutableStateFlow(0)
+    val courseProgress: StateFlow<Int> = _courseProgress.asStateFlow()
+
     fun loadCourses() {
         viewModelScope.launch {
-            _courses.value = courseRepository.getCourses()
+            _courses.value = courseRepository.getCoursesWithoutProgress()
         }
     }
 
-    fun loadTasks(courseId: String) {
+    fun loadCoursesWithProgress(user: User) {
+        viewModelScope.launch {
+            _courses.value = courseRepository.getCourses(user) ?: emptyList()
+        }
+    }
+
+    fun loadTasks(courseId: String, user: User) {
         _tasksState.value = TasksState.Loading
         viewModelScope.launch {
             try {
                 val tasks = courseRepository.getTasks(courseId)
+                val courses = courseRepository.getCourses(user)
+                val course = courses?.find { it.id == courseId }
+                _courseProgress.value = course?.progress ?: 0
                 _tasksState.value = TasksState.Success(tasks)
             } catch (e: Exception) {
                 _tasksState.value = TasksState.Error(e.message ?: "Failed to load tasks")

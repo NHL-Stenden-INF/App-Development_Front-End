@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.home.ui
+package com.nhlstenden.appdev.features.home
 
 import android.graphics.Color
 import android.graphics.PorterDuff
@@ -19,8 +19,8 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.features.profile.screens.ProfileFragment
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.features.courses.CourseParser
 import android.app.AlertDialog
+import android.app.Application
 import android.os.Build
 import android.widget.EditText
 import androidx.annotation.RequiresApi
@@ -31,15 +31,20 @@ import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 import com.bumptech.glide.Glide
 import com.google.android.material.progressindicator.LinearProgressIndicator
-import com.nhlstenden.appdev.home.manager.StreakManager
+import com.nhlstenden.appdev.features.home.StreakManager
 import java.time.LocalDate
 import android.util.Log
-import com.nhlstenden.appdev.home.data.repositories.StreakRepository
+import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
+import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.time.temporal.ChronoUnit
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
+import com.daimajia.numberprogressbar.NumberProgressBar
+import com.nhlstenden.appdev.core.utils.UserManager
+import com.nhlstenden.appdev.core.utils.NavigationManager
 
 // Data class for course info
 data class HomeCourse(
@@ -54,10 +59,10 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>, private val fragm
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val courseImage: ImageView = view.findViewById(R.id.courseImage)
         val courseTitle: TextView = view.findViewById(R.id.courseTitle)
-        val progressBar: LinearProgressIndicator = view.findViewById(R.id.progressBar)
-        val progressPercentage: TextView = view.findViewById(R.id.progressPercentage)
         val difficultyLevel: TextView = view.findViewById(R.id.difficultyLevel)
         val courseDescription: TextView = view.findViewById(R.id.courseDescription)
+        val progressBar: NumberProgressBar = view.findViewById(R.id.progressBar)
+        val root: View = view
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -68,25 +73,15 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>, private val fragm
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val course = courses[position]
-        holder.courseImage.setImageResource(course.iconResId)
         holder.courseTitle.text = course.title
-        holder.difficultyLevel.text = course.progressText // Map to difficultyLevel for now
-        holder.difficultyLevel.visibility = View.GONE
-        holder.courseDescription.text = ""
+        holder.difficultyLevel.text = course.progressText
         holder.courseDescription.visibility = View.GONE
-        holder.progressBar.visibility = View.VISIBLE
+        holder.courseImage.setImageResource(course.iconResId)
         holder.progressBar.progress = course.progressPercent
-        holder.progressPercentage.visibility = View.VISIBLE
-        holder.progressPercentage.text = "${course.progressPercent}%"
-        holder.itemView.setOnClickListener {
-            navigateToCourse(course)
+
+        holder.root.setOnClickListener {
+            NavigationManager.navigateToCourseTasks(fragment.requireActivity(), course.title)
         }
-    }
-    
-    private fun navigateToCourse(course: HomeCourse) {
-        val activity = fragment.requireActivity() as androidx.fragment.app.FragmentActivity
-        // Use NavigationManager and pass courseId (use title as fallback if no id)
-        com.nhlstenden.appdev.core.utils.NavigationManager.navigateToCourseTasks(activity, course.title)
     }
 
     override fun getItemCount() = courses.size
@@ -104,6 +99,7 @@ class HomeFragment : Fragment() {
     private lateinit var profilePicture: ImageView
     private lateinit var circularXpBar: CircularProgressBar
     private lateinit var levelInCircleText: TextView
+    private lateinit var courseRepositoryImpl: CourseRepositoryImpl
     private val profileViewModel: ProfileViewModel by viewModels()
     private var displayNameDialogShown = false
 
@@ -112,91 +108,106 @@ class HomeFragment : Fragment() {
     private val streakManager = StreakManager()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.fragment_home, container, false)
     }
 
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        courseRepositoryImpl = CourseRepositoryImpl(requireContext().applicationContext as Application)
+        setupUI(view)
+        observeViewModel()
         dayCounter(view)
+    }
 
+    override fun onResume() {
+        super.onResume()
+        setupUI(requireView())
+        dayCounter(requireView())
+    }
+
+    fun setupUI(view: View) {
         greetingText = view.findViewById(R.id.greetingText)
         motivationalMessage = view.findViewById(R.id.motivationalMessage)
         profilePicture = view.findViewById(R.id.profileImage)
         circularXpBar = view.findViewById(R.id.circularXpBar)
         levelInCircleText = view.findViewById(R.id.levelInCircleText)
 
-        // Listen for profile picture updates from ProfileFragment
-        parentFragmentManager.setFragmentResultListener("profile_picture_updated", viewLifecycleOwner) { _, bundle ->
-            val profilePic = bundle.getString("profile_picture")
-            val invalidPics = listOf(null, "", "null")
-            if (profilePic !in invalidPics) {
-                if (profilePic!!.startsWith("http")) {
-                    Glide.with(this)
-                        .load(profilePic)
-                        .placeholder(R.drawable.zorotlpf)
-                        .error(R.drawable.zorotlpf)
-                        .into(profilePicture)
-                } else {
-                    // Assume base64
-                    val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
-                    val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                    profilePicture.setImageBitmap(bitmap)
+        val userData = UserManager.getCurrentUser()
+        if (userData == null) {
+            Log.e("HomeFragment", "No user data available")
+            return
+        }
+
+        // Load profile picture
+        loadProfilePicture(userData.profilePicture ?: "")
+
+        // Load courses and update UI
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val courses = courseRepositoryImpl.getCourses(userData)
+                val homeCourses = courses?.mapNotNull { course ->
+                    // Set default progress to 0 if no database entry exists
+                    val progress = course.progress ?: 0
+                    val totalTasks = course.totalTasks ?: 0
+                    
+                    if (progress == 0) {
+                        Log.d("HomeFragment", "Not adding course: ${course.title}")
+                        return@mapNotNull null
+                    }
+                    Log.d("HomeFragment", "Adding course: ${course.title}")
+
+                    val accentColor = when (course.id) {
+                        "html" -> ContextCompat.getColor(requireContext(), R.color.html_color)
+                        "css" -> ContextCompat.getColor(requireContext(), R.color.css_color)
+                        "sql" -> ContextCompat.getColor(requireContext(), R.color.sql_color)
+                        else -> ContextCompat.getColor(requireContext(), R.color.html_color)
+                    }
+
+                    HomeCourse(
+                        course.id,
+                        "Lesson: $progress of $totalTasks",
+                        ((progress.toFloat() / totalTasks.toFloat()) * 100).toInt(),
+                        course.imageResId,
+                        accentColor
+                    )
+                } ?: emptyList()
+
+                withContext(Dispatchers.Main) {
+                    val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)
+                    recyclerView.layoutManager = LinearLayoutManager(context)
+                    recyclerView.adapter = HomeCourseAdapter(homeCourses, this@HomeFragment)
                 }
-            } else {
-                profilePicture.setImageResource(R.drawable.zorotlpf)
+            } catch (e: Exception) {
+                Log.e("HomeFragment", "Error loading courses", e)
             }
         }
 
         // Set user data in ProfileViewModel
-        val userData = arguments?.getParcelable<com.nhlstenden.appdev.core.models.User>("USER_DATA") ?: com.nhlstenden.appdev.core.utils.UserManager.getCurrentUser()
-        userData?.let { user ->
-            profileViewModel.setUserData(user)
-            profileViewModel.loadProfile()
-        }
+        profileViewModel.setUserData(userData)
+        profileViewModel.loadProfile()
+    }
 
-        setupProfileButton()
-        setupUI(view)
-
-        // Observe profile state using StateFlow
+    private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
-            android.util.Log.d("HomeFragment", "Started collecting profileState")
             profileViewModel.profileState.collect { state ->
-                android.util.Log.d("HomeFragment", "profileState emitted: $state")
                 if (state is ProfileState.Success) {
                     val displayName = state.profile.displayName
                     val invalidNames = listOf("", "null", "default", "user", "anonymous")
-                    android.util.Log.d("HomeFragment", "Display name from profile: '$displayName'")
                     if (displayName in invalidNames && !displayNameDialogShown) {
                         showDisplayNameDialog()
                     } else {
                         greetingText.text = getString(R.string.greeting_format, displayName)
                     }
-                    // Show correct profile picture
-                    val profilePic = state.profile.profilePicture
-                    val invalidPics = listOf(null, "", "null")
-                    if (profilePic !in invalidPics) {
-                        if (profilePic!!.startsWith("http")) {
-                            Glide.with(this@HomeFragment)
-                                .load(profilePic)
-                                .placeholder(R.drawable.zorotlpf)
-                                .error(R.drawable.zorotlpf)
-                                .into(profilePicture)
-                        } else {
-                            // Assume base64
-                            val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
-                            val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                            profilePicture.setImageBitmap(bitmap)
-                        }
-                    } else {
-                        profilePicture.setImageResource(R.drawable.zorotlpf)
-                    }
+
                     // Set circular XP bar and level
                     val level = state.profile.level
                     val xp = state.profile.experience
                     levelInCircleText.text = level.toString()
+                    
                     // Calculate XP needed for next level
                     var requiredXp = 100.0
                     var totalXp = 0.0
@@ -212,96 +223,54 @@ class HomeFragment : Fragment() {
             }
         }
     }
-    
-    private fun setupProfileButton() {
-        profilePicture.setOnClickListener {
-            val profileFragment = ProfileFragment()
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, profileFragment)
-                .addToBackStack(null)
-                .commit()
 
-            activity?.findViewById<ViewPager2>(R.id.viewPager)?.visibility = View.GONE
-            activity?.findViewById<FrameLayout>(R.id.fragment_container)?.visibility = View.VISIBLE
-        }
-    }
-    
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    fun setupUI(view: View) {
-        // Get user data from arguments
-        val userData = arguments?.getParcelable<com.nhlstenden.appdev.core.models.User>("USER_DATA") ?: com.nhlstenden.appdev.core.utils.UserManager.getCurrentUser()
-        userData?.let { user ->
-            greetingText.text = getString(R.string.greeting_format, user.username)
-            updateMotivationalMessage(user)
-            
-            // Load profile picture
-            loadProfilePicture(user.profilePicture ?: "")
-        }
-
-        // Get course data from XML
-        val courseParser = CourseParser(requireContext())
-        val parsedCourses = courseParser.loadAllCourses()
-        
-        // Process course data for the UI
-        val courses = if (parsedCourses.isNotEmpty()) {
-            parsedCourses.map { course ->
-                // Calculate progress information
-//                TODO: Replace with Supabase values
-                val totalTopics = 100
-                val topicsWithProgress = 30
-                val averageProgress = if (totalTopics > 0) {
-                    topicsWithProgress / totalTopics
-                } else 0
-                
-                // Get appropriate icon and accent color based on course title
-                val accentColor = when (course.title) {
-                    "HTML" -> ContextCompat.getColor(requireContext(), R.color.html_color)
-                    "CSS" -> ContextCompat.getColor(requireContext(), R.color.css_color)
-                    "SQL" -> ContextCompat.getColor(requireContext(), R.color.sql_color)
-                    else -> ContextCompat.getColor(requireContext(), R.color.html_color)
+    private fun loadProfilePicture(profilePic: String) {
+        if (profilePic.isNotEmpty() && profilePic != "null") {
+            if (profilePic.startsWith("http")) {
+                Glide.with(this)
+                    .load(profilePic)
+                    .placeholder(R.drawable.zorotlpf)
+                    .error(R.drawable.zorotlpf)
+                    .into(profilePicture)
+            } else {
+                try {
+                    val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
+                    val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                    profilePicture.setImageBitmap(bitmap)
+                } catch (e: Exception) {
+                    profilePicture.setImageResource(R.drawable.zorotlpf)
                 }
-                
-                HomeCourse(
-                    course.title,
-                    "Lesson $topicsWithProgress of $totalTopics",
-                    averageProgress,
-                    course.imageResId,
-                    accentColor
-                )
             }
         } else {
-//            TODO: Display a nice error and take appropiate actions
-            emptyList()
+            profilePicture.setImageResource(R.drawable.zorotlpf)
+        }
+    }
+
+    private fun showDisplayNameDialog() {
+        displayNameDialogShown = true
+        val editText = EditText(requireContext()).apply {
+            hint = "Enter display name"
+            setSingleLine()
         }
 
-        val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)
-        recyclerView.layoutManager = LinearLayoutManager(context)
-        recyclerView.adapter = HomeCourseAdapter(courses, this)
-    }
-    
-    private fun loadProfilePicture(profilePictureData: String) {
-        if (profilePictureData.isNotEmpty()) {
-            try {
-                val imageData = android.util.Base64.decode(profilePictureData, android.util.Base64.DEFAULT)
-                val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
-                if (bitmap != null) {
-                    profilePicture.setImageBitmap(bitmap)
+        AlertDialog.Builder(requireContext())
+            .setTitle("Set Display Name")
+            .setMessage("Please enter a display name to continue.")
+            .setView(editText)
+            .setCancelable(false)
+            .setPositiveButton("Save") { _, _ ->
+                val newName = editText.text.toString().trim()
+                if (newName.isNotEmpty()) {
+                    profileViewModel.updateProfile(newName, null, null)
+                } else {
+                    displayNameDialogShown = false
+                    showDisplayNameDialog()
                 }
-            } catch (e: Exception) {
-                // If there's an error, keep the default image
-                android.util.Log.e("HomeFragment", "Error loading profile picture: ${e.message}")
             }
-        }
+            .show()
     }
 
-    private fun updateMotivationalMessage(_user: com.nhlstenden.appdev.core.models.User) {
-        // TODO: Replace with actual friend data from the backend
-        val friendName = "John"
-        val tasksAhead = 5
-        motivationalMessage.text = getString(R.string.motivational_message, friendName, tasksAhead)
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun dayCounter(view: View) {
         val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         val container = view.findViewById<LinearLayout>(R.id.daysContainer)
@@ -360,11 +329,10 @@ class HomeFragment : Fragment() {
                                 )
                             }
 
-                            // Draw the checkmark
-                            val check = ImageView(requireContext()).apply {
+                            // Draw the fire icon for completed days
+                            val fireIcon = ImageView(requireContext()).apply {
                                 layoutParams = FrameLayout.LayoutParams(32, 32, Gravity.CENTER)
-                                setImageResource(R.drawable.ic_check)
-                                // Show checkmark only on completed days
+                                setImageResource(R.drawable.ic_fire)
                                 visibility = if (isCompleted) View.VISIBLE else View.INVISIBLE
                                 setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN)
                             }
@@ -377,7 +345,7 @@ class HomeFragment : Fragment() {
                                 gravity = Gravity.CENTER
                             }
 
-                            circle.addView(check)
+                            circle.addView(fireIcon)
                             dayLayout.addView(circle)
                             dayLayout.addView(label)
                             container.addView(dayLayout)
@@ -407,28 +375,5 @@ class HomeFragment : Fragment() {
 
     private fun updateUserData(_user: com.nhlstenden.appdev.core.models.User) {
         // Implementation
-    }
-
-    private fun showDisplayNameDialog() {
-        displayNameDialogShown = true
-        val editText = EditText(requireContext())
-        editText.hint = "Enter display name"
-        AlertDialog.Builder(requireContext())
-            .setTitle("Set Display Name")
-            .setMessage("Please enter a display name to continue.")
-            .setView(editText)
-            .setCancelable(false)
-            .setPositiveButton("Save") { _, _ ->
-                val newDisplayName = editText.text.toString().trim()
-                if (newDisplayName.isNotEmpty()) {
-                    // Update profile in Supabase
-                    profileViewModel.updateProfile(newDisplayName, null, null)
-                } else {
-                    // Show dialog again if input is empty
-                    displayNameDialogShown = false
-                    showDisplayNameDialog()
-                }
-            }
-            .show()
     }
 }

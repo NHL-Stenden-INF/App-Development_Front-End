@@ -41,12 +41,14 @@
     <style name="CustomTextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
         <item name="boxStrokeColor">@color/primary</item>
         <item name="hintTextColor">@color/primary</item>
-        <item name="boxBackgroundColor">@color/white</item>
+        <item name="boxBackgroundColor">@color/input_background</item>
         <item name="boxStrokeWidth">1dp</item>
         <item name="boxCornerRadiusBottomEnd">16dp</item>
         <item name="boxCornerRadiusBottomStart">16dp</item>
         <item name="boxCornerRadiusTopEnd">16dp</item>
         <item name="boxCornerRadiusTopStart">16dp</item>
         <item name="android:elevation">0dp</item>
+        <item name="passwordToggleTint">@color/primary</item>
+        <item name="android:textColorHint">@color/text_secondary</item>
     </style>
 </resources>

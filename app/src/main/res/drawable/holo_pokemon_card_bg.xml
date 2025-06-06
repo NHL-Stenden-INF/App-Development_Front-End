@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Vibrant rainbow gradient background -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="135"
+                android:startColor="#FFB3E5FC"
+                android:centerColor="#FFFFF176"
+                android:endColor="#FFFF8A65"
+                android:centerX="0.3"
+                android:centerY="0.7"
+            />
+        </shape>
+    </item>
+    <!-- Holo symbols pattern -->
+    <item>
+        <bitmap
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0.4"
+            android:gravity="fill"
+            android:src="@drawable/holo_symbols_pattern"
+            android:tileMode="repeat" />
+    </item>
+</layer-list> 
