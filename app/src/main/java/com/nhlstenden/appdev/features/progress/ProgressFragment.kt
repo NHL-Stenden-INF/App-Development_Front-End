@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.progress.ui
+package com.nhlstenden.appdev.features.progress
 
 import android.app.Application
 import android.graphics.Color
@@ -29,6 +29,12 @@ import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.runBlocking
+import com.daimajia.numberprogressbar.NumberProgressBar
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.nhlstenden.appdev.core.utils.NavigationManager
 
 @AndroidEntryPoint
 class ProgressFragment : Fragment() {
@@ -45,15 +51,6 @@ class ProgressFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_progress, container, false)
 
-        courseRepositoryImpl = CourseRepositoryImpl(requireContext().applicationContext as Application)
-        courses = runBlocking {
-            try {
-                courseRepositoryImpl.getCourses(UserManager.getCurrentUser()!!)
-            } catch (e: RuntimeException) {
-                null
-            }
-        }
-
         // Initialize views
         pieChart = view.findViewById(R.id.tasksPieChart)
         courseProgressList = view.findViewById(R.id.courseProgressList)
@@ -66,10 +63,32 @@ class ProgressFragment : Fragment() {
         // Set text from resources
         overallProgressTitle.text = getString(R.string.overall_progress_title)
         
-        setupPieChart()
-        setupCourseList()
+        loadData()
         
         return view
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadData()
+    }
+
+    private fun loadData() {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                courseRepositoryImpl = CourseRepositoryImpl(requireContext().applicationContext as Application)
+                val currentUser = UserManager.getCurrentUser()
+                if (currentUser != null) {
+                    courses = courseRepositoryImpl.getCourses(currentUser)
+                    withContext(Dispatchers.Main) {
+                        setupPieChart()
+                        setupCourseList()
+                    }
+                }
+            } catch (e: RuntimeException) {
+                Log.e("ProgressFragment", "Error loading data", e)
+            }
+        }
     }
 
     private fun setupPieChart() {
@@ -163,8 +182,8 @@ class ProgressFragment : Fragment() {
 
         courseProgressList.apply {
             layoutManager = LinearLayoutManager(context)
-            adapter = CourseProgressAdapter(progressCourses) { courseName ->
-                navigateToCourse(courseName)
+            adapter = CourseProgressAdapter(progressCourses) { courseId ->
+                NavigationManager.navigateToCourseTasks(requireActivity(), courseId)
             }
         }
     }
@@ -201,10 +220,9 @@ class CourseProgressAdapter(
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val courseImage: ImageView = view.findViewById(R.id.courseImage)
         val courseTitle: TextView = view.findViewById(R.id.courseTitle)
-        val progressBar: LinearProgressIndicator = view.findViewById(R.id.progressBar)
-        val progressPercentage: TextView = view.findViewById(R.id.progressPercentage)
         val difficultyLevel: TextView = view.findViewById(R.id.difficultyLevel)
-        val courseDescription: TextView = view.findViewById(R.id.courseDescription)
+        val progressBar: NumberProgressBar = view.findViewById(R.id.progressBar)
+        val root: View = view
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -215,17 +233,14 @@ class CourseProgressAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val course = courses[position]
-        holder.courseImage.setImageResource(course.imageResId)
         holder.courseTitle.text = course.title
-        holder.difficultyLevel.text = ""
-        holder.difficultyLevel.visibility = View.GONE
-        holder.courseDescription.text = ""
-        holder.courseDescription.visibility = View.GONE
-        holder.progressBar.visibility = View.VISIBLE
+        holder.difficultyLevel.text = course.completionStatus
         holder.progressBar.progress = course.progressPercentage
-        holder.progressPercentage.visibility = View.VISIBLE
-        holder.progressPercentage.text = "${course.progressPercentage}%"
-        holder.itemView.setOnClickListener { onCourseClick(course.title) }
+        holder.courseImage.setImageResource(course.imageResId)
+
+        holder.root.setOnClickListener {
+            onCourseClick(course.title)
+        }
     }
 
     override fun getItemCount() = courses.size

@@ -109,8 +109,23 @@ class SupabaseClient() {
         }
     }
 
-    fun updateUserPoints(userId: String, newPoints: Int, authToken: String): Response {
-        val json = """{"points": $newPoints}"""
+    fun updateUserPoints(userId: String, points: Int, authToken: String): Response {
+        val json = """{"points": $points}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/users?id=eq.$userId")
+            .patch(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+
+        return client.newCall(request).execute()
+    }
+
+    fun updateUserXp(userId: String, xp: Int, authToken: String): Response {
+        val json = """{"xp": $xp}"""
         val requestBody = json.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
             .url("$supabaseUrl/rest/v1/user_attributes?id=eq.$userId")
@@ -120,6 +135,7 @@ class SupabaseClient() {
             .addHeader("Content-Type", "application/json")
             .addHeader("Prefer", "return=minimal")
             .build()
+
         return client.newCall(request).execute()
     }
 
@@ -477,29 +493,28 @@ class SupabaseClient() {
             .build()
 
         val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
-
+        val bodyString = response.body?.string()
+        Log.d("SupabaseClient", "getUserProgress: code=${response.code}, body=$bodyString")
         if (!response.isSuccessful) {
-            val errorBody = response.body?.string()
-            Log.e("SupabaseClient", "Progress fetching failed with response: $errorBody")
-            throw RuntimeException(errorBody ?: "Progress fetching failed with code ${response.code}")
+            Log.e("SupabaseClient", "Progress fetching failed with response: $bodyString")
+            throw RuntimeException(bodyString ?: "Progress fetching failed with code ${response.code}")
         }
 
-        val body = response.body?.string() ?: throw RuntimeException("No response body")
-        val arr = org.json.JSONArray(body)
-        if (arr.length() == 0) throw RuntimeException("Progress fetching failed")
+        val arr = org.json.JSONArray(bodyString)
         return arr
     }
 
     fun updateUserProgress(userId: String, taskId: String, newProgress: Int, authToken: String): Response {
-        val json = """{"task_id": ${taskId}, "progress": ${newProgress}}"""
+        val courseId = taskId.substringBefore("_")
+        val json = """{"progress": $newProgress}"""
         val requestBody = json.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
-            .url("$supabaseUrl/rest/v1/user_progress?id=eq.$userId")
-            .post(requestBody)
+            .url("$supabaseUrl/rest/v1/user_progress?user_id=eq.$userId&course_id=eq.$courseId")
+            .patch(requestBody)
             .addHeader("apikey", supabaseKey)
             .addHeader("Authorization", "Bearer $authToken")
             .addHeader("Content-Type", "application/json")
-            .addHeader("Prefer", "resolution=merge-duplicates,return=minimal")
+            .addHeader("Prefer", "return=minimal")
             .build()
 
         return client.newCall(request).execute()   
@@ -516,6 +531,73 @@ class SupabaseClient() {
             requiredXp = (requiredXp * 1.1).toLong() // 10% more XP per level
         }
         return level
+    }
+
+    fun insertUserProgress(userId: String, courseId: String, progress: Int, authToken: String): Response {
+        val json = """{"user_id": "$userId", "course_id": "$courseId", "progress": $progress}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/user_progress")
+            .post(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+        return client.newCall(request).execute()
+    }
+
+    fun insertUserProgressRPC(userId: String, courseId: String, progress: Int, authToken: String): Response {
+        val json = """{"_user_id": "$userId", "_course_id": "$courseId", "_progress": $progress}"""
+        Log.d("SupabaseClient", "insertUserProgressRPC payload: $json")
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/insert_user_progress")
+            .post(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+        val response = client.newCall(request).execute()
+        val responseBodyString = response.body?.string()
+        Log.d("SupabaseClient", "insertUserProgressRPC response: code=${response.code}, body=$responseBodyString")
+        // Do not use response.body?.string() again after this!
+        return response
+    }
+
+    suspend fun createUserProgress(userId: String, courseId: String, progress: Int, authToken: String) {
+        withContext(Dispatchers.IO) {
+            val url = "$supabaseUrl/rest/v1/rpc/insert_user_progress"
+            val jsonObject = JSONObject().apply {
+                put("_user_id", userId)
+                put("_course_id", courseId)
+                put("_progress", progress)
+            }
+
+            val client = OkHttpClient.Builder()
+                .addInterceptor { chain ->
+                    val request = chain.request().newBuilder()
+                        .addHeader("apikey", supabaseKey)
+                        .addHeader("Authorization", "Bearer $authToken")
+                        .addHeader("Content-Type", "application/json")
+                        .addHeader("Prefer", "return=minimal")
+                        .build()
+                    chain.proceed(request)
+                }
+                .build()
+
+            val request = Request.Builder()
+                .url(url)
+                .post(jsonObject.toString().toRequestBody("application/json".toMediaType()))
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw Exception("Failed to create user progress: ${response.code}")
+                }
+            }
+        }
     }
 }
 

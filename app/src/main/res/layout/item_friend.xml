@@ -45,25 +45,18 @@
             app:layout_constraintTop_toTopOf="parent"
             android:layout_marginEnd="8dp"/>
 
-        <ProgressBar
-            android:id="@+id/friendProgressBar"
-            style="?android:attr/progressBarStyleHorizontal"
+        <TextView
+            android:id="@+id/friendBio"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:textSize="14sp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:textColor="@android:color/darker_gray"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="@id/friendUsername"
             app:layout_constraintTop_toBottomOf="@id/friendUsername" />
-
-        <TextView
-            android:id="@+id/friendProgressText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textSize="12sp"
-            app:layout_constraintBottom_toBottomOf="@id/friendProgressBar"
-            app:layout_constraintStart_toEndOf="@id/friendProgressBar"
-            app:layout_constraintTop_toTopOf="@id/friendProgressBar" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

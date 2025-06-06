@@ -16,9 +16,9 @@ import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import com.nhlstenden.appdev.friends.ui.screens.FriendsFragment
-import com.nhlstenden.appdev.home.ui.HomeFragment
+import com.nhlstenden.appdev.features.home.HomeFragment
 import com.nhlstenden.appdev.features.profile.screens.ProfileFragment
-import com.nhlstenden.appdev.progress.ui.ProgressFragment
+import com.nhlstenden.appdev.features.progress.ProgressFragment
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.rewards.ui.RewardsFragment
 import com.nhlstenden.appdev.core.models.User
@@ -50,6 +50,11 @@ class MainActivity : AppCompatActivity() {
             override fun handleOnBackPressed() {
                 if (supportFragmentManager.backStackEntryCount > 0) {
                     supportFragmentManager.popBackStack()
+                    // If we're going back to the main view, show the ViewPager and hide the fragment container
+                    if (supportFragmentManager.backStackEntryCount == 0) {
+                        findViewById<ViewPager2>(R.id.viewPager).visibility = View.VISIBLE
+                        findViewById<FrameLayout>(R.id.fragment_container).visibility = View.GONE
+                    }
                 } else {
                     finish()
                 }

@@ -422,23 +422,24 @@ class FriendsFragment : Fragment() {
                                     val points = friendData.getInt("points")
                                     val profilePicture = friendData.getString("profile_picture")
                                     val displayName = friendData.getString("display_name")
+                                    val bio = friendData.optString("bio", null)
                                     
                                     // Add friend details
-                                    friendDetails.add(Friend(displayName, points, profilePicture))
+                                    friendDetails.add(Friend(displayName, points, profilePicture, bio))
                                     Log.d(TAG, "Added friend details: $displayName")
                                 } else {
                                     val shortId = friendId.replace("-", "").take(8)
-                                    friendDetails.add(Friend("User ($shortId)", 0, ""))
+                                    friendDetails.add(Friend("User ($shortId)", 0, "", ""))
                                 }
                             } catch (e: Exception) {
                                 Log.e(TAG, "Error parsing friend data: ${e.message}")
                                 val shortId = friendId.replace("-", "").take(8)
-                                friendDetails.add(Friend("User ($shortId)", 0, ""))
+                                friendDetails.add(Friend("User ($shortId)", 0, "", ""))
                             }
                         } else {
                             Log.e(TAG, "Error getting friend details: ${attributesResponse.code}")
                             val shortId = friendId.replace("-", "").take(8)
-                            friendDetails.add(Friend("User ($shortId)", 0, ""))
+                            friendDetails.add(Friend("User ($shortId)", 0, "", ""))
                         }
                     }
                 }
@@ -540,7 +541,8 @@ class FriendsFragment : Fragment() {
 data class Friend(
     val name: String,
     val points: Int,
-    val profilePicture: String
+    val profilePicture: String,
+    val bio: String?
 )
 
 class FriendAdapter(private val friends: MutableList<Friend>) :

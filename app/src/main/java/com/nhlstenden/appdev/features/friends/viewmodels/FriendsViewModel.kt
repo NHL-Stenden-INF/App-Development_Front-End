@@ -55,10 +55,11 @@ class FriendsViewModel @Inject constructor(
                     id = obj.optString("id"),
                     username = obj.optString("display_name"),
                     profilePicture = obj.optString("profile_picture", null),
+                    bio = obj.optString("bio", null),
                     progress = obj.optInt("points", 0)
                 )
                 friendsList.add(friend)
-                Log.d("FriendsViewModel", "Parsed friend: id=${friend.id}, username=${friend.username}, profilePicture=${friend.profilePicture}, points=${friend.progress}")
+                Log.d("FriendsViewModel", "Parsed friend: id=${friend.id}, username=${friend.username}, profilePicture=${friend.profilePicture}, bio=${friend.bio}, points=${friend.progress}")
             }
             _friends.value = friendsList
         }

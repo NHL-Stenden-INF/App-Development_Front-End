@@ -13,6 +13,7 @@ class TrueFalseFragment : BaseTaskFragment() {
     private lateinit var questionText: TextView
     private lateinit var trueButton: MaterialButton
     private lateinit var falseButton: MaterialButton
+    private var hasAnswered = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -28,21 +29,56 @@ class TrueFalseFragment : BaseTaskFragment() {
         falseButton = view.findViewById(R.id.falseButton)
 
         trueButton.setOnClickListener {
-            checkAnswer(true)
+            if (!hasAnswered) {
+                checkAnswer(true)
+            }
         }
 
         falseButton.setOnClickListener {
-            checkAnswer(false)
+            if (!hasAnswered) {
+                checkAnswer(false)
+            }
         }
     }
 
     override fun bindQuestion() {
         questionText.text = question.text
+        hasAnswered = false
+        trueButton.isEnabled = true
+        falseButton.isEnabled = true
+        trueButton.setBackgroundColor(0xFFEEEEEE.toInt())
+        falseButton.setBackgroundColor(0xFFEEEEEE.toInt())
     }
 
     private fun checkAnswer(selectedAnswer: Boolean) {
+        if (hasAnswered) return
+        hasAnswered = true
+        
         val correctAnswer = question.correctAnswer?.toBoolean() ?: false
-        taskCompleteListener?.onTaskComplete(selectedAnswer == correctAnswer)
+        val isCorrect = selectedAnswer == correctAnswer
+        
+        // Disable both buttons
+        trueButton.isEnabled = false
+        falseButton.isEnabled = false
+        
+        // Color the buttons based on the answer
+        if (isCorrect) {
+            if (selectedAnswer) {
+                trueButton.setBackgroundColor(0xFF4CAF50.toInt()) // Green for correct
+            } else {
+                falseButton.setBackgroundColor(0xFF4CAF50.toInt()) // Green for correct
+            }
+        } else {
+            if (selectedAnswer) {
+                trueButton.setBackgroundColor(0xFFF44336.toInt()) // Red for incorrect
+                falseButton.setBackgroundColor(0xFF4CAF50.toInt()) // Green for correct answer
+            } else {
+                falseButton.setBackgroundColor(0xFFF44336.toInt()) // Red for incorrect
+                trueButton.setBackgroundColor(0xFF4CAF50.toInt()) // Green for correct answer
+            }
+        }
+        
+        taskCompleteListener?.onTaskComplete(isCorrect)
     }
 
     companion object {

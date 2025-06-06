@@ -1,12 +1,14 @@
 package com.nhlstenden.appdev.features.task.fragments
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.nhlstenden.appdev.features.task.models.Question
 import com.nhlstenden.appdev.features.task.TaskCompleteListener
+import com.nhlstenden.appdev.features.task.TaskFailureDialogFragment
 
 abstract class BaseTaskFragment : Fragment() {
     protected lateinit var question: Question
@@ -25,12 +27,30 @@ abstract class BaseTaskFragment : Fragment() {
         bindQuestion()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Reset the fragment state when it becomes visible
+        bindQuestion()
+    }
+
     protected abstract fun setupViews(view: View)
     protected abstract fun bindQuestion()
 
     protected fun onTaskComplete(isCorrect: Boolean) {
         taskCompleteListener?.onTaskComplete(isCorrect)
-        taskCompleteListener?.onTaskCompleted(question)
+        if (isCorrect) {
+            taskCompleteListener?.onTaskCompleted(question)
+        }
+    }
+
+    fun onTaskFailed() {
+        Log.d("BaseTaskFragment", "Task failed, showing failure dialog")
+        TaskFailureDialogFragment().show(childFragmentManager, "task_failure_dialog")
+    }
+
+    fun resetTask() {
+        Log.d("BaseTaskFragment", "Resetting task state")
+        bindQuestion()
     }
 
     companion object {
