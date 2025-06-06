@@ -12,22 +12,25 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
-import com.nhlstenden.appdev.databinding.ActivityTaskBinding
-import com.nhlstenden.appdev.home.data.repositories.StreakRepository
-import com.nhlstenden.appdev.home.manager.StreakManager
 import com.nhlstenden.appdev.core.utils.UserManager
-import com.nhlstenden.appdev.features.task.models.Question
-import com.nhlstenden.appdev.features.task.adapters.TaskPagerAdapter
-import com.nhlstenden.appdev.features.task.viewmodels.TaskViewModel
+import com.nhlstenden.appdev.databinding.ActivityTaskBinding
+import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import com.nhlstenden.appdev.features.task.TaskCompleteListener
+import com.nhlstenden.appdev.features.task.TaskFailureDialogFragment
+import com.nhlstenden.appdev.features.task.adapters.TaskPagerAdapter
+import com.nhlstenden.appdev.features.task.fragments.BaseTaskFragment
+import com.nhlstenden.appdev.features.task.models.Question
+import com.nhlstenden.appdev.features.task.viewmodels.TaskViewModel
+import com.nhlstenden.appdev.main.MainActivity
+import com.nhlstenden.appdev.features.home.repositories.StreakRepository
+import com.nhlstenden.appdev.features.home.StreakManager
 import com.nhlstenden.appdev.supabase.SupabaseClient
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 import org.json.JSONArray
-import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 
 @AndroidEntryPoint
 class TaskActivity : AppCompatActivity() {
@@ -41,6 +44,7 @@ class TaskActivity : AppCompatActivity() {
     private var currentIndex = 0
     private var remainingQuestions: MutableList<Question> = mutableListOf()
     private var correctQuestionIds: MutableSet<String> = mutableSetOf()
+    private var attemptedQuestions: MutableSet<String> = mutableSetOf()
 
     @Inject
     lateinit var streakRepository: StreakRepository
@@ -64,6 +68,9 @@ class TaskActivity : AppCompatActivity() {
             return
         }
 
+        val courseId = taskId.substringBefore("_")
+        binding.taskName.text = getTaskTitle(this, courseId, taskId)
+
         setupViewPager()
         setupClickListeners()
         observeTaskState()
@@ -79,69 +86,33 @@ class TaskActivity : AppCompatActivity() {
             @RequiresApi(Build.VERSION_CODES.O)
             override fun onTaskComplete(isCorrect: Boolean) {
                 val question = currentQuestions[currentIndex]
-                Log.d("TaskActivity", "Question answered. Correct: $isCorrect")
-                
+                Log.d("TaskActivity", "Question answered. Correct: $isCorrect, Current index: $currentIndex, Total questions: ${currentQuestions.size}")
                 if (isCorrect) {
                     correctQuestionIds.add(question.id)
-                    Log.d("TaskActivity", "Question was correct, updating streak...")
-
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        try {
-                            val currentUser = UserManager.getCurrentUser()
-                            if (currentUser != null) {
-                                Log.d("TaskActivity", "Current user found: ${currentUser.id}")
-                                val today = LocalDate.now()
-                                Log.d("TaskActivity", "Updating streak for date: $today")
-                                
-                                // Get current streak and last task date from database
-                                val currentStreak = streakRepository.getCurrentStreak(currentUser.id.toString(), currentUser.authToken)
-                                val lastTaskDate = streakRepository.getLastTaskDate(currentUser.id.toString(), currentUser.authToken)
-                                
-                                // Only update streak if last task was from a previous day
-                                if (lastTaskDate == null || lastTaskDate.isBefore(today)) {
-                                    // Update streak with today's date
-                                    streakManager.updateStreak(today, currentStreak)
-                                    
-                                    // Update both last task date and streak in database
-                                    val streakUpdated = streakRepository.updateLastTaskDate(currentUser.id.toString(), today, currentUser.authToken)
-                                    val newStreak = streakManager.getCurrentStreak()
-                                    val streakResponse = streakRepository.updateStreak(currentUser.id.toString(), newStreak, currentUser.authToken)
-                                    
-                                    Log.d("TaskActivity", "Streak update result: $streakUpdated")
-                                    Log.d("TaskActivity", "New streak: $newStreak")
-                                } else {
-                                    Log.d("TaskActivity", "Task already completed today, no streak update needed")
-                                }
-
-                                // Update task progress
-                                try {
-                                    val taskId = intent.getStringExtra(EXTRA_TASK_ID)
-                                    if (taskId != null) {
-                                        val courseId = taskId.substringBefore("_")
-                                        val progressUpdated = courseRepository.updateTaskProgress(
-                                            currentUser.id.toString(),
-                                            courseId,
-                                            1
-                                        )
-                                        if (!progressUpdated) {
-                                            Log.e("TaskActivity", "Failed to update task progress")
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e("TaskActivity", "Error updating task progress: ${e.message}")
-                                }
-                            } else {
-                                Log.e("TaskActivity", "No current user found")
-                            }
-                        } catch (e: Exception) {
-                            Log.e("TaskActivity", "Error updating streak: ${e.message}")
-                            Log.e("TaskActivity", "Stack trace: ${e.stackTraceToString()}")
-                        }
+                } else {
+                    wrongQuestionIds.add(question.id)
+                    roundWrongIds.add(question.id)
+                }
+                // Move to next question
+                if (currentIndex < currentQuestions.size - 1) {
+                    currentIndex++
+                    binding.viewPager.setCurrentItem(currentIndex, true)
+                } else {
+                    // We're at the last question
+                    if (roundWrongIds.isNotEmpty()) {
+                        // Show failure dialog
+                        showTaskFailedDialog()
+                    } else {
+                        // All questions were correct, task is completed
+                        viewModel.completeTask()
                     }
                 }
             }
         })
         binding.viewPager.adapter = taskPagerAdapter
+        
+        // Disable swipe between questions
+        binding.viewPager.isUserInputEnabled = false
     }
 
     private fun setupClickListeners() {
@@ -162,8 +133,11 @@ class TaskActivity : AppCompatActivity() {
                     binding.viewPager.visibility = View.VISIBLE
                     allQuestions = state.questions
                     correctQuestionIds.clear()
+                    wrongQuestionIds.clear()
+                    roundWrongIds.clear()
                     currentQuestions = allQuestions.shuffled().toMutableList()
                     currentIndex = 0
+                    Log.d("TaskActivity", "Questions loaded. Total questions: ${currentQuestions.size}")
                     updateQuestionNumber()
                     taskPagerAdapter.submitList(currentQuestions)
                     binding.viewPager.setCurrentItem(0, false)
@@ -184,7 +158,33 @@ class TaskActivity : AppCompatActivity() {
                     if (currentUser != null && taskId != null) {
                         val courseId = taskId.substringBefore("_")
                         lifecycleScope.launch(Dispatchers.IO) {
-                            courseRepository.updateTaskProgress(currentUser.id.toString(), courseId, 0)
+                            try {
+                                // Get current progress
+                                val userProgresses = supabaseClient.getUserProgress(currentUser.id.toString(), currentUser.authToken)
+                                var currentProgress = 0
+                                
+                                // Find the current progress for this course
+                                for(i in 0 until userProgresses.length()) {
+                                    val jsonObject = userProgresses.getJSONObject(i)
+                                    if (jsonObject.getString("course_id") == courseId) {
+                                        currentProgress = jsonObject.getInt("progress")
+                                        break
+                                    }
+                                }
+                                
+                                // Update progress with the new value
+                                val progressUpdated = courseRepository.updateTaskProgress(
+                                    currentUser.id.toString(),
+                                    taskId,
+                                    currentProgress + 1
+                                )
+                                
+                                if (!progressUpdated) {
+                                    Log.e("TaskActivity", "Failed to update task progress")
+                                }
+                            } catch (e: Exception) {
+                                Log.e("TaskActivity", "Error updating task progress: ${e.message}")
+                            }
                         }
                     }
                     Toast.makeText(this, "Task completed! You earned $pointsEarned points!", Toast.LENGTH_SHORT).show()
@@ -245,49 +245,49 @@ class TaskActivity : AppCompatActivity() {
         }
     }
 
+    private fun showTaskFailedDialog() {
+        Log.d("TaskActivity", "Showing failure dialog. Current index: $currentIndex, Total questions: ${currentQuestions.size}")
+        TaskFailureDialogFragment().show(supportFragmentManager, "task_failure_dialog")
+    }
+
     fun onNextQuestion() {
-        // Called from fragment after feedback
+        Log.d("TaskActivity", "onNextQuestion called. Current index: $currentIndex, Total questions: ${currentQuestions.size}")
+        // Move to next question
         if (currentIndex < currentQuestions.size - 1) {
-            binding.viewPager.currentItem = currentIndex + 1
+            currentIndex++
+            binding.viewPager.setCurrentItem(currentIndex, true)
         } else {
-            // End of round: only repeat questions that were answered incorrectly
-            val incorrectQuestions = allQuestions.filter { question -> 
-                !correctQuestionIds.contains(question.id)
-            }
-            
-            if (incorrectQuestions.isEmpty()) {
-                // All questions were answered correctly, complete the task
-                viewModel.completeTask()
+            // We're at the last question
+            if (roundWrongIds.isNotEmpty()) {
+                // Show failure dialog
+                showTaskFailedDialog()
             } else {
-                // Create fresh instances of incorrect questions to reset their state
-                currentQuestions = incorrectQuestions.map { question ->
-                    Question(
-                        id = question.id,
-                        type = question.type,
-                        text = question.text,
-                        options = question.options,
-                        correctOptionId = question.correctOptionId,
-                        correctAnswer = question.correctAnswer,
-                        explanation = question.explanation,
-                        front = question.front,
-                        back = question.back,
-                        mistakes = question.mistakes,
-                        correctText = question.correctText,
-                        isCompleted = false
-                    )
-                }.shuffled().toMutableList()
-                
-                currentIndex = 0
-                updateQuestionNumber()
-                
-                // Force ViewPager to recreate all fragments
-                binding.viewPager.setCurrentItem(0, false)
-                taskPagerAdapter.submitList(emptyList())
-                binding.viewPager.post {
-                    taskPagerAdapter.submitList(currentQuestions)
-                }
+                // All questions were correct, task is completed
+                viewModel.completeTask()
             }
         }
+    }
+
+    fun resetForWrongQuestions() {
+        // Only keep questions that were wrong in the last round
+        currentQuestions = allQuestions.filter { it.id in roundWrongIds }.toMutableList()
+        currentIndex = 0
+        // Reset wrong question tracking for the next round
+        wrongQuestionIds.clear()
+        roundWrongIds.clear()
+        // Force ViewPager to recreate all fragments
+        taskPagerAdapter.submitList(emptyList())
+        binding.viewPager.post {
+            taskPagerAdapter.submitList(currentQuestions)
+            binding.viewPager.setCurrentItem(0, false)
+            updateQuestionNumber()
+        }
+    }
+
+    private fun getTaskTitle(context: Context, courseId: String, taskId: String): String {
+        val taskParser = com.nhlstenden.appdev.features.courses.TaskParser(context)
+        val task = taskParser.loadAllCoursesOfTask(courseId).find { it.id == taskId }
+        return task?.title ?: "Task"
     }
 
     companion object {

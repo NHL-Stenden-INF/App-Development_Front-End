@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.home.data.repositories
+package com.nhlstenden.appdev.features.home.repositories
 
 import android.os.Build
 import androidx.annotation.RequiresApi

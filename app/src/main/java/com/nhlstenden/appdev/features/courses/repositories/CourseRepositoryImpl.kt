@@ -118,7 +118,7 @@ class CourseRepositoryImpl @Inject constructor(
                 Log.e("CourseRepositoryImpl", "No current user found")
                 return false
             }
-            val response = supabaseClient.insertUserProgressRPC(userId, taskId, progress, currentUser.authToken)
+            val response = supabaseClient.updateUserProgress(userId, taskId, progress, currentUser.authToken)
             return response.code == 200 || response.code == 204
         } catch (e: Exception) {
             Log.e("CourseRepositoryImpl", "Error updating task progress: ${e.message}")

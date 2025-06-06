@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.home.ui
+package com.nhlstenden.appdev.features.home
 
 import android.graphics.Color
 import android.graphics.PorterDuff
@@ -31,11 +31,11 @@ import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 import com.bumptech.glide.Glide
 import com.google.android.material.progressindicator.LinearProgressIndicator
-import com.nhlstenden.appdev.home.manager.StreakManager
+import com.nhlstenden.appdev.features.home.StreakManager
 import java.time.LocalDate
 import android.util.Log
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
-import com.nhlstenden.appdev.home.data.repositories.StreakRepository
+import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking

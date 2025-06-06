@@ -1,6 +1,7 @@
 package com.nhlstenden.appdev.features.task.fragments
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -30,13 +31,22 @@ class MultipleChoiceFragment : BaseTaskFragment() {
         return inflater.inflate(R.layout.fragment_multiple_choice, container, false)
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        setupViews(view)
+        bindQuestion() // Ensure UI is always reset on fragment recreation
+    }
+
     override fun setupViews(view: View) {
         questionText = view.findViewById(R.id.questionText)
         optionsGroup = view.findViewById(R.id.optionsGroup)
         submitButton = view.findViewById(R.id.submitButton)
-        // Find nextButton by ID (add to layout if not present)
         nextButton = view.findViewById(R.id.nextButton)
-        nextButton.setOnClickListener { onNextQuestion() }
+        nextButton.visibility = View.GONE  // Hide next button initially
+        nextButton.setOnClickListener { 
+            Log.d("MultipleChoiceFragment", "Next button clicked")
+            (activity as? com.nhlstenden.appdev.features.task.screens.TaskActivity)?.onNextQuestion() 
+        }
         // Remove all views from optionsGroup
         optionsGroup.removeAllViews()
         // Add four MaterialButtons for options
@@ -85,11 +95,6 @@ class MultipleChoiceFragment : BaseTaskFragment() {
                 onTaskComplete(isCorrect)
             }
         }
-    }
-
-    private fun onNextQuestion() {
-        // Notify parent/activity to load next question
-        (activity as? com.nhlstenden.appdev.features.task.screens.TaskActivity)?.onNextQuestion()
     }
 
     override fun bindQuestion() {
