@@ -121,11 +121,15 @@ class CourseFragment : Fragment() {
         // Observe course progress and update adapter
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.courseProgress.collect { progress ->
-                taskAdapter = TaskAdapter(progress) { task ->
-                    val intent = TaskActivity.newIntent(requireContext(), task.id)
-                    startActivityForResult(intent, TASK_COMPLETION_REQUEST_CODE)
+                if (taskAdapter == null) {
+                    taskAdapter = TaskAdapter(progress) { task ->
+                        val intent = TaskActivity.newIntent(requireContext(), task.id)
+                        startActivityForResult(intent, TASK_COMPLETION_REQUEST_CODE)
+                    }
+                    binding.tasksList.adapter = taskAdapter
+                } else {
+                    taskAdapter?.updateProgress(progress)
                 }
-                binding.tasksList.adapter = taskAdapter
                 // Re-submit the current list if available
                 val currentTasks = (viewModel.tasksState.value as? CourseViewModel.TasksState.Success)?.tasks
                 if (currentTasks != null) {
@@ -136,6 +140,16 @@ class CourseFragment : Fragment() {
 
         // Set up back button
         binding.backButton.setOnClickListener {
+            // Trigger refresh of courses list before navigating back
+            val currentUser = UserManager.getCurrentUser()
+            if (currentUser != null) {
+                (requireActivity() as? MainActivity)?.let { mainActivity ->
+                    val coursesFragment = mainActivity.supportFragmentManager.fragments.find { it is CoursesFragment }
+                    if (coursesFragment is CoursesFragment) {
+                        coursesFragment.refreshCourses()
+                    }
+                }
+            }
             (requireActivity() as? MainActivity)?.navigateToTab("courses")
         }
     }
@@ -143,11 +157,14 @@ class CourseFragment : Fragment() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == TASK_COMPLETION_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            // Refresh the task list
+            // Refresh the course progress
             val courseId = arguments?.getString("COURSE_ID") ?: return
             val currentUser = UserManager.getCurrentUser()
             if (currentUser != null) {
+                // Reload tasks and course progress
                 viewModel.loadTasks(courseId, currentUser)
+                // Force refresh the view
+                binding.swipeRefreshLayout.isRefreshing = true
             }
         }
     }
@@ -157,6 +174,9 @@ class CourseFragment : Fragment() {
         val courseId = arguments?.getString("COURSE_ID") ?: return
         val currentUser = UserManager.getCurrentUser()
         if (currentUser != null) {
+            // Force refresh the view
+            binding.swipeRefreshLayout.isRefreshing = true
+            // Reload tasks and course progress
             viewModel.loadTasks(courseId, currentUser)
         }
     }
@@ -290,6 +310,16 @@ class CourseFragment : Fragment() {
 
     private fun setupBackButton() {
         binding.backButton.setOnClickListener {
+            // Trigger refresh of courses list before navigating back
+            val currentUser = UserManager.getCurrentUser()
+            if (currentUser != null) {
+                (requireActivity() as? MainActivity)?.let { mainActivity ->
+                    val coursesFragment = mainActivity.supportFragmentManager.fragments.find { it is CoursesFragment }
+                    if (coursesFragment is CoursesFragment) {
+                        coursesFragment.refreshCourses()
+                    }
+                }
+            }
             (requireActivity() as? MainActivity)?.navigateToTab("courses")
         }
     }
@@ -324,7 +354,7 @@ class CourseFragment : Fragment() {
     }
 
     private class TaskAdapter(
-        private val courseProgress: Int,
+        private var courseProgress: Int,
         private val onClick: (Task) -> Unit
     ) : ListAdapter<Task, TaskAdapter.TaskViewHolder>(DiffCallback) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
@@ -335,6 +365,11 @@ class CourseFragment : Fragment() {
 
         override fun onBindViewHolder(holder: TaskViewHolder, position: Int) {
             holder.bind(getItem(position))
+        }
+
+        fun updateProgress(newProgress: Int) {
+            courseProgress = newProgress
+            notifyDataSetChanged()
         }
 
         class TaskViewHolder(
