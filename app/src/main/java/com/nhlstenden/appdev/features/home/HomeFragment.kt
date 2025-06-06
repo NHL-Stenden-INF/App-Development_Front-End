@@ -258,19 +258,18 @@ class HomeFragment : Fragment() {
                     .load(profilePic)
                     .placeholder(R.drawable.zorotlpf)
                     .error(R.drawable.zorotlpf)
-                    .into(profilePicture)
-            } else if (profilePic.startsWith("/")) {
-                // Load from file path
-                Glide.with(this)
-                    .load(File(profilePic))
-                    .placeholder(R.drawable.zorotlpf)
-                    .error(R.drawable.zorotlpf)
+                    .circleCrop()
                     .into(profilePicture)
             } else {
+                // Try to load as base64
                 try {
                     val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
-                    val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                    profilePicture.setImageBitmap(bitmap)
+                    Glide.with(this)
+                        .load(imageBytes)
+                        .placeholder(R.drawable.zorotlpf)
+                        .error(R.drawable.zorotlpf)
+                        .circleCrop()
+                        .into(profilePicture)
                 } catch (e: Exception) {
                     profilePicture.setImageResource(R.drawable.zorotlpf)
                 }

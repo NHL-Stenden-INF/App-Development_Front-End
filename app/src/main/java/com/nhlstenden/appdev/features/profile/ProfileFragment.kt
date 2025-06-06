@@ -215,20 +215,18 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                                     .load(profilePic)
                                     .placeholder(R.drawable.zorotlpf)
                                     .error(R.drawable.zorotlpf)
-                                    .into(binding.profileImageView)
-                            } else if (profilePic.startsWith("/")) {
-                                // Load from file path
-                                Glide.with(this@ProfileFragment)
-                                    .load(File(profilePic))
-                                    .placeholder(R.drawable.zorotlpf)
-                                    .error(R.drawable.zorotlpf)
+                                    .circleCrop()
                                     .into(binding.profileImageView)
                             } else {
-                                // Assume base64 (for backward compatibility)
+                                // Try to load as base64
                                 try {
                                     val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
-                                    val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                                    binding.profileImageView.setImageBitmap(bitmap)
+                                    Glide.with(this@ProfileFragment)
+                                        .load(imageBytes)
+                                        .placeholder(R.drawable.zorotlpf)
+                                        .error(R.drawable.zorotlpf)
+                                        .circleCrop()
+                                        .into(binding.profileImageView)
                                 } catch (e: Exception) {
                                     binding.profileImageView.setImageResource(R.drawable.zorotlpf)
                                 }
@@ -398,22 +396,19 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
             val resultUri = UCrop.getOutput(result.data!!)
             resultUri?.let { uri ->
                 try {
-                    // Save to internal storage
-                    val imageFile = File(requireContext().filesDir, "profile_picture_${System.currentTimeMillis()}.jpg")
-                    requireContext().contentResolver.openInputStream(uri)?.use { input ->
-                        FileOutputStream(imageFile).use { output ->
-                            input.copyTo(output)
-                        }
-                    }
+                    // Convert image to base64
+                    val inputStream = requireContext().contentResolver.openInputStream(uri)
+                    val bytes = inputStream?.readBytes()
+                    val base64Image = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
                     
-                    // Update profile with file path
+                    // Update profile with base64 image
                     viewModel.updateProfile(
                         profileCardUsername.text.toString(),
                         profileCardBio.text.toString(),
-                        imageFile.absolutePath
+                        base64Image
                     )
                     
-                    // Instead of passing the full path, just notify that the profile picture was updated
+                    // Notify HomeFragment of profile picture update
                     parentFragmentManager.setFragmentResult(
                         "profile_picture_updated",
                         Bundle().apply {
