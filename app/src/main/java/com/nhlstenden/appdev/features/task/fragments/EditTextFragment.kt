@@ -15,6 +15,8 @@ class EditTextFragment : BaseTaskFragment() {
     private lateinit var questionText: TextView
     private lateinit var answerInput: EditText
     private lateinit var submitButton: Button
+    private lateinit var nextButton: Button
+    private lateinit var feedbackText: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -34,8 +36,28 @@ class EditTextFragment : BaseTaskFragment() {
         questionText = view.findViewById(R.id.questionText)
         answerInput = view.findViewById(R.id.answerInput)
         submitButton = view.findViewById(R.id.submitButton)
+        nextButton = view.findViewById(R.id.nextButton)
+        feedbackText = view.findViewById(R.id.feedbackText)
+
+        nextButton.visibility = View.GONE
+        feedbackText.visibility = View.GONE
 
         submitButton.setOnClickListener {
+            val userAnswer = answerInput.text.toString()
+            val isCorrect = userAnswer.equals(question.correctText, ignoreCase = true)
+            
+            // Show feedback
+            feedbackText.visibility = View.VISIBLE
+            feedbackText.text = if (isCorrect) "Correct!" else "Incorrect. The correct answer was: ${question.correctText}"
+            feedbackText.setTextColor(if (isCorrect) 0xFF4CAF50.toInt() else 0xFFF44336.toInt())
+            
+            // Disable input and submit button
+            answerInput.isEnabled = false
+            submitButton.visibility = View.GONE
+            nextButton.visibility = View.VISIBLE
+        }
+
+        nextButton.setOnClickListener {
             val userAnswer = answerInput.text.toString()
             val isCorrect = userAnswer.equals(question.correctText, ignoreCase = true)
             onTaskComplete(isCorrect)
@@ -45,6 +67,11 @@ class EditTextFragment : BaseTaskFragment() {
     override fun bindQuestion() {
         questionText.text = question.text
         answerInput.hint = question.correctText ?: "Enter your answer"
+        answerInput.setText("")
+        answerInput.isEnabled = true
+        submitButton.visibility = View.VISIBLE
+        nextButton.visibility = View.GONE
+        feedbackText.visibility = View.GONE
     }
 
     companion object {
