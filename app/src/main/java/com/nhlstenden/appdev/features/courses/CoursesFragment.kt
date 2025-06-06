@@ -4,13 +4,16 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.chip.ChipGroup
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.features.courses.screens.CourseAdapter
 import com.nhlstenden.appdev.core.utils.NavigationManager
@@ -24,7 +27,8 @@ import com.nhlstenden.appdev.core.utils.UserManager
 class CoursesFragment : BaseFragment() {
     private val viewModel: CourseViewModel by viewModels()
     private lateinit var coursesList: RecyclerView
-    private lateinit var filterChipGroup: ChipGroup
+    private lateinit var searchEditText: TextInputEditText
+    private lateinit var filterButton: MaterialButton
     private lateinit var adapter: CourseAdapter
 
     override fun onCreateView(
@@ -39,10 +43,12 @@ class CoursesFragment : BaseFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         coursesList = view.findViewById(R.id.coursesList)
-        filterChipGroup = view.findViewById(R.id.filterChipGroup)
+        searchEditText = view.findViewById(R.id.searchEditText)
+        filterButton = view.findViewById(R.id.filterButton)
 
         setupCoursesList()
-        setupFilterChips()
+        setupSearchBar()
+        setupFilterButton()
         observeViewModel()
     }
 
@@ -62,21 +68,44 @@ class CoursesFragment : BaseFragment() {
         coursesList.adapter = adapter
     }
 
-    private fun setupFilterChips() {
-        filterChipGroup.setOnCheckedStateChangeListener { group, checkedIds ->
-            // TODO: Implement filtering when connected to backend
+    private fun setupSearchBar() {
+        searchEditText.addTextChangedListener { text ->
+            viewModel.updateSearchQuery(text?.toString() ?: "")
         }
+    }
+
+    private fun setupFilterButton() {
+        filterButton.setOnClickListener {
+            showFilterDialog()
+        }
+    }
+
+    private fun showFilterDialog() {
+        val difficulties = arrayOf("Beginner", "Intermediate", "Advanced")
+        val currentDifficulty = viewModel.selectedDifficulty.value
+        val checkedItem = difficulties.indexOfFirst { it.equals(currentDifficulty, ignoreCase = true) }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Filter by Difficulty")
+            .setSingleChoiceItems(difficulties, checkedItem) { dialog, which ->
+                viewModel.setDifficultyFilter(difficulties[which])
+                dialog.dismiss()
+            }
+            .setNeutralButton("Clear") { dialog, _ ->
+                viewModel.clearFilters()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
     }
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                val currentUser = UserManager.getCurrentUser()
-                if (currentUser != null) {
-                    viewModel.loadCoursesWithProgress(currentUser)
-                    viewModel.courses.collect { courses ->
-                        adapter.submitList(courses)
-                    }
+                viewModel.filteredCourses.collect { courses ->
+                    adapter.submitList(courses)
                 }
             }
         }
