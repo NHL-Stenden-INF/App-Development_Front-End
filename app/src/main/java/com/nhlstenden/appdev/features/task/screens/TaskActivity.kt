@@ -225,21 +225,24 @@ class TaskActivity : AppCompatActivity() {
         if (currentUser != null) {
             lifecycleScope.launch(Dispatchers.IO) {
                 try {
-                    // Get current points
+                    // Get current points and XP
                     val response = supabaseClient.getUserAttributes(currentUser.id, currentUser.authToken)
                     if (response.isSuccessful) {
                         val responseBody = response.body?.string()
                         if (!responseBody.isNullOrEmpty()) {
                             val userData = JSONArray(responseBody).getJSONObject(0)
                             val currentPoints = userData.optInt("points", 0)
+                            val currentXp = userData.optInt("xp", 0)
                             
-                            // Update points
+                            // Update points and XP (XP is 1:1 with points)
                             val newPoints = currentPoints + pointsEarned
+                            val newXp = currentXp + pointsEarned
                             supabaseClient.updateUserPoints(currentUser.id, newPoints, currentUser.authToken)
+                            supabaseClient.updateUserXp(currentUser.id, newXp, currentUser.authToken)
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e("TaskActivity", "Error updating points: ${e.message}")
+                    Log.e("TaskActivity", "Error updating points and XP: ${e.message}")
                 }
             }
         }

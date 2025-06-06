@@ -109,8 +109,23 @@ class SupabaseClient() {
         }
     }
 
-    fun updateUserPoints(userId: String, newPoints: Int, authToken: String): Response {
-        val json = """{"points": $newPoints}"""
+    fun updateUserPoints(userId: String, points: Int, authToken: String): Response {
+        val json = """{"points": $points}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/users?id=eq.$userId")
+            .patch(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+
+        return client.newCall(request).execute()
+    }
+
+    fun updateUserXp(userId: String, xp: Int, authToken: String): Response {
+        val json = """{"xp": $xp}"""
         val requestBody = json.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
             .url("$supabaseUrl/rest/v1/user_attributes?id=eq.$userId")
@@ -120,6 +135,7 @@ class SupabaseClient() {
             .addHeader("Content-Type", "application/json")
             .addHeader("Prefer", "return=minimal")
             .build()
+
         return client.newCall(request).execute()
     }
 
