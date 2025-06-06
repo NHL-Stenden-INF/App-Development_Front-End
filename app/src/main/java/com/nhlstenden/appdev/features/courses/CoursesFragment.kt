@@ -18,6 +18,7 @@ import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.shared.ui.base.BaseFragment
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
+import com.nhlstenden.appdev.core.utils.UserManager
 
 @AndroidEntryPoint
 class CoursesFragment : BaseFragment() {
@@ -64,19 +65,12 @@ class CoursesFragment : BaseFragment() {
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.courses.collect { courses ->
-                    val mapped = courses.map { domainCourse ->
-                        Course(
-                            id = domainCourse.id,
-                            title = domainCourse.title,
-                            difficulty = domainCourse.difficulty,
-                            description = domainCourse.description,
-                            imageResId = domainCourse.imageResId,
-                            progress = 0,
-                            totalTasks = domainCourse.totalTasks,
-                        )
+                val currentUser = UserManager.getCurrentUser()
+                if (currentUser != null) {
+                    viewModel.loadCoursesWithProgress(currentUser)
+                    viewModel.courses.collect { courses ->
+                        adapter.submitList(courses)
                     }
-                    adapter.submitList(mapped)
                 }
             }
         }

@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import java.time.LocalDate
 import javax.inject.Inject
 import org.json.JSONArray
+import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 
 @AndroidEntryPoint
 class TaskActivity : AppCompatActivity() {
@@ -46,6 +47,9 @@ class TaskActivity : AppCompatActivity() {
 
     @Inject
     lateinit var supabaseClient: SupabaseClient
+
+    @Inject
+    lateinit var courseRepository: CourseRepositoryImpl
 
     private val streakManager = StreakManager()
 
@@ -149,7 +153,17 @@ class TaskActivity : AppCompatActivity() {
                     // Calculate points based on correct answers
                     val pointsEarned = calculatePoints()
                     updateUserPoints(pointsEarned)
+                    // Update course progress
+                    val currentUser = UserManager.getCurrentUser()
+                    val taskId = intent.getStringExtra(EXTRA_TASK_ID)
+                    Log.d("TaskActivity", "Calling updateTaskProgress for userId=${currentUser?.id}, taskId=$taskId")
+                    if (currentUser != null && taskId != null) {
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            courseRepository.updateTaskProgress(currentUser, taskId, 0)
+                        }
+                    }
                     Toast.makeText(this, "Task completed! You earned $pointsEarned points!", Toast.LENGTH_SHORT).show()
+                    setResult(RESULT_OK)
                     finish()
                 }
             }

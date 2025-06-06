@@ -8,7 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.progressindicator.LinearProgressIndicator
+import com.daimajia.numberprogressbar.NumberProgressBar
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.features.courses.model.Course
 
@@ -31,14 +31,14 @@ class CourseAdapter(
         private val courseTitle: TextView = itemView.findViewById(R.id.courseTitle)
         private val courseDescription: TextView = itemView.findViewById(R.id.courseDescription)
         private val difficultyLevel: TextView = itemView.findViewById(R.id.difficultyLevel)
-        private val progressBar: LinearProgressIndicator = itemView.findViewById(R.id.progressBar)
+        private val progressBar: NumberProgressBar = itemView.findViewById(R.id.progressBar)
+
         fun bind(course: Course) {
             courseTitle.text = course.title
             courseDescription.text = course.description
             difficultyLevel.text = course.difficulty
             courseImage.setImageResource(course.imageResId)
-            progressBar.progress = 0
-            // If you want to show progress, you can set progressBar.progress here if available
+            progressBar.progress = if (course.totalTasks > 0) ((course.progress.toFloat() / course.totalTasks) * 100).toInt() else 0
             itemView.setOnClickListener { onClick(course) }
         }
     }

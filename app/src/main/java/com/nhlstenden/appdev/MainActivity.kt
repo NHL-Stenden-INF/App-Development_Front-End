@@ -18,7 +18,7 @@ import android.os.Looper
 import com.nhlstenden.appdev.friends.ui.screens.FriendsFragment
 import com.nhlstenden.appdev.home.ui.HomeFragment
 import com.nhlstenden.appdev.features.profile.screens.ProfileFragment
-import com.nhlstenden.appdev.progress.ui.ProgressFragment
+import com.nhlstenden.appdev.features.progress.ProgressFragment
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.rewards.ui.RewardsFragment
 import com.nhlstenden.appdev.core.models.User

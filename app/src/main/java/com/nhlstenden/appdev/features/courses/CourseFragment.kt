@@ -26,70 +26,118 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel
 import com.nhlstenden.appdev.main.MainActivity
+import android.widget.ImageView
+import com.daimajia.numberprogressbar.NumberProgressBar
+import android.content.Intent
+import android.app.Activity
+import com.nhlstenden.appdev.core.utils.UserManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
 class CourseFragment : Fragment() {
-    private var _binding: FragmentCourseBinding? = null
-    private val binding get() = _binding!!
+    private lateinit var binding: FragmentCourseBinding
     private val viewModel: CourseViewModel by viewModels()
-    private lateinit var taskAdapter: TaskAdapter
-    private var mediaPlayer: MediaPlayer? = null
     private val profileViewModel: ProfileViewModel by viewModels()
+    private var taskAdapter: TaskAdapter? = null
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        _binding = FragmentCourseBinding.inflate(inflater, container, false)
-        return binding.root
+    ): View {
+        return inflater.inflate(R.layout.fragment_course, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding = FragmentCourseBinding.bind(view)
+
         setupRecyclerView()
         observeViewModel()
+        setupSwipeRefresh()
+        setupBackButton()
 
-        // Set user data for ProfileViewModel (required for profile loading)
-        val userData = arguments?.getParcelable<com.nhlstenden.appdev.core.models.User>("USER_DATA")
-            ?: com.nhlstenden.appdev.core.utils.UserManager.getCurrentUser()
-        userData?.let { user ->
-            android.util.Log.d("CourseFragment", "user.id=${user.id}, user.authToken=${user.authToken}")
-            profileViewModel.setUserData(user)
-        }
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            profileViewModel.profileState.collect { state ->
-                if (state is ProfileViewModel.ProfileState.Success) {
-                    val courseId = arguments?.getString("COURSE_ID")
-                    if (courseId != null) {
-                        viewModel.loadTasks(courseId)
-                        val parser = CourseParser(requireContext())
-                        val course = parser.loadCourseByTitle(courseId)
-                        if (course != null) {
-                            binding.courseTitle.text = course.title
-                            binding.courseDescription.text = course.description
-                            maybePlayLobbyMusic(course.title, state.profile.unlockedRewardIds ?: emptyList())
+        // Load tasks for the course
+        val courseId = arguments?.getString("COURSE_ID") ?: return
+        val currentUser = UserManager.getCurrentUser()
+        if (currentUser != null) {
+            viewModel.loadTasks(courseId, currentUser)
+            
+            // Load and display course info
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val courseParser = CourseParser(requireContext())
+                    val course = courseParser.loadCourseByTitle(courseId)
+                    withContext(Dispatchers.Main) {
+                        course?.let {
+                            binding.courseTitle.text = it.title
+                            binding.courseDescription.text = it.description
                         }
                     }
+                } catch (e: Exception) {
+                    Log.e("CourseFragment", "Error loading course info", e)
                 }
             }
         }
-        profileViewModel.loadProfile()
+
+        // Observe course progress and update adapter
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.courseProgress.collect { progress ->
+                taskAdapter = TaskAdapter(progress) { task ->
+                    val intent = TaskActivity.newIntent(requireContext(), task.id)
+                    startActivityForResult(intent, TASK_COMPLETION_REQUEST_CODE)
+                }
+                binding.tasksList.adapter = taskAdapter
+                // Re-submit the current list if available
+                val currentTasks = (viewModel.tasksState.value as? CourseViewModel.TasksState.Success)?.tasks
+                if (currentTasks != null) {
+                    taskAdapter?.submitList(currentTasks)
+                }
+            }
+        }
 
         // Set up back button
         binding.backButton.setOnClickListener {
-            // Navigate to courses tab instead of just popping back
             (requireActivity() as? MainActivity)?.navigateToTab("courses")
         }
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == TASK_COMPLETION_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            // Refresh the task list
+            val courseId = arguments?.getString("COURSE_ID") ?: return
+            val currentUser = UserManager.getCurrentUser()
+            if (currentUser != null) {
+                viewModel.loadTasks(courseId, currentUser)
+            }
+        }
+    }
+
     private fun setupRecyclerView() {
-        taskAdapter = TaskAdapter { task ->
-            // Open TaskActivity for the selected task using the correct intent method
+        val courseProgress = arguments?.getInt("COURSE_PROGRESS") ?: 0
+        taskAdapter = TaskAdapter(courseProgress) { task ->
             val intent = TaskActivity.newIntent(requireContext(), task.id)
-            startActivity(intent)
+            startActivityForResult(intent, TASK_COMPLETION_REQUEST_CODE)
         }
         binding.tasksList.adapter = taskAdapter
+    }
+
+    private fun setupSwipeRefresh() {
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            val courseId = arguments?.getString("COURSE_ID") ?: return@setOnRefreshListener
+            val currentUser = UserManager.getCurrentUser()
+            if (currentUser != null) {
+                viewModel.loadTasks(courseId, currentUser)
+            }
+        }
+    }
+
+    private fun setupBackButton() {
+        binding.backButton.setOnClickListener {
+            (requireActivity() as? MainActivity)?.navigateToTab("courses")
+        }
     }
 
     private fun observeViewModel() {
@@ -106,7 +154,7 @@ class CourseFragment : Fragment() {
                         binding.loadingProgressBar.visibility = View.GONE
                         binding.tasksList.visibility = View.VISIBLE
                         binding.errorTextView.visibility = View.GONE
-                        taskAdapter.submitList(state.tasks)
+                        taskAdapter?.submitList(state.tasks)
                         binding.swipeRefreshLayout.isRefreshing = false
                     }
                     is CourseViewModel.TasksState.Error -> {
@@ -121,65 +169,80 @@ class CourseFragment : Fragment() {
         }
     }
 
-    private fun maybePlayLobbyMusic(courseTitle: String, unlockedRewardIds: List<Int>) {
-        val sharedPrefs = requireContext().getSharedPreferences("reward_settings", android.content.Context.MODE_PRIVATE)
-        val isMusicLobbyEnabled = sharedPrefs.getBoolean("music_lobby_enabled", true)
-        val unlocked = unlockedRewardIds.contains(11)
-        if (!isMusicLobbyEnabled || !unlocked) return
-        val musicResId = when (courseTitle.trim().uppercase()) {
-            "CSS" -> com.nhlstenden.appdev.R.raw.css_themesong
-            "HTML" -> com.nhlstenden.appdev.R.raw.html_themesong
-            "SQL" -> com.nhlstenden.appdev.R.raw.sql_themesong
-            else -> com.nhlstenden.appdev.R.raw.default_themesong
-        }
-        mediaPlayer = MediaPlayer.create(requireContext(), musicResId)
-        mediaPlayer?.isLooping = true
-        mediaPlayer?.start()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
-        _binding = null
-    }
-
     private class TaskAdapter(
+        private val courseProgress: Int,
         private val onClick: (Task) -> Unit
     ) : ListAdapter<Task, TaskAdapter.TaskViewHolder>(DiffCallback) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
             val view = LayoutInflater.from(parent.context)
                 .inflate(R.layout.item_course, parent, false)
-            return TaskViewHolder(view, onClick)
+            return TaskViewHolder(view, onClick, courseProgress)
         }
+
         override fun onBindViewHolder(holder: TaskViewHolder, position: Int) {
             holder.bind(getItem(position))
         }
+
         class TaskViewHolder(
             itemView: View,
-            private val onClick: (Task) -> Unit
+            private val onClick: (Task) -> Unit,
+            private val courseProgress: Int
         ) : RecyclerView.ViewHolder(itemView) {
             private val titleText: TextView = itemView.findViewById(R.id.courseTitle)
             private val descriptionText: TextView = itemView.findViewById(R.id.courseDescription)
             private val difficultyText: TextView = itemView.findViewById(R.id.difficultyLevel)
-            private val progressBar: LinearProgressIndicator = itemView.findViewById(R.id.progressBar)
-            fun bind(task: Task) {
+            private val progressBar: NumberProgressBar = itemView.findViewById(R.id.progressBar)
+            private val lockIcon: ImageView = itemView.findViewById(R.id.lockIcon)
 
-                Log.w("CourseFragment", "Creating task: ${task.title}")
+            fun bind(task: Task) {
                 titleText.text = task.title
                 descriptionText.text = task.description
                 difficultyText.text = task.difficulty
-//                TODO: Fix progress bar
-                progressBar.progress = 0
-                itemView.setOnClickListener { onClick(task) }
+                progressBar.visibility = View.GONE
+                // If courseProgress is 0 and this is the first task, enable it; otherwise, gray out
+                if (courseProgress == 0) {
+                    if (task.index == 0) {
+                        itemView.isEnabled = true
+                        itemView.alpha = 1.0f
+                        lockIcon.visibility = View.GONE
+                        itemView.setOnClickListener { onClick(task) }
+                    } else {
+                        itemView.isEnabled = false
+                        itemView.alpha = 0.3f
+                        lockIcon.visibility = View.VISIBLE
+                    }
+                } else {
+                    when {
+                        task.index < courseProgress -> {
+                            itemView.isEnabled = false
+                            itemView.alpha = 0.5f
+                            lockIcon.visibility = View.GONE
+                        }
+                        task.index == courseProgress -> {
+                            itemView.isEnabled = true
+                            itemView.alpha = 1.0f
+                            lockIcon.visibility = View.GONE
+                            itemView.setOnClickListener { onClick(task) }
+                        }
+                        else -> {
+                            itemView.isEnabled = false
+                            itemView.alpha = 0.3f
+                            lockIcon.visibility = View.VISIBLE
+                        }
+                    }
+                }
             }
         }
+
         companion object {
             val DiffCallback = object : DiffUtil.ItemCallback<Task>() {
                 override fun areItemsTheSame(oldItem: Task, newItem: Task): Boolean = oldItem.id == newItem.id
                 override fun areContentsTheSame(oldItem: Task, newItem: Task): Boolean = oldItem == newItem
             }
         }
+    }
+
+    companion object {
+        private const val TASK_COMPLETION_REQUEST_CODE = 1001
     }
 }
