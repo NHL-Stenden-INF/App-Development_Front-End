@@ -115,6 +115,15 @@ class CourseFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        val courseId = arguments?.getString("COURSE_ID") ?: return
+        val currentUser = UserManager.getCurrentUser()
+        if (currentUser != null) {
+            viewModel.loadTasks(courseId, currentUser)
+        }
+    }
+
     private fun setupRecyclerView() {
         val courseProgress = arguments?.getInt("COURSE_PROGRESS") ?: 0
         taskAdapter = TaskAdapter(courseProgress) { task ->

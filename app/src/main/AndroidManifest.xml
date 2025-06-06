@@ -66,6 +66,12 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppdevNHL.NoActionBar" />
 
+        <activity
+            android:name=".shared.components.CameraActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppdevNHL.NoActionBar" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.nhlstenden.appdev.provider"
