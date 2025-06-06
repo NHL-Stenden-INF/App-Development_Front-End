@@ -57,7 +57,7 @@ class ProfileRepositoryImpl @Inject constructor(
             displayName = updated.optString("display_name", displayName),
             email = updated.optString("email", ""),
             bio = updated.optString("bio", bio),
-            profilePicture = updated.optString("profile_picture", profilePicture),
+            profilePicture = profilePicture,
             level = 1,
             experience = 0
         )
@@ -70,7 +70,7 @@ class ProfileRepositoryImpl @Inject constructor(
             displayName = updatedProfile.optString("display_name", ""),
             email = updatedProfile.optString("email", ""),
             bio = updatedProfile.optString("bio", null),
-            profilePicture = updatedProfile.optString("profile_picture", imagePath),
+            profilePicture = imagePath,
             level = 1,
             experience = 0
         )

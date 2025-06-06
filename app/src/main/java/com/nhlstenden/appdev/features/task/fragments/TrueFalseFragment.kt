@@ -13,6 +13,8 @@ class TrueFalseFragment : BaseTaskFragment() {
     private lateinit var questionText: TextView
     private lateinit var trueButton: MaterialButton
     private lateinit var falseButton: MaterialButton
+    private lateinit var nextButton: MaterialButton
+    private lateinit var feedbackText: TextView
     private var hasAnswered = false
 
     override fun onCreateView(
@@ -27,6 +29,11 @@ class TrueFalseFragment : BaseTaskFragment() {
         questionText = view.findViewById(R.id.questionText)
         trueButton = view.findViewById(R.id.trueButton)
         falseButton = view.findViewById(R.id.falseButton)
+        nextButton = view.findViewById(R.id.nextButton)
+        feedbackText = view.findViewById(R.id.feedbackText)
+
+        nextButton.visibility = View.GONE
+        feedbackText.visibility = View.GONE
 
         trueButton.setOnClickListener {
             if (!hasAnswered) {
@@ -39,6 +46,12 @@ class TrueFalseFragment : BaseTaskFragment() {
                 checkAnswer(false)
             }
         }
+
+        nextButton.setOnClickListener {
+            val correctAnswer = question.correctAnswer?.toBoolean() ?: false
+            val isCorrect = (trueButton.isChecked && correctAnswer) || (falseButton.isChecked && !correctAnswer)
+            onTaskComplete(isCorrect)
+        }
     }
 
     override fun bindQuestion() {
@@ -46,8 +59,12 @@ class TrueFalseFragment : BaseTaskFragment() {
         hasAnswered = false
         trueButton.isEnabled = true
         falseButton.isEnabled = true
+        trueButton.isChecked = false
+        falseButton.isChecked = false
         trueButton.setBackgroundColor(0xFFEEEEEE.toInt())
         falseButton.setBackgroundColor(0xFFEEEEEE.toInt())
+        nextButton.visibility = View.GONE
+        feedbackText.visibility = View.GONE
     }
 
     private fun checkAnswer(selectedAnswer: Boolean) {
@@ -77,8 +94,14 @@ class TrueFalseFragment : BaseTaskFragment() {
                 trueButton.setBackgroundColor(0xFF4CAF50.toInt()) // Green for correct answer
             }
         }
+
+        // Show feedback
+        feedbackText.visibility = View.VISIBLE
+        feedbackText.text = if (isCorrect) "Correct!" else "Incorrect. The correct answer was: ${if (correctAnswer) "True" else "False"}"
+        feedbackText.setTextColor(if (isCorrect) 0xFF4CAF50.toInt() else 0xFFF44336.toInt())
         
-        taskCompleteListener?.onTaskComplete(isCorrect)
+        // Show next button
+        nextButton.visibility = View.VISIBLE
     }
 
     companion object {

@@ -45,6 +45,7 @@ import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import com.daimajia.numberprogressbar.NumberProgressBar
 import com.nhlstenden.appdev.core.utils.UserManager
 import com.nhlstenden.appdev.core.utils.NavigationManager
+import java.io.File
 
 // Data class for course info
 data class HomeCourse(
@@ -121,6 +122,14 @@ class HomeFragment : Fragment() {
         setupUI(view)
         observeViewModel()
         dayCounter(view)
+        
+        // Set up fragment result listener for profile picture updates
+        parentFragmentManager.setFragmentResultListener("profile_picture_updated", viewLifecycleOwner) { _, bundle ->
+            if (bundle.getBoolean("updated", false)) {
+                // Reload the profile to get the updated picture
+                profileViewModel.loadProfile()
+            }
+        }
     }
 
     override fun onResume() {
@@ -144,6 +153,21 @@ class HomeFragment : Fragment() {
 
         // Load profile picture
         loadProfilePicture(userData.profilePicture ?: "")
+
+        // Add click listener to profile picture
+        profilePicture.setOnClickListener {
+            val profileFragment = ProfileFragment()
+            
+            // Hide ViewPager and show fragment container
+            activity?.findViewById<ViewPager2>(R.id.viewPager)?.visibility = View.GONE
+            activity?.findViewById<FrameLayout>(R.id.fragment_container)?.visibility = View.VISIBLE
+            
+            // Replace fragment container with profile fragment
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, profileFragment)
+                .addToBackStack(null)
+                .commit()
+        }
 
         // Load courses and update UI
         lifecycleScope.launch(Dispatchers.IO) {
@@ -203,6 +227,9 @@ class HomeFragment : Fragment() {
                         greetingText.text = getString(R.string.greeting_format, displayName)
                     }
 
+                    // Update profile picture
+                    loadProfilePicture(state.profile.profilePicture ?: "")
+
                     // Set circular XP bar and level
                     val level = state.profile.level
                     val xp = state.profile.experience
@@ -231,12 +258,18 @@ class HomeFragment : Fragment() {
                     .load(profilePic)
                     .placeholder(R.drawable.zorotlpf)
                     .error(R.drawable.zorotlpf)
+                    .circleCrop()
                     .into(profilePicture)
             } else {
+                // Try to load as base64
                 try {
                     val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
-                    val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                    profilePicture.setImageBitmap(bitmap)
+                    Glide.with(this)
+                        .load(imageBytes)
+                        .placeholder(R.drawable.zorotlpf)
+                        .error(R.drawable.zorotlpf)
+                        .circleCrop()
+                        .into(profilePicture)
                 } catch (e: Exception) {
                     profilePicture.setImageResource(R.drawable.zorotlpf)
                 }

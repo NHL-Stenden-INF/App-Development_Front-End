@@ -33,6 +33,11 @@ import android.app.Activity
 import com.nhlstenden.appdev.core.utils.UserManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import android.media.AudioManager
+import android.media.AudioAttributes
+import android.os.Build
+import android.content.Context
+import android.media.AudioFocusRequest
 
 @AndroidEntryPoint
 class CourseFragment : Fragment() {
@@ -40,6 +45,11 @@ class CourseFragment : Fragment() {
     private val viewModel: CourseViewModel by viewModels()
     private val profileViewModel: ProfileViewModel by viewModels()
     private var taskAdapter: TaskAdapter? = null
+    private var mediaPlayer: MediaPlayer? = null
+    private val PREFS_NAME = "reward_settings"
+    private val MUSIC_LOBBY_KEY = "music_lobby_enabled"
+    private var audioManager: AudioManager? = null
+    private var audioFocusRequest: AudioFocusRequest? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -53,10 +63,37 @@ class CourseFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         binding = FragmentCourseBinding.bind(view)
 
+        audioManager = requireContext().getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build())
+                .setOnAudioFocusChangeListener { focusChange ->
+                    when (focusChange) {
+                        AudioManager.AUDIOFOCUS_LOSS -> {
+                            mediaPlayer?.pause()
+                        }
+                        AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                            mediaPlayer?.pause()
+                        }
+                        AudioManager.AUDIOFOCUS_GAIN -> {
+                            mediaPlayer?.start()
+                        }
+                        else -> {
+                            // Handle any other focus changes if needed
+                        }
+                    }
+                }
+                .build()
+        }
+
         setupRecyclerView()
         observeViewModel()
         setupSwipeRefresh()
         setupBackButton()
+        setupMusic()
 
         // Load tasks for the course
         val courseId = arguments?.getString("COURSE_ID") ?: return
@@ -84,11 +121,15 @@ class CourseFragment : Fragment() {
         // Observe course progress and update adapter
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.courseProgress.collect { progress ->
-                taskAdapter = TaskAdapter(progress) { task ->
-                    val intent = TaskActivity.newIntent(requireContext(), task.id)
-                    startActivityForResult(intent, TASK_COMPLETION_REQUEST_CODE)
+                if (taskAdapter == null) {
+                    taskAdapter = TaskAdapter(progress) { task ->
+                        val intent = TaskActivity.newIntent(requireContext(), task.id)
+                        startActivityForResult(intent, TASK_COMPLETION_REQUEST_CODE)
+                    }
+                    binding.tasksList.adapter = taskAdapter
+                } else {
+                    taskAdapter?.updateProgress(progress)
                 }
-                binding.tasksList.adapter = taskAdapter
                 // Re-submit the current list if available
                 val currentTasks = (viewModel.tasksState.value as? CourseViewModel.TasksState.Success)?.tasks
                 if (currentTasks != null) {
@@ -99,6 +140,16 @@ class CourseFragment : Fragment() {
 
         // Set up back button
         binding.backButton.setOnClickListener {
+            // Trigger refresh of courses list before navigating back
+            val currentUser = UserManager.getCurrentUser()
+            if (currentUser != null) {
+                (requireActivity() as? MainActivity)?.let { mainActivity ->
+                    val coursesFragment = mainActivity.supportFragmentManager.fragments.find { it is CoursesFragment }
+                    if (coursesFragment is CoursesFragment) {
+                        coursesFragment.refreshCourses()
+                    }
+                }
+            }
             (requireActivity() as? MainActivity)?.navigateToTab("courses")
         }
     }
@@ -106,12 +157,135 @@ class CourseFragment : Fragment() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == TASK_COMPLETION_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            // Refresh the task list
+            // Refresh the course progress
             val courseId = arguments?.getString("COURSE_ID") ?: return
             val currentUser = UserManager.getCurrentUser()
             if (currentUser != null) {
+                // Reload tasks and course progress
                 viewModel.loadTasks(courseId, currentUser)
+                // Force refresh the view
+                binding.swipeRefreshLayout.isRefreshing = true
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val courseId = arguments?.getString("COURSE_ID") ?: return
+        val currentUser = UserManager.getCurrentUser()
+        if (currentUser != null) {
+            // Force refresh the view
+            binding.swipeRefreshLayout.isRefreshing = true
+            // Reload tasks and course progress
+            viewModel.loadTasks(courseId, currentUser)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopMusic()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopMusic()
+    }
+
+    private fun setupMusic() {
+        val sharedPrefs = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
+        val isMusicLobbyEnabled = sharedPrefs.getBoolean(MUSIC_LOBBY_KEY, false)
+        Log.d("CourseFragment", "Music lobby enabled: $isMusicLobbyEnabled")
+        
+        if (isMusicLobbyEnabled) {
+            try {
+                val courseId = arguments?.getString("COURSE_ID") ?: return
+                Log.d("CourseFragment", "Setting up music for course: $courseId")
+                val musicResId = when (courseId) {
+                    "html" -> R.raw.html_themesong
+                    "css" -> R.raw.css_themesong
+                    "sql" -> R.raw.sql_themesong
+                    else -> R.raw.default_themesong
+                }
+                Log.d("CourseFragment", "Using music resource ID: $musicResId")
+
+                // Request audio focus
+                val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    Log.d("CourseFragment", "Requesting audio focus for Android O and above")
+                    audioManager?.requestAudioFocus(audioFocusRequest!!)
+                } else {
+                    Log.d("CourseFragment", "Requesting audio focus for older Android versions")
+                    @Suppress("DEPRECATION")
+                    audioManager?.requestAudioFocus({ focusChange ->
+                        Log.d("CourseFragment", "Audio focus changed: $focusChange")
+                        when (focusChange) {
+                            AudioManager.AUDIOFOCUS_LOSS -> {
+                                mediaPlayer?.pause()
+                            }
+                            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                                mediaPlayer?.pause()
+                            }
+                            AudioManager.AUDIOFOCUS_GAIN -> {
+                                mediaPlayer?.start()
+                            }
+                            else -> {
+                                // Handle any other focus changes if needed
+                            }
+                        }
+                    }, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
+                }
+                Log.d("CourseFragment", "Audio focus request result: $result")
+
+                if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                    Log.d("CourseFragment", "Audio focus granted, creating MediaPlayer")
+                    mediaPlayer = MediaPlayer.create(context, musicResId)
+                    if (mediaPlayer == null) {
+                        Log.e("CourseFragment", "Failed to create MediaPlayer")
+                        return
+                    }
+                    Log.d("CourseFragment", "MediaPlayer created successfully")
+                    mediaPlayer?.isLooping = true
+                    mediaPlayer?.setOnPreparedListener {
+                        Log.d("CourseFragment", "MediaPlayer prepared, starting playback")
+                        it.start()
+                    }
+                    mediaPlayer?.setOnErrorListener { mp, what, extra ->
+                        Log.e("CourseFragment", "MediaPlayer error: what=$what, extra=$extra")
+                        true
+                    }
+                    Log.d("CourseFragment", "Music playback started")
+                } else {
+                    Log.e("CourseFragment", "Failed to get audio focus")
+                }
+            } catch (e: Exception) {
+                Log.e("CourseFragment", "Error playing music", e)
+            }
+        } else {
+            Log.d("CourseFragment", "Music lobby is not enabled in settings")
+        }
+    }
+
+    private fun stopMusic() {
+        Log.d("CourseFragment", "Stopping music")
+        mediaPlayer?.apply {
+            if (isPlaying) {
+                stop()
+                Log.d("CourseFragment", "Music stopped")
+            }
+            release()
+            Log.d("CourseFragment", "MediaPlayer released")
+        }
+        mediaPlayer = null
+
+        // Abandon audio focus
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let { request ->
+                audioManager?.abandonAudioFocusRequest(request)
+                Log.d("CourseFragment", "Audio focus abandoned for Android O and above")
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager?.abandonAudioFocus(null)
+            Log.d("CourseFragment", "Audio focus abandoned for older Android versions")
         }
     }
 
@@ -136,6 +310,16 @@ class CourseFragment : Fragment() {
 
     private fun setupBackButton() {
         binding.backButton.setOnClickListener {
+            // Trigger refresh of courses list before navigating back
+            val currentUser = UserManager.getCurrentUser()
+            if (currentUser != null) {
+                (requireActivity() as? MainActivity)?.let { mainActivity ->
+                    val coursesFragment = mainActivity.supportFragmentManager.fragments.find { it is CoursesFragment }
+                    if (coursesFragment is CoursesFragment) {
+                        coursesFragment.refreshCourses()
+                    }
+                }
+            }
             (requireActivity() as? MainActivity)?.navigateToTab("courses")
         }
     }
@@ -170,7 +354,7 @@ class CourseFragment : Fragment() {
     }
 
     private class TaskAdapter(
-        private val courseProgress: Int,
+        private var courseProgress: Int,
         private val onClick: (Task) -> Unit
     ) : ListAdapter<Task, TaskAdapter.TaskViewHolder>(DiffCallback) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
@@ -181,6 +365,11 @@ class CourseFragment : Fragment() {
 
         override fun onBindViewHolder(holder: TaskViewHolder, position: Int) {
             holder.bind(getItem(position))
+        }
+
+        fun updateProgress(newProgress: Int) {
+            courseProgress = newProgress
+            notifyDataSetChanged()
         }
 
         class TaskViewHolder(

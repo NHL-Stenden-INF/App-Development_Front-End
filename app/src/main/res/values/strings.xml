@@ -37,12 +37,25 @@
     <string name="achievements">Achievements</string>
     <string name="achievement_icon">Achievement icon</string>
 
-    <string name="correct">Correct</string>
-    <string name="wrong">Wrong</string>
+    <!-- Task Feedback Strings -->
+    <string name="correct">Correct!</string>
+    <string name="incorrect">Incorrect. The correct answer was: %1$s</string>
     <string name="enter_answer">Enter your answer</string>
     <string name="submit">Submit</string>
+    <string name="next">Next</string>
 
     <string name="loading">Loading…</string>
 
+    <!-- Authentication Strings -->
     <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="no_account">Don\'t have an account?</string>
+    <string name="has_account">Already have an account?</string>
+    <string name="courses">Courses</string>
+    <string name="profile">Profile</string>
+    <string name="logout">Logout</string>
 </resources>

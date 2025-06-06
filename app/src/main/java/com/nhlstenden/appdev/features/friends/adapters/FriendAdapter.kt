@@ -9,6 +9,7 @@ import com.bumptech.glide.Glide
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.ItemFriendBinding
 import com.nhlstenden.appdev.friends.domain.models.Friend
+import java.io.File
 
 class FriendAdapter(
     private val onFriendClick: (Friend) -> Unit
@@ -40,6 +41,7 @@ class FriendAdapter(
             val invalidPics = listOf(null, "", "null")
             if (profilePic !in invalidPics) {
                 if (profilePic!!.startsWith("http")) {
+                    // Load from URL
                     Glide.with(binding.friendProfilePicture.context)
                         .load(profilePic)
                         .placeholder(R.drawable.ic_profile_placeholder)
@@ -47,10 +49,15 @@ class FriendAdapter(
                         .circleCrop()
                         .into(binding.friendProfilePicture)
                 } else {
+                    // Try to load as base64
                     try {
                         val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
-                        val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                        binding.friendProfilePicture.setImageBitmap(bitmap)
+                        Glide.with(binding.friendProfilePicture.context)
+                            .load(imageBytes)
+                            .placeholder(R.drawable.ic_profile_placeholder)
+                            .error(R.drawable.ic_profile_placeholder)
+                            .circleCrop()
+                            .into(binding.friendProfilePicture)
                     } catch (e: Exception) {
                         binding.friendProfilePicture.setImageResource(R.drawable.ic_profile_placeholder)
                     }

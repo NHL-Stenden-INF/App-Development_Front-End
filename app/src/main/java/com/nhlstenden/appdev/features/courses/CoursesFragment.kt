@@ -44,8 +44,14 @@ class CoursesFragment : BaseFragment() {
         setupCoursesList()
         setupFilterChips()
         observeViewModel()
-        
-        viewModel.loadCourses()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val currentUser = UserManager.getCurrentUser()
+        if (currentUser != null) {
+            viewModel.loadCoursesWithProgress(currentUser)
+        }
     }
 
     private fun setupCoursesList() {
@@ -73,6 +79,13 @@ class CoursesFragment : BaseFragment() {
                     }
                 }
             }
+        }
+    }
+
+    fun refreshCourses() {
+        val currentUser = UserManager.getCurrentUser()
+        if (currentUser != null) {
+            viewModel.loadCoursesWithProgress(currentUser)
         }
     }
 } 

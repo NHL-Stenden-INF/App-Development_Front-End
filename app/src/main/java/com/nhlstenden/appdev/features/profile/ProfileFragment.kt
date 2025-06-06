@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import android.app.AlertDialog
 import android.widget.EditText
 import com.yalantis.ucrop.UCrop
@@ -58,6 +59,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.content.Context
+import com.nhlstenden.appdev.shared.components.CameraActivity
 
 @AndroidEntryPoint
 class ProfileFragment : BaseFragment(), SensorEventListener {
@@ -118,9 +120,8 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        // Get user data from arguments or UserManager
-        val userData = arguments?.getParcelable<com.nhlstenden.appdev.core.models.User>("USER_DATA") 
-            ?: UserManager.getCurrentUser()
+        // Get user data from UserManager
+        val userData = UserManager.getCurrentUser()
         
         userData?.let { user ->
             android.util.Log.d("ProfileFragment", "user.id=${user.id}, user.authToken=${user.authToken}")
@@ -205,7 +206,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                         binding.progressBar.visibility = View.GONE
                         binding.swipeRefreshLayout.isRefreshing = false
 
-                        // Display profile image (URL or base64)
+                        // Display profile image (URL or file path)
                         val profilePic = state.profile.profilePicture
                         val invalidPics = listOf(null, "", "null")
                         if (profilePic !in invalidPics) {
@@ -214,12 +215,21 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                                     .load(profilePic)
                                     .placeholder(R.drawable.zorotlpf)
                                     .error(R.drawable.zorotlpf)
+                                    .circleCrop()
                                     .into(binding.profileImageView)
                             } else {
-                                // Assume base64
-                                val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
-                                val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                                binding.profileImageView.setImageBitmap(bitmap)
+                                // Try to load as base64
+                                try {
+                                    val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
+                                    Glide.with(this@ProfileFragment)
+                                        .load(imageBytes)
+                                        .placeholder(R.drawable.zorotlpf)
+                                        .error(R.drawable.zorotlpf)
+                                        .circleCrop()
+                                        .into(binding.profileImageView)
+                                } catch (e: Exception) {
+                                    binding.profileImageView.setImageResource(R.drawable.zorotlpf)
+                                }
                             }
                         } else {
                             binding.profileImageView.setImageResource(R.drawable.zorotlpf)
@@ -228,8 +238,8 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                         // Notify HomeFragment of profile picture update
                         parentFragmentManager.setFragmentResult(
                             "profile_picture_updated",
-                            android.os.Bundle().apply {
-                                putString("profile_picture", profilePic)
+                            Bundle().apply {
+                                putBoolean("updated", true)
                             }
                         )
 
@@ -332,9 +342,12 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         }
     }
 
-    private val takePicture = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success && tempCameraUri != null) {
-            startCrop(tempCameraUri!!)
+    private val takePicture = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val photoUri = result.data?.getStringExtra("photo_uri")
+            if (photoUri != null) {
+                startCrop(Uri.parse(photoUri))
+            }
         }
     }
 
@@ -346,39 +359,68 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     }
 
     private fun openCamera() {
-        val photoFile = File.createTempFile("profile_photo", ".jpg", requireContext().cacheDir)
-        tempCameraUri = androidx.core.content.FileProvider.getUriForFile(
-            requireContext(),
-            requireContext().packageName + ".provider",
-            photoFile
-        )
-        takePicture.launch(tempCameraUri)
+        try {
+            val intent = Intent(requireContext(), CameraActivity::class.java)
+            takePicture.launch(intent)
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Failed to open camera: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun startCrop(sourceUri: Uri) {
+        try {
+            // Create a temporary file for the cropped image
+            val destinationUri = Uri.fromFile(File(requireContext().cacheDir, "cropped_${System.currentTimeMillis()}.jpg"))
+            
+            // Configure UCrop with smaller max size and simpler options
+            val uCrop = UCrop.of(sourceUri, destinationUri)
+                .withAspectRatio(1f, 1f)
+                .withMaxResultSize(256, 256)
+                .withOptions(UCrop.Options().apply {
+                    setCompressionQuality(60)
+                    setHideBottomControls(true)
+                    setFreeStyleCropEnabled(false)
+                    setShowCropGrid(false)
+                    setShowCropFrame(false)
+                })
+            
+            // Launch UCrop activity
+            cropImage.launch(uCrop.getIntent(requireContext()))
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Failed to start image cropping: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private val cropImage = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val resultUri = UCrop.getOutput(result.data!!)
             resultUri?.let { uri ->
-                val inputStream = requireContext().contentResolver.openInputStream(uri)
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-                val outputStream = ByteArrayOutputStream()
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-                val base64String = Base64.encodeToString(outputStream.toByteArray(), Base64.DEFAULT)
-                viewModel.updateProfile(
-                    profileCardUsername.text.toString(),
-                    profileCardBio.text.toString(),
-                    base64String
-                )
+                try {
+                    // Convert image to base64
+                    val inputStream = requireContext().contentResolver.openInputStream(uri)
+                    val bytes = inputStream?.readBytes()
+                    val base64Image = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
+                    
+                    // Update profile with base64 image
+                    viewModel.updateProfile(
+                        profileCardUsername.text.toString(),
+                        profileCardBio.text.toString(),
+                        base64Image
+                    )
+                    
+                    // Notify HomeFragment of profile picture update
+                    parentFragmentManager.setFragmentResult(
+                        "profile_picture_updated",
+                        Bundle().apply {
+                            putBoolean("updated", true)
+                        }
+                    )
+                    
+                } catch (e: Exception) {
+                    Toast.makeText(requireContext(), "Failed to save image: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
-    }
-
-    private fun startCrop(sourceUri: Uri) {
-        val destinationUri = Uri.fromFile(File(requireContext().cacheDir, "cropped_${System.currentTimeMillis()}.jpg"))
-        val uCrop = UCrop.of(sourceUri, destinationUri)
-            .withAspectRatio(1f, 1f)
-            .withMaxResultSize(512, 512)
-        cropImage.launch(uCrop.getIntent(requireContext()))
     }
 
     private fun onEditProfileClicked() {

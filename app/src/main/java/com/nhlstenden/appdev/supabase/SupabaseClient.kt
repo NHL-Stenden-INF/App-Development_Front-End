@@ -113,7 +113,7 @@ class SupabaseClient() {
         val json = """{"points": $points}"""
         val requestBody = json.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
-            .url("$supabaseUrl/rest/v1/users?id=eq.$userId")
+            .url("$supabaseUrl/rest/v1/user_attributes?id=eq.$userId")
             .patch(requestBody)
             .addHeader("apikey", supabaseKey)
             .addHeader("Authorization", "Bearer $authToken")

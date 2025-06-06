@@ -19,8 +19,9 @@ class MultipleChoiceFragment : BaseTaskFragment() {
     private lateinit var questionText: TextView
     private lateinit var optionsGroup: LinearLayout
     private lateinit var submitButton: MaterialButton
-    private lateinit var optionButtons: List<MaterialButton>
     private lateinit var nextButton: MaterialButton
+    private lateinit var feedbackText: TextView
+    private var optionButtons: List<MaterialButton> = emptyList()
     private var shuffledOptions: List<Question.Option> = emptyList()
 
     override fun onCreateView(
@@ -42,11 +43,11 @@ class MultipleChoiceFragment : BaseTaskFragment() {
         optionsGroup = view.findViewById(R.id.optionsGroup)
         submitButton = view.findViewById(R.id.submitButton)
         nextButton = view.findViewById(R.id.nextButton)
-        nextButton.visibility = View.GONE  // Hide next button initially
-        nextButton.setOnClickListener { 
-            Log.d("MultipleChoiceFragment", "Next button clicked")
-            (activity as? com.nhlstenden.appdev.features.task.screens.TaskActivity)?.onNextQuestion() 
-        }
+        feedbackText = view.findViewById(R.id.feedbackText)
+
+        nextButton.visibility = View.GONE
+        feedbackText.visibility = View.GONE
+
         // Remove all views from optionsGroup
         optionsGroup.removeAllViews()
         // Add four MaterialButtons for options
@@ -70,11 +71,13 @@ class MultipleChoiceFragment : BaseTaskFragment() {
                 }
             }.also { optionsGroup.addView(it) }
         }
+
         submitButton.setOnClickListener {
             val selectedIndex = optionButtons.indexOfFirst { it.isChecked }
             if (selectedIndex != -1) {
                 val selectedOption = shuffledOptions[selectedIndex]
                 val isCorrect = selectedOption.isCorrect
+                
                 // Feedback coloring
                 optionButtons.forEachIndexed { i, btn ->
                     btn.isEnabled = false
@@ -90,36 +93,46 @@ class MultipleChoiceFragment : BaseTaskFragment() {
                         btn.setTextColor(0xFF757575.toInt()) // Gray text for unselected incorrect answers
                     }
                 }
+
+                // Show feedback
+                feedbackText.visibility = View.VISIBLE
+                feedbackText.text = if (isCorrect) "Correct!" else "Incorrect. The correct answer was: ${shuffledOptions.find { it.isCorrect }?.text}"
+                feedbackText.setTextColor(if (isCorrect) 0xFF4CAF50.toInt() else 0xFFF44336.toInt())
+
                 submitButton.visibility = View.GONE
                 nextButton.visibility = View.VISIBLE
-                onTaskComplete(isCorrect)
+            }
+        }
+
+        nextButton.setOnClickListener {
+            val selectedIndex = optionButtons.indexOfFirst { it.isChecked }
+            if (selectedIndex != -1) {
+                val selectedOption = shuffledOptions[selectedIndex]
+                onTaskComplete(selectedOption.isCorrect)
             }
         }
     }
 
     override fun bindQuestion() {
         questionText.text = question.text
-        // Shuffle options every time
         shuffledOptions = question.options.shuffled()
-        optionButtons.forEachIndexed { i, btn ->
-            if (i < shuffledOptions.size) {
-                btn.text = shuffledOptions[i].text
-                btn.isChecked = false
-                btn.isEnabled = true
-                btn.isPressed = false
-                btn.isSelected = false
-                btn.isActivated = false
-                btn.visibility = View.VISIBLE
-                btn.setBackgroundColor(0xFFEEEEEE.toInt()) // Always reset to default
-                btn.setTextColor(0xFF000000.toInt()) // Reset text color to default
-            } else {
-                btn.visibility = View.GONE
-            }
+        
+        // Reset UI state
+        optionButtons.forEach { btn ->
+            btn.isEnabled = true
+            btn.isChecked = false
+            btn.setBackgroundColor(0xFFEEEEEE.toInt())
+            btn.setTextColor(0xFF000000.toInt())
         }
-        // Explicitly clear focus and selection
-        optionsGroup.clearFocus()
+        
+        // Set option texts
+        optionButtons.forEachIndexed { i, btn ->
+            btn.text = shuffledOptions[i].text
+        }
+
         submitButton.visibility = View.VISIBLE
         nextButton.visibility = View.GONE
+        feedbackText.visibility = View.GONE
     }
 
     companion object {
