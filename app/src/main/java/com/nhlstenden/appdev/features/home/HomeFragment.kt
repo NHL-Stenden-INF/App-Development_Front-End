@@ -100,6 +100,7 @@ class HomeFragment : Fragment() {
     private lateinit var profilePicture: ImageView
     private lateinit var circularXpBar: CircularProgressBar
     private lateinit var levelInCircleText: TextView
+    private lateinit var livesDisplay: ImageView
     private lateinit var courseRepositoryImpl: CourseRepositoryImpl
     private val profileViewModel: ProfileViewModel by viewModels()
     private var displayNameDialogShown = false
@@ -150,6 +151,7 @@ class HomeFragment : Fragment() {
         profilePicture = view.findViewById(R.id.profileImage)
         circularXpBar = view.findViewById(R.id.circularXpBar)
         levelInCircleText = view.findViewById(R.id.levelInCircleText)
+        livesDisplay = view.findViewById(R.id.livesDisplay)
 
         val userData = UserManager.getCurrentUser()
         if (userData == null || userData.authToken.isEmpty()) {
@@ -175,47 +177,6 @@ class HomeFragment : Fragment() {
                 .commit()
         }
 
-        // Load courses and update UI
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val courses = courseRepositoryImpl.getCourses(userData)
-                val homeCourses = courses?.mapNotNull { course ->
-                    // Set default progress to 0 if no database entry exists
-                    val progress = course.progress ?: 0
-                    val totalTasks = course.totalTasks ?: 0
-                    
-                    if (progress == 0) {
-                        Log.d("HomeFragment", "Not adding course: ${course.title}")
-                        return@mapNotNull null
-                    }
-                    Log.d("HomeFragment", "Adding course: ${course.title}")
-
-                    val accentColor = when (course.id) {
-                        "html" -> ContextCompat.getColor(requireContext(), R.color.html_color)
-                        "css" -> ContextCompat.getColor(requireContext(), R.color.css_color)
-                        "sql" -> ContextCompat.getColor(requireContext(), R.color.sql_color)
-                        else -> ContextCompat.getColor(requireContext(), R.color.html_color)
-                    }
-
-                    HomeCourse(
-                        course.id,
-                        "Lesson: $progress of $totalTasks",
-                        ((progress.toFloat() / totalTasks.toFloat()) * 100).toInt(),
-                        course.imageResId,
-                        accentColor
-                    )
-                } ?: emptyList()
-
-                withContext(Dispatchers.Main) {
-                    val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)
-                    recyclerView.layoutManager = LinearLayoutManager(context)
-                    recyclerView.adapter = HomeCourseAdapter(homeCourses, this@HomeFragment)
-                }
-            } catch (e: Exception) {
-                Log.e("HomeFragment", "Error loading courses", e)
-            }
-        }
-
         // Set user data in ProfileViewModel
         profileViewModel.setUserData(userData)
         profileViewModel.loadProfile()
@@ -235,6 +196,9 @@ class HomeFragment : Fragment() {
 
                     // Update profile picture
                     loadProfilePicture(state.profile.profilePicture ?: "")
+
+                    // Update lives display
+                    updateLivesDisplay(state.profile.bellPeppers)
 
                     // Set circular XP bar and level
                     val level = state.profile.level
@@ -414,5 +378,19 @@ class HomeFragment : Fragment() {
 
     private fun updateUserData(_user: com.nhlstenden.appdev.core.models.User) {
         // Implementation
+    }
+
+    private fun updateLivesDisplay(bellPeppers: Int) {
+        android.util.Log.d("LivesDisplay", "bellPeppers = $bellPeppers")
+        when (bellPeppers) {
+            0 -> {
+                livesDisplay.setImageResource(R.drawable.animated_zero_lives)
+                (livesDisplay.drawable as? android.graphics.drawable.AnimationDrawable)?.start()
+            }
+            1 -> livesDisplay.setImageResource(R.drawable.profile_bellpepper_one_life)
+            2 -> livesDisplay.setImageResource(R.drawable.profile_bellpepper_two_lifes)
+            3 -> livesDisplay.setImageResource(R.drawable.profile_bellpepper_three_lifes)
+            else -> livesDisplay.setImageResource(R.drawable.profile_bellpepper_anim_three)
+        }
     }
 }

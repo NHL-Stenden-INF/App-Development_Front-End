@@ -17,64 +17,78 @@
         <!-- Profile image on left -->
         <ImageView
             android:id="@+id/profileImage"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:scaleType="centerCrop"
-            android:src="@drawable/zorotlpf"
-            android:contentDescription="Profile picture"
+            android:layout_width="47dp"
+            android:layout_height="48dp"
             android:background="@drawable/round_mask"
             android:clipToOutline="true"
+            android:contentDescription="Profile picture"
+            android:scaleType="centerCrop"
+            android:src="@drawable/zorotlpf"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintTop_toTopOf="parent" />
 
         <!-- Greeting and subText in the middle -->
+
+        <!-- Lives Display -->
+
+        <!-- XP circle on right -->
+
         <TextView
             android:id="@+id/greetingText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_width="141dp"
+            android:layout_height="25dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="6dp"
             android:text="Hey, %s!"
             android:textColor="?android:attr/textColorPrimary"
-            android:textStyle="bold"
             android:textSize="18sp"
-            android:layout_marginStart="12dp"
-            app:layout_constraintStart_toEndOf="@id/profileImage"
-            app:layout_constraintTop_toTopOf="@id/profileImage"
-            app:layout_constraintEnd_toStartOf="@id/xpCircleContainer"
-            app:layout_constraintHorizontal_bias="0" />
+            android:textStyle="bold"
+            app:layout_constraintBottom_toTopOf="@+id/subText"
+            app:layout_constraintStart_toEndOf="@+id/profileImage"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
             android:id="@+id/subText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="Let's continue learning"
-            android:textSize="14sp"
+            android:layout_width="144dp"
+            android:layout_height="19dp"
+            android:text="Let's continue learning!"
             android:textColor="?android:attr/textColorSecondary"
-            app:layout_constraintStart_toStartOf="@id/greetingText"
-            app:layout_constraintTop_toBottomOf="@id/greetingText"
-            app:layout_constraintEnd_toEndOf="@id/greetingText" />
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="@+id/greetingText"
+            app:layout_constraintTop_toBottomOf="@+id/greetingText" />
 
-        <!-- XP circle on right -->
+        <ImageView
+            android:id="@+id/livesDisplay"
+            android:layout_width="91dp"
+            android:layout_height="56dp"
+            android:contentDescription="Lives remaining"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/xpCircleContainer"
+            app:layout_constraintHorizontal_bias="0.517"
+            app:layout_constraintStart_toEndOf="@+id/greetingText"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <FrameLayout
             android:id="@+id/xpCircleContainer"
             android:layout_width="60dp"
             android:layout_height="60dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginEnd="8dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            android:layout_marginEnd="8dp">
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
             <com.mikhaellopez.circularprogressbar.CircularProgressBar
                 android:id="@+id/circularXpBar"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                app:cpb_progressbar_width="8dp"
-                app:cpb_background_progressbar_width="4dp"
-                app:cpb_progressbar_color="#FFA500"
                 app:cpb_background_progressbar_color="#E0E0E0"
-                app:cpb_round_border="true"
+                app:cpb_background_progressbar_width="4dp"
+                app:cpb_progress="0"
                 app:cpb_progress_max="100"
-                app:cpb_progress="0" />
+                app:cpb_progressbar_color="#FFA500"
+                app:cpb_progressbar_width="8dp"
+                app:cpb_round_border="true" />
 
             <TextView
                 android:id="@+id/levelInCircleText"
@@ -83,8 +97,8 @@
                 android:gravity="center"
                 android:text="1"
                 android:textColor="?android:attr/textColorPrimary"
-                android:textStyle="bold"
-                android:textSize="18sp" />
+                android:textSize="18sp"
+                android:textStyle="bold" />
         </FrameLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
