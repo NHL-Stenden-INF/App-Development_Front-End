@@ -67,6 +67,11 @@ class RewardsFragment : Fragment(), SensorEventListener {
         timerText = view.findViewById(R.id.timerText)
         openChestButton = view.findViewById(R.id.openChestButton)
         rewardShopList = view.findViewById(R.id.rewardShopList)
+        
+        // Start points icon animation
+        val pointsIcon = view.findViewById<ImageView>(R.id.pointsIcon)
+        (pointsIcon.drawable as? android.graphics.drawable.AnimationDrawable)?.start()
+        
         setupAchievements(view)
         return view
     }
