@@ -31,11 +31,11 @@
                 android:padding="16dp">
 
                 <ImageView
-                    android:id="@+id/diamondIcon"
+                    android:id="@+id/pointsIcon"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:contentDescription="Diamond icon"
-                    android:src="@drawable/ic_diamond"
+                    android:contentDescription="Points icon"
+                    android:src="@drawable/animated_points"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
@@ -47,8 +47,8 @@
                     android:layout_marginStart="16dp"
                     android:text="Your Points"
                     android:textSize="16sp"
-                    app:layout_constraintStart_toEndOf="@id/diamondIcon"
-                    app:layout_constraintTop_toTopOf="@id/diamondIcon" />
+                    app:layout_constraintStart_toEndOf="@id/pointsIcon"
+                    app:layout_constraintTop_toTopOf="@id/pointsIcon" />
 
                 <TextView
                     android:id="@+id/pointsValue"
@@ -58,7 +58,7 @@
                     android:text="1,234"
                     android:textSize="24sp"
                     android:textStyle="bold"
-                    app:layout_constraintStart_toEndOf="@id/diamondIcon"
+                    app:layout_constraintStart_toEndOf="@id/pointsIcon"
                     app:layout_constraintTop_toBottomOf="@id/pointsLabel" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>

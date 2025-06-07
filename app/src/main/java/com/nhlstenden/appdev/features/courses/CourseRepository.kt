@@ -9,8 +9,8 @@ interface CourseRepository {
     suspend fun getCourses(user: User): List<Course>?
     suspend fun getCoursesWithoutProgress(): List<Course>
     suspend fun getTaskById(courseTitle: String, taskTitle: String): Task?
-    suspend fun updateTaskProgress(userId: String, taskId: String, progress: Int): Boolean
-    suspend fun getTotalTaskOfCourse(courseId: String): Int
     suspend fun getTasks(courseId: String): List<Task>
+    suspend fun getTotalTaskOfCourse(courseId: String): Int
     suspend fun getQuestions(taskId: String): List<Question>
+    suspend fun updateTaskProgress(userId: String, taskId: String, progress: Int): Boolean
 } 

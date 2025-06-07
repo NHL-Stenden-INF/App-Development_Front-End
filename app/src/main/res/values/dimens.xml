@@ -2,4 +2,6 @@
 <resources>
     <dimen name="card_corner_radius">8dp</dimen>
     <dimen name="card_elevation">4dp</dimen>
+    <dimen name="life_icon_size">48dp</dimen>
+    <dimen name="life_icon_margin">8dp</dimen>
 </resources> 

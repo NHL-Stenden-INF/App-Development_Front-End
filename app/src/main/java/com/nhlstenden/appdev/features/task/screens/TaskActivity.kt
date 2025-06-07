@@ -6,12 +6,19 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.button.MaterialButton
+import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.utils.UserManager
 import com.nhlstenden.appdev.databinding.ActivityTaskBinding
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
@@ -21,7 +28,6 @@ import com.nhlstenden.appdev.features.task.adapters.TaskPagerAdapter
 import com.nhlstenden.appdev.features.task.fragments.BaseTaskFragment
 import com.nhlstenden.appdev.features.task.models.Question
 import com.nhlstenden.appdev.features.task.viewmodels.TaskViewModel
-import com.nhlstenden.appdev.main.MainActivity
 import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import com.nhlstenden.appdev.features.home.StreakManager
 import com.nhlstenden.appdev.supabase.SupabaseClient
@@ -31,6 +37,9 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 import org.json.JSONArray
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CoroutineScope
+import org.json.JSONObject
 
 @AndroidEntryPoint
 class TaskActivity : AppCompatActivity() {
@@ -57,24 +66,129 @@ class TaskActivity : AppCompatActivity() {
 
     private val streakManager = StreakManager()
 
+    private lateinit var questionTextView: TextView
+    private lateinit var optionsContainer: LinearLayout
+    private lateinit var progressBar: ProgressBar
+    private lateinit var progressText: TextView
+    
+    private var taskId: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityTaskBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val taskId = intent.getStringExtra(EXTRA_TASK_ID) ?: run {
-            Toast.makeText(this, "Error: No task ID provided", Toast.LENGTH_SHORT).show()
+        taskId = intent.getStringExtra(EXTRA_TASK_ID)
+        if (taskId == null) {
+            Toast.makeText(this, "Task ID not found", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
-        val courseId = taskId.substringBefore("_")
-        binding.taskName.text = getTaskTitle(this, courseId, taskId)
-
+        initializeViews()
         setupViewPager()
         setupClickListeners()
         observeTaskState()
-        viewModel.loadTasks(taskId)
+        startTask()
+    }
+
+    private fun initializeViews() {
+        // Initialize UI components
+        questionTextView = TextView(this)
+        optionsContainer = LinearLayout(this)
+        progressBar = binding.progressBar
+        progressText = binding.taskProgress
+    }
+
+    private fun startTask() {
+        val currentUser = UserManager.getCurrentUser()
+        if (currentUser != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val profile = supabaseClient.fetchUserAttributes(currentUser.authToken)
+                    val currentBellPeppers = profile.optInt("bell_peppers", 0)
+                    
+                    Log.d("TaskActivity", "Starting task - Current bell peppers: $currentBellPeppers")
+                    
+                    if (currentBellPeppers <= 0) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "You need a bell pepper to start this task", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        return@launch
+                    }
+
+                    // Reduce bell peppers when starting task
+                    val newBellPeppers = currentBellPeppers - 1
+                    Log.d("TaskActivity", "Consuming bell pepper - New count: $newBellPeppers")
+                    
+                    val response = supabaseClient.updateUserBellPeppers(currentUser.id, newBellPeppers, currentUser.authToken)
+                    Log.d("TaskActivity", "Bell pepper update response code: ${response.code}")
+                    
+                    if (response.code != 200 && response.code != 204) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "Failed to start task. Please try again.", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        return@launch
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        this@TaskActivity.loadTasks()
+                    }
+                } catch (e: Exception) {
+                    Log.e("TaskActivity", "Error starting task", e)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@TaskActivity, "Error starting task. Please try again.", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun loadTasks() {
+        val courseId = taskId?.substringBefore("_") ?: return
+        binding.taskName.text = getTaskTitle(this, courseId, taskId ?: "")
+        viewModel.loadTasks(taskId ?: "")
+    }
+
+    private fun showCurrentQuestion() {
+        if (currentIndex < currentQuestions.size) {
+            val question = currentQuestions[currentIndex]
+            questionTextView.text = question.text
+            
+            // Clear previous options
+            optionsContainer.removeAllViews()
+            
+            // Add new options
+            question.options.forEach { option ->
+                val optionButton = MaterialButton(this).apply {
+                    text = option.text
+                    setOnClickListener {
+                        checkAnswer(option.isCorrect)
+                    }
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        setMargins(0, 8, 0, 8)
+                    }
+                    stateListAnimator = android.animation.AnimatorInflater.loadStateListAnimator(
+                        context, R.animator.button_state_animator
+                    )
+                }
+                optionsContainer.addView(optionButton)
+            }
+            
+            // Update progress
+            progressBar.max = currentQuestions.size
+            progressBar.progress = currentIndex + 1
+            progressText.text = "${currentIndex + 1}/${currentQuestions.size}"
+        } else {
+            // All questions were correct, task is completed
+            onTaskCompleted()
+        }
     }
 
     private fun setupViewPager() {
@@ -104,7 +218,7 @@ class TaskActivity : AppCompatActivity() {
                         showTaskFailedDialog()
                     } else {
                         // All questions were correct, task is completed
-                        viewModel.completeTask()
+                        onTaskCompleted()
                     }
                 }
             }
@@ -117,6 +231,7 @@ class TaskActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         binding.exitButton.setOnClickListener {
+            Log.d("TaskActivity", "User exited task early - bell pepper was consumed and not returned")
             finish()
         }
     }
@@ -249,8 +364,59 @@ class TaskActivity : AppCompatActivity() {
     }
 
     private fun showTaskFailedDialog() {
-        Log.d("TaskActivity", "Showing failure dialog. Current index: $currentIndex, Total questions: ${currentQuestions.size}")
-        TaskFailureDialogFragment().show(supportFragmentManager, "task_failure_dialog")
+        val currentUser = UserManager.getCurrentUser()
+        if (currentUser != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val profile = supabaseClient.fetchUserAttributes(currentUser.authToken)
+                    val currentBellPeppers = profile.optInt("bell_peppers", 0)
+                    
+                    Log.d("TaskActivity", "Task failed - Current bell peppers: $currentBellPeppers (bell pepper was consumed and not returned)")
+                    
+                    withContext(Dispatchers.Main) {
+                        TaskFailureDialogFragment().show(supportFragmentManager, "task_failed")
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@TaskActivity, "Error checking bell peppers. Please try again.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun onTaskCompleted() {
+        val currentUser = UserManager.getCurrentUser()
+        if (currentUser != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val profile = supabaseClient.fetchUserAttributes(currentUser.authToken)
+                    val currentBellPeppers = profile.optInt("bell_peppers", 0)
+                    
+                    Log.d("TaskActivity", "Task completed - Current bell peppers: $currentBellPeppers")
+                    
+                    // Return the bell pepper on successful completion
+                    val newBellPeppers = currentBellPeppers + 1
+                    Log.d("TaskActivity", "Returning bell pepper - New count: $newBellPeppers")
+                    
+                    val response = supabaseClient.updateUserBellPeppers(currentUser.id, newBellPeppers, currentUser.authToken)
+                    Log.d("TaskActivity", "Bell pepper return response code: ${response.code}")
+                    
+                    if (response.code != 200 && response.code != 204) {
+                        Log.e("TaskActivity", "Failed to return bell pepper")
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        showTaskCompletedDialog()
+                    }
+                } catch (e: Exception) {
+                    Log.e("TaskActivity", "Error returning bell pepper", e)
+                    withContext(Dispatchers.Main) {
+                        showTaskCompletedDialog()
+                    }
+                }
+            }
+        }
     }
 
     fun onNextQuestion() {
@@ -272,18 +438,62 @@ class TaskActivity : AppCompatActivity() {
     }
 
     fun resetForWrongQuestions() {
-        // Only keep questions that were wrong in the last round
-        currentQuestions = allQuestions.filter { it.id in roundWrongIds }.toMutableList()
-        currentIndex = 0
-        // Reset wrong question tracking for the next round
-        wrongQuestionIds.clear()
-        roundWrongIds.clear()
-        // Force ViewPager to recreate all fragments
-        taskPagerAdapter.submitList(emptyList())
-        binding.viewPager.post {
-            taskPagerAdapter.submitList(currentQuestions)
-            binding.viewPager.setCurrentItem(0, false)
-            updateQuestionNumber()
+        // First check and consume a bell pepper for the retry
+        val currentUser = UserManager.getCurrentUser()
+        if (currentUser != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val profile = supabaseClient.fetchUserAttributes(currentUser.authToken)
+                    val currentBellPeppers = profile.optInt("bell_peppers", 0)
+                    
+                    Log.d("TaskActivity", "Retry attempt - Current bell peppers: $currentBellPeppers")
+                    
+                    if (currentBellPeppers <= 0) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "You need a bell pepper to retry this task", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        return@launch
+                    }
+
+                    // Consume bell pepper for retry
+                    val newBellPeppers = currentBellPeppers - 1
+                    Log.d("TaskActivity", "Consuming bell pepper for retry - New count: $newBellPeppers")
+                    
+                    val response = supabaseClient.updateUserBellPeppers(currentUser.id, newBellPeppers, currentUser.authToken)
+                    Log.d("TaskActivity", "Bell pepper retry consumption response code: ${response.code}")
+                    
+                    if (response.code != 200 && response.code != 204) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "Failed to start retry. Please try again.", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        return@launch
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        // Only keep questions that were wrong in the last round
+                        currentQuestions = allQuestions.filter { it.id in roundWrongIds }.toMutableList()
+                        currentIndex = 0
+                        // Reset wrong question tracking for the next round
+                        wrongQuestionIds.clear()
+                        roundWrongIds.clear()
+                        // Force ViewPager to recreate all fragments
+                        taskPagerAdapter.submitList(emptyList())
+                        binding.viewPager.post {
+                            taskPagerAdapter.submitList(currentQuestions)
+                            binding.viewPager.setCurrentItem(0, false)
+                            updateQuestionNumber()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("TaskActivity", "Error during retry", e)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@TaskActivity, "Error starting retry. Please try again.", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
+                }
+            }
         }
     }
 
@@ -291,6 +501,16 @@ class TaskActivity : AppCompatActivity() {
         val taskParser = com.nhlstenden.appdev.features.courses.TaskParser(context)
         val task = taskParser.loadAllCoursesOfTask(courseId).find { it.id == taskId }
         return task?.title ?: "Task"
+    }
+
+    private fun showTaskCompletedDialog() {
+        // Implementation of showTaskCompletedDialog method
+    }
+
+    private fun checkAnswer(isCorrect: Boolean) {
+        // TODO: Implement answer checking logic
+        // For now, just move to the next question
+        onNextQuestion()
     }
 
     companion object {

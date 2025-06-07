@@ -124,6 +124,21 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
+    fun updateUserBellPeppers(userId: String, bellPeppers: Int, authToken: String): Response {
+        val json = """{"bell_peppers": $bellPeppers}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/user_attributes?id=eq.$userId")
+            .patch(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+
+        return client.newCall(request).execute()
+    }
+
     fun updateUserXp(userId: String, xp: Int, authToken: String): Response {
         val json = """{"xp": $xp}"""
         val requestBody = json.toRequestBody("application/json".toMediaType())

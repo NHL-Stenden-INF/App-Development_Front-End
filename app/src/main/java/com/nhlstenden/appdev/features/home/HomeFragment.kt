@@ -46,6 +46,10 @@ import com.daimajia.numberprogressbar.NumberProgressBar
 import com.nhlstenden.appdev.core.utils.UserManager
 import com.nhlstenden.appdev.core.utils.NavigationManager
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import android.widget.Toast
+import com.nhlstenden.appdev.features.task.BuyBellPepperDialogFragment
+import com.nhlstenden.appdev.supabase.SupabaseClient
 
 // Data class for course info
 data class HomeCourse(
@@ -103,6 +107,9 @@ class HomeFragment : Fragment() {
     private lateinit var courseRepositoryImpl: CourseRepositoryImpl
     private val profileViewModel: ProfileViewModel by viewModels()
     private var displayNameDialogShown = false
+    private val supabaseClient = SupabaseClient()
+    private lateinit var livesContainer: LinearLayout
+    private lateinit var continueLearningRecyclerView: RecyclerView
 
     @Inject
     lateinit var streakRepository: StreakRepository
@@ -136,12 +143,33 @@ class HomeFragment : Fragment() {
                 profileViewModel.loadProfile()
             }
         }
+        livesContainer = view.findViewById(R.id.livesContainer)
+
+        // Fetch user profile and update UI
+        val currentUser = UserManager.getCurrentUser()
+        if (currentUser != null) {
+            lifecycleScope.launch {
+                try {
+                    val profile = supabaseClient.fetchUserAttributes(currentUser.authToken)
+                    val bellPeppers = profile.optInt("bell_peppers", 0)
+                    updateLivesDisplay(bellPeppers)
+                } catch (e: Exception) {
+                    // Handle error
+                }
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
         setupUI(requireView())
         dayCounter(requireView())
+        
+        // Refresh continue learning section
+        val userData = UserManager.getCurrentUser()
+        if (userData != null && userData.authToken.isNotEmpty()) {
+            setupContinueLearning(userData)
+        }
     }
 
     fun setupUI(view: View) {
@@ -150,6 +178,7 @@ class HomeFragment : Fragment() {
         profilePicture = view.findViewById(R.id.profileImage)
         circularXpBar = view.findViewById(R.id.circularXpBar)
         levelInCircleText = view.findViewById(R.id.levelInCircleText)
+        continueLearningRecyclerView = view.findViewById(R.id.continueLearningList)
 
         val userData = UserManager.getCurrentUser()
         if (userData == null || userData.authToken.isEmpty()) {
@@ -175,50 +204,12 @@ class HomeFragment : Fragment() {
                 .commit()
         }
 
-        // Load courses and update UI
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val courses = courseRepositoryImpl.getCourses(userData)
-                val homeCourses = courses?.mapNotNull { course ->
-                    // Set default progress to 0 if no database entry exists
-                    val progress = course.progress ?: 0
-                    val totalTasks = course.totalTasks ?: 0
-                    
-                    if (progress == 0) {
-                        Log.d("HomeFragment", "Not adding course: ${course.title}")
-                        return@mapNotNull null
-                    }
-                    Log.d("HomeFragment", "Adding course: ${course.title}")
-
-                    val accentColor = when (course.id) {
-                        "html" -> ContextCompat.getColor(requireContext(), R.color.html_color)
-                        "css" -> ContextCompat.getColor(requireContext(), R.color.css_color)
-                        "sql" -> ContextCompat.getColor(requireContext(), R.color.sql_color)
-                        else -> ContextCompat.getColor(requireContext(), R.color.html_color)
-                    }
-
-                    HomeCourse(
-                        course.id,
-                        "Lesson: $progress of $totalTasks",
-                        ((progress.toFloat() / totalTasks.toFloat()) * 100).toInt(),
-                        course.imageResId,
-                        accentColor
-                    )
-                } ?: emptyList()
-
-                withContext(Dispatchers.Main) {
-                    val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)
-                    recyclerView.layoutManager = LinearLayoutManager(context)
-                    recyclerView.adapter = HomeCourseAdapter(homeCourses, this@HomeFragment)
-                }
-            } catch (e: Exception) {
-                Log.e("HomeFragment", "Error loading courses", e)
-            }
-        }
-
         // Set user data in ProfileViewModel
         profileViewModel.setUserData(userData)
         profileViewModel.loadProfile()
+        
+        // Set up continue learning section
+        setupContinueLearning(userData)
     }
 
     private fun observeViewModel() {
@@ -235,6 +226,9 @@ class HomeFragment : Fragment() {
 
                     // Update profile picture
                     loadProfilePicture(state.profile.profilePicture ?: "")
+
+                    // Update lives display
+                    updateLivesDisplay(state.profile.bellPeppers)
 
                     // Set circular XP bar and level
                     val level = state.profile.level
@@ -414,5 +408,113 @@ class HomeFragment : Fragment() {
 
     private fun updateUserData(_user: com.nhlstenden.appdev.core.models.User) {
         // Implementation
+    }
+
+    private fun updateLivesDisplay(bellPeppers: Int) {
+        livesContainer.removeAllViews()
+
+        // Make the lives container clickable
+        livesContainer.setOnClickListener {
+            val currentUser = UserManager.getCurrentUser()
+            if (currentUser != null) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val profile = supabaseClient.fetchUserAttributes(currentUser.authToken)
+                        val currentBellPeppers = profile.optInt("bell_peppers", 0)
+                        val currentPoints = profile.optInt("points", 0)
+
+                        withContext(Dispatchers.Main) {
+                            if (currentBellPeppers >= 3) {
+                                Toast.makeText(context, "You already have the maximum number of bell peppers!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                BuyBellPepperDialogFragment().show(parentFragmentManager, "buy_bell_pepper")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Error checking bell peppers. Please try again.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add the appropriate bell pepper image based on the number of lives
+        val imageView = ImageView(requireContext()).apply {
+            val imageResource = when (bellPeppers) {
+                0 -> R.drawable.profile_bellpepper_zero_lifes
+                1 -> R.drawable.profile_bellpepper_one_life
+                2 -> R.drawable.profile_bellpepper_two_lifes
+                3 -> R.drawable.profile_bellpepper_three_lifes
+                else -> R.drawable.profile_bellpepper_zero_lifes
+            }
+            setImageResource(imageResource)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+        livesContainer.addView(imageView)
+    }
+
+    private fun setupContinueLearning(userData: com.nhlstenden.appdev.core.models.User) {
+        // Set up the RecyclerView
+        continueLearningRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        
+        // Load courses with progress
+        lifecycleScope.launch {
+            try {
+                val courses = withContext(Dispatchers.IO) {
+                    courseRepositoryImpl.getCourses(userData)
+                }
+                
+                if (courses != null) {
+                    // Filter for active courses (progress > 0 and < totalTasks)
+                    val activeCourses = courses.filter { course ->
+                        course.progress > 0 && course.progress < course.totalTasks
+                    }
+                    
+                    // Convert to HomeCourse objects
+                    val homeCourses = activeCourses.map { course ->
+                        val progressText = "${course.progress}/${course.totalTasks} tasks"
+                        val progressPercent = if (course.totalTasks > 0) {
+                            (course.progress.toFloat() / course.totalTasks * 100).toInt()
+                        } else {
+                            0
+                        }
+                        
+                        HomeCourse(
+                            title = course.title,
+                            progressText = progressText,
+                            progressPercent = progressPercent,
+                            iconResId = course.imageResId,
+                            accentColor = ContextCompat.getColor(requireContext(), R.color.colorAccent)
+                        )
+                    }
+                    
+                    // Set up adapter
+                    val adapter = HomeCourseAdapter(homeCourses, this@HomeFragment)
+                    continueLearningRecyclerView.adapter = adapter
+                    
+                    // Update motivational message based on active courses
+                    updateMotivationalMessage(activeCourses.size)
+                } else {
+                    Log.e("HomeFragment", "Failed to load courses")
+                    updateMotivationalMessage(0)
+                }
+            } catch (e: Exception) {
+                Log.e("HomeFragment", "Error setting up continue learning: ${e.message}")
+                updateMotivationalMessage(0)
+            }
+        }
+    }
+    
+    private fun updateMotivationalMessage(activeCourseCount: Int) {
+        motivationalMessage.text = when {
+            activeCourseCount == 0 -> "Start a course to begin your learning journey!"
+            activeCourseCount == 1 -> "Keep going! You're making great progress!"
+            else -> "Amazing! You're working on $activeCourseCount courses!"
+        }
     }
 }

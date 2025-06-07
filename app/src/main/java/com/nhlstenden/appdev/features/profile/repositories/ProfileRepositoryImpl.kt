@@ -39,6 +39,7 @@ class ProfileRepositoryImpl @Inject constructor(
         }
         val xp = userAttributes.optLong("xp", 0L)
         val level = supabaseClient.calculateLevelFromXp(xp)
+        val bellPeppers = userAttributes.optInt("bell_peppers", 0)
         return Profile(
             displayName = profileJson.optString("display_name", ""),
             email = profileJson.optString("email", ""),
@@ -46,7 +47,8 @@ class ProfileRepositoryImpl @Inject constructor(
             profilePicture = profileJson.optString("profile_picture", null),
             level = level,
             experience = xp.toInt(),
-            unlockedRewardIds = unlockedRewardIds
+            unlockedRewardIds = unlockedRewardIds,
+            bellPeppers = bellPeppers
         )
     }
 

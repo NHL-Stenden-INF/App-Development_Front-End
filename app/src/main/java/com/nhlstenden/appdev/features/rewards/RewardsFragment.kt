@@ -67,6 +67,11 @@ class RewardsFragment : Fragment(), SensorEventListener {
         timerText = view.findViewById(R.id.timerText)
         openChestButton = view.findViewById(R.id.openChestButton)
         rewardShopList = view.findViewById(R.id.rewardShopList)
+        
+        // Start points icon animation
+        val pointsIcon = view.findViewById<ImageView>(R.id.pointsIcon)
+        (pointsIcon.drawable as? android.graphics.drawable.AnimationDrawable)?.start()
+        
         setupAchievements(view)
         return view
     }
@@ -303,13 +308,48 @@ class RewardsFragment : Fragment(), SensorEventListener {
         val rewardsManager = RewardsManager(requireContext(), resources)
         val rewards = rewardsManager.loadRewards()
         rewardShopAdapter = RewardShopAdapter(rewards.toMutableList(), { reward ->
-            if (canAffordReward(reward.pointsCost)) {
-                spendPoints(reward.pointsCost)
-                Toast.makeText(context, "Unlocked: ${reward.title}!", Toast.LENGTH_SHORT).show()
+            if (reward.title == "Extra Life (Bell Pepper)") {
+                // Check if user already has 3 bell peppers
+                CoroutineScope(Dispatchers.IO).launch {
+                    val profile = supabaseClient.fetchUserAttributes(authToken)
+                    val currentBellPeppers = profile.optInt("bell_peppers", 0)
+                    if (currentBellPeppers >= 3) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "You already have the maximum number of bell peppers!", Toast.LENGTH_SHORT).show()
+                        }
+                        return@launch
+                    }
+                    
+                    if (canAffordReward(reward.pointsCost)) {
+                        spendPoints(reward.pointsCost)
+                        // Update bell peppers count
+                        val newBellPeppers = currentBellPeppers + 1
+                        val response = supabaseClient.updateUserBellPeppers(userId, newBellPeppers, authToken)
+                        if (response.code == 200 || response.code == 204) {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, "Unlocked: ${reward.title}!", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, "Failed to update bell peppers. Please try again.", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Not enough points!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
                 true
             } else {
-                Toast.makeText(context, "Not enough points!", Toast.LENGTH_SHORT).show()
-                false
+                if (canAffordReward(reward.pointsCost)) {
+                    spendPoints(reward.pointsCost)
+                    Toast.makeText(context, "Unlocked: ${reward.title}!", Toast.LENGTH_SHORT).show()
+                    true
+                } else {
+                    Toast.makeText(context, "Not enough points!", Toast.LENGTH_SHORT).show()
+                    false
+                }
             }
         }, currentPoints, { rewardId ->
             saveUnlockedRewardToSupabase(rewardId)
