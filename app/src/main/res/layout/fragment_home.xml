@@ -58,14 +58,18 @@
             app:layout_constraintStart_toStartOf="@+id/greetingText"
             app:layout_constraintTop_toBottomOf="@+id/greetingText" />
 
-        <ImageView
-            android:id="@+id/livesDisplay"
-            android:layout_width="91dp"
-            android:layout_height="56dp"
-            android:contentDescription="Lives remaining"
+        <LinearLayout
+            android:id="@+id/livesContainer"
+            android:layout_width="101dp"
+            android:layout_height="52dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="8dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/xpCircleContainer"
-            app:layout_constraintHorizontal_bias="0.517"
             app:layout_constraintStart_toEndOf="@+id/greetingText"
             app:layout_constraintTop_toTopOf="parent" />
 
