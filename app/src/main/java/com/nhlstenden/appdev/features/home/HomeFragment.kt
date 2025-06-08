@@ -441,14 +441,23 @@ class HomeFragment : Fragment() {
 
         // Add the appropriate bell pepper image based on the number of lives
         val imageView = ImageView(requireContext()).apply {
-            val imageResource = when (bellPeppers) {
-                0 -> R.drawable.profile_bellpepper_zero_lifes
-                1 -> R.drawable.profile_bellpepper_one_life
-                2 -> R.drawable.profile_bellpepper_two_lifes
-                3 -> R.drawable.profile_bellpepper_three_lifes
-                else -> R.drawable.profile_bellpepper_zero_lifes
+            when (bellPeppers) {
+                0 -> {
+                    // Use animated drawable for zero lives
+                    setImageResource(R.drawable.animated_zero_lives)
+                    val animationDrawable = drawable as? android.graphics.drawable.AnimationDrawable
+                    animationDrawable?.start()
+                }
+                1 -> setImageResource(R.drawable.profile_bellpepper_one_life)
+                2 -> setImageResource(R.drawable.profile_bellpepper_two_lifes)
+                3 -> setImageResource(R.drawable.profile_bellpepper_three_lifes)
+                else -> {
+                    // Use animated drawable for zero lives as default
+                    setImageResource(R.drawable.animated_zero_lives)
+                    val animationDrawable = drawable as? android.graphics.drawable.AnimationDrawable
+                    animationDrawable?.start()
+                }
             }
-            setImageResource(imageResource)
             scaleType = ImageView.ScaleType.FIT_CENTER
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,

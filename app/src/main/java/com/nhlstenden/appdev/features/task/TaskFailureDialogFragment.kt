@@ -3,12 +3,14 @@ package com.nhlstenden.appdev.features.task
 import android.app.Dialog
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.AnimationDrawable
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.fragment.app.DialogFragment
@@ -41,6 +43,10 @@ class TaskFailureDialogFragment : DialogFragment() {
     
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
+        // Start the angry mascot animation
+        val mascotImageView = view.findViewById<ImageView>(R.id.imageWarning)
+        (mascotImageView.drawable as? AnimationDrawable)?.start()
         
         val buttonContainer = view.findViewById<LinearLayout>(R.id.buttonContainer)
         buttonContainer.removeAllViews()

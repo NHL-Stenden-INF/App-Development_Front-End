@@ -16,10 +16,9 @@
 
         <ImageView
             android:id="@+id/imageWarning"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@android:drawable/ic_dialog_alert"
-            android:tint="?attr/colorError"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/mascot_angry_animation"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
