@@ -419,22 +419,43 @@ class FriendsFragment : Fragment() {
                                     val displayName = friendData.getString("display_name")
                                     val bio = friendData.optString("bio", null)
                                     
+                                    // Calculate level from points
+                                    var level = 1
+                                    var requiredXp = 100L
+                                    var totalXp = 0L
+                                    val xp = points.toLong()
+                                    while (xp >= totalXp + requiredXp) {
+                                        totalXp += requiredXp
+                                        level++
+                                        requiredXp = (requiredXp * 1.1).toLong()
+                                    }
+                                    
+                                    // Calculate XP progress for current level
+                                    var requiredXpForProgress = 100.0
+                                    var totalXpForProgress = 0.0
+                                    for (j in 1 until level) {
+                                        totalXpForProgress += requiredXpForProgress
+                                        requiredXpForProgress *= 1.1
+                                    }
+                                    val xpForCurrentLevel = points - totalXpForProgress.toInt()
+                                    val xpForNextLevel = requiredXpForProgress.toInt()
+                                    
                                     // Add friend details
-                                    friendDetails.add(Friend(displayName, points, profilePicture, bio))
+                                    friendDetails.add(Friend(displayName, points, profilePicture, bio, level, xpForCurrentLevel.coerceAtLeast(0), xpForNextLevel))
                                     Log.d(TAG, "Added friend details: $displayName")
                                 } else {
                                     val shortId = friendId.replace("-", "").take(8)
-                                    friendDetails.add(Friend("User ($shortId)", 0, "", ""))
+                                    friendDetails.add(Friend("User ($shortId)", 0, "", "", 1, 0, 100))
                                 }
                             } catch (e: Exception) {
                                 Log.e(TAG, "Error parsing friend data: ${e.message}")
                                 val shortId = friendId.replace("-", "").take(8)
-                                friendDetails.add(Friend("User ($shortId)", 0, "", ""))
+                                friendDetails.add(Friend("User ($shortId)", 0, "", "", 1, 0, 100))
                             }
                         } else {
                             Log.e(TAG, "Error getting friend details: ${attributesResponse.code}")
                             val shortId = friendId.replace("-", "").take(8)
-                            friendDetails.add(Friend("User ($shortId)", 0, "", ""))
+                            friendDetails.add(Friend("User ($shortId)", 0, "", "", 1, 0, 100))
                         }
                     }
                 }
@@ -505,7 +526,10 @@ data class Friend(
     val name: String,
     val points: Int,
     val profilePicture: String,
-    val bio: String?
+    val bio: String?,
+    val level: Int = 1,
+    val currentLevelProgress: Int = 0,
+    val currentLevelMax: Int = 100
 )
 
 class FriendAdapter(private val friends: MutableList<Friend>) :
@@ -520,7 +544,8 @@ class FriendAdapter(private val friends: MutableList<Friend>) :
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val friendProfilePicture: ImageView = view.findViewById(R.id.friendProfilePicture)
         val friendName: TextView = view.findViewById(R.id.friendUsername)
-        val friendPoints: TextView = view.findViewById(R.id.friendPoints)
+        val friendLevel: TextView = view.findViewById(R.id.friendLevel)
+        val friendCircularXpBar = view.findViewById<com.mikhaellopez.circularprogressbar.CircularProgressBar>(R.id.friendCircularXpBar)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -535,7 +560,11 @@ class FriendAdapter(private val friends: MutableList<Friend>) :
 
         holder.apply {
             friendName.text = friend.name
-            friendPoints.text = "${friend.points} pts"
+            friendLevel.text = friend.level.toString()
+            
+            // Set circular progress bar
+            friendCircularXpBar.progressMax = friend.currentLevelMax.toFloat()
+            friendCircularXpBar.setProgressWithAnimation(friend.currentLevelProgress.toFloat(), 800)
             
             try {
                 if (friend.profilePicture.isNotEmpty()) {

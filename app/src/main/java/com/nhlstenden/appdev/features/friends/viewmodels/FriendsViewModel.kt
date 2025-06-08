@@ -51,15 +51,31 @@ class FriendsViewModel @Inject constructor(
             val friendsList = mutableListOf<Friend>()
             for (i in 0 until arr.length()) {
                 val obj = arr.getJSONObject(i)
+                val points = obj.optInt("points", 0)
+                val level = supabaseClient.calculateLevelFromXp(points.toLong())
+                
+                // Calculate XP progress for current level (same logic as HomeFragment)
+                var requiredXp = 100.0
+                var totalXp = 0.0
+                for (j in 1 until level) {
+                    totalXp += requiredXp
+                    requiredXp *= 1.1
+                }
+                val xpForCurrentLevel = points - totalXp.toInt()
+                val xpForNextLevel = requiredXp.toInt()
+                
                 val friend = Friend(
                     id = obj.optString("id"),
                     username = obj.optString("display_name"),
                     profilePicture = obj.optString("profile_picture", null),
                     bio = obj.optString("bio", null),
-                    progress = obj.optInt("points", 0)
+                    progress = points,
+                    level = level,
+                    currentLevelProgress = xpForCurrentLevel.coerceAtLeast(0),
+                    currentLevelMax = xpForNextLevel
                 )
                 friendsList.add(friend)
-                Log.d("FriendsViewModel", "Parsed friend: id=${friend.id}, username=${friend.username}, profilePicture=${friend.profilePicture}, bio=${friend.bio}, points=${friend.progress}")
+                Log.d("FriendsViewModel", "Parsed friend: id=${friend.id}, username=${friend.username}, profilePicture=${friend.profilePicture}, bio=${friend.bio}, points=${friend.progress}, level=${friend.level}, currentProgress=${friend.currentLevelProgress}/${friend.currentLevelMax}")
             }
             _friends.value = friendsList
         }
