@@ -469,7 +469,7 @@ class HomeFragment : Fragment() {
 
     private fun setupContinueLearning(userData: com.nhlstenden.appdev.core.models.User) {
         // Set up the RecyclerView
-        continueLearningRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        continueLearningRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
         
         // Load courses with progress
         lifecycleScope.launch {

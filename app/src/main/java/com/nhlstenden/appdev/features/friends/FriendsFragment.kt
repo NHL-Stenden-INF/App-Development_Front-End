@@ -36,9 +36,7 @@ import okhttp3.Request
 import okhttp3.OkHttpClient
 import android.graphics.Bitmap
 import android.net.Uri
-import androidx.core.content.FileProvider
-import java.io.File
-import java.io.FileOutputStream
+
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
@@ -253,10 +251,7 @@ class FriendsFragment : Fragment() {
             adapter = friendAdapter
         }
 
-        val shareButton: Button = view.findViewById(R.id.shareButton)
-        shareButton.setOnClickListener {
-            shareQRCode()
-        }
+
 
         val scanButton: Button = view.findViewById(R.id.scanButton)
         scanButton.setOnClickListener {
@@ -482,39 +477,7 @@ class FriendsFragment : Fragment() {
         qrCodeImage.setImageBitmap(qrCodeBitmap)
     }
 
-    private fun shareQRCode() {
-        qrCodeBitmap?.let { bitmap ->
-            try {
-                // Create a temporary file to store the QR code image
-                val imagesFolder = File(requireContext().cacheDir, "images")
-                imagesFolder.mkdirs()
-                val imageFile = File(imagesFolder, "qr_code.png")
-                
-                // Save the bitmap to the file
-                val stream = FileOutputStream(imageFile)
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-                stream.flush()
-                stream.close()
-                
-                // Create the share intent
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "image/png"
-                    putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(
-                        requireContext(),
-                        "${requireContext().packageName}.fileprovider",
-                        imageFile
-                    ))
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                
-                // Start the share activity
-                startActivity(Intent.createChooser(shareIntent, "Share QR Code"))
-            } catch (e: Exception) {
-                Log.e(TAG, "Error sharing QR code: ${e.message}")
-                Toast.makeText(context, "Failed to share QR code", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
+
 
     private fun generateQRCodeBitmap(content: String, size: Int = 512): Bitmap? {
         val hints = hashMapOf<EncodeHintType, Any>(

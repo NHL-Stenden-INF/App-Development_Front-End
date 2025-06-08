@@ -81,12 +81,6 @@ class FriendsFragment : BaseFragment() {
             val intent = Intent(requireContext(), QRScannerActivity::class.java)
             qrScannerLauncher.launch(intent)
         }
-        
-        binding.shareButton.setOnClickListener {
-            viewModel.qrCode.value?.let { bitmap ->
-                shareQRCode(bitmap)
-            }
-        }
     }
     
     private fun shareQRCode(bitmap: Bitmap) {
