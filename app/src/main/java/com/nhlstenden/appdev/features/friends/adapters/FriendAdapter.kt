@@ -34,8 +34,12 @@ class FriendAdapter(
         
         fun bind(friend: Friend) {
             binding.friendUsername.text = friend.username
-            binding.friendPoints.text = "${friend.progress} pts"
+            binding.friendLevel.text = friend.level.toString()
             binding.friendBio.text = friend.bio ?: "No bio available"
+            
+            // Set circular progress bar
+            binding.friendCircularXpBar.progressMax = friend.currentLevelMax.toFloat()
+            binding.friendCircularXpBar.setProgressWithAnimation(friend.currentLevelProgress.toFloat(), 800)
             
             val profilePic = friend.profilePicture
             val invalidPics = listOf(null, "", "null")
