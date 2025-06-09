@@ -306,6 +306,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                 val newBio = bioEdit.text.toString()
                 if (newBio.length > MAX_BIO_LENGTH) {
                     Log.d("ProfileFragment", "Bio too long")
+                    Toast.makeText(context, "Bio cannot be longer than $MAX_BIO_LENGTH characters", Toast.LENGTH_LONG).show()
                     return@setPositiveButton
                 }
                 Log.d("ProfileFragment", "Updated displayname/ bio")
