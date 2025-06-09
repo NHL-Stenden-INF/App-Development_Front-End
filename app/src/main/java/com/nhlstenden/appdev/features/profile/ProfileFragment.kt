@@ -249,8 +249,16 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                         )
 
                         val bio = state.profile.bio
-                        profileCardBio.text = if (bio.isNullOrEmpty() || bio == "null") "No bio set yet" else bio
+                        val displayBio = if (bio.isNullOrEmpty() || bio == "null") "No bio set yet" else bio
+                        profileCardBio.text = displayBio
                         profileCardUsername.text = state.profile.displayName
+                        
+                        // Add click listener to show full bio in toast
+                        profileCardBio.setOnClickListener {
+                            if (!bio.isNullOrEmpty() && bio != "null" && bio != "No bio set yet") {
+                                Toast.makeText(requireContext(), bio, Toast.LENGTH_LONG).show()
+                            }
+                        }
 
                         // Check unlocked rewards and update toggle
                         val unlockedRewardIds = state.profile.unlockedRewardIds ?: emptyList()
