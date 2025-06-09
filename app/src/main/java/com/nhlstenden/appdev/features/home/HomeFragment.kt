@@ -204,8 +204,7 @@ class HomeFragment : Fragment() {
                 .commit()
         }
 
-        // Set user data in ProfileViewModel
-        profileViewModel.setUserData(userData)
+        // Load profile using new repository pattern  
         profileViewModel.loadProfile()
         
         // Set up continue learning section

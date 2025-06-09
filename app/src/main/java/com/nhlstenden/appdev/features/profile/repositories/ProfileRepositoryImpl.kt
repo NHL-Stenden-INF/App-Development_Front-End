@@ -1,101 +1,161 @@
 package com.nhlstenden.appdev.features.profile.repositories
 
+import android.util.Log
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.models.Profile
 import com.nhlstenden.appdev.core.repositories.ProfileRepository
-import com.nhlstenden.appdev.core.models.User as CoreUser
-import com.nhlstenden.appdev.supabase.User
-import javax.inject.Inject
-import javax.inject.Singleton
+import com.nhlstenden.appdev.supabase.SupabaseClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class ProfileRepositoryImpl @Inject constructor(
-    private val supabaseClient: com.nhlstenden.appdev.supabase.SupabaseClient
+    private val supabaseClient: SupabaseClient
 ) : ProfileRepository {
-    private val defaultProfilePicture = R.drawable.ic_profile_placeholder
-    private var userData: User? = null
 
-    override suspend fun getProfile(): Profile {
-        val token = userData?.authToken ?: throw IllegalStateException("No auth token available")
-        val profileJson = supabaseClient.fetchProfile(token)
-        val userAttributes = supabaseClient.fetchUserAttributes(token)
-        // Fetch unlocked rewards
-        val userId = userData?.id?.toString() ?: throw IllegalStateException("No user ID available")
-        val unlockedRewardsResponse = withContext(Dispatchers.IO) {
-            supabaseClient.getUserUnlockedRewards(userId, token)
-        }
-        val unlockedRewardIds = mutableListOf<Int>()
-        if (unlockedRewardsResponse.isSuccessful) {
-            val body = unlockedRewardsResponse.body?.string()
-            if (!body.isNullOrEmpty()) {
-                val arr = org.json.JSONArray(body)
-                for (i in 0 until arr.length()) {
-                    val obj = arr.getJSONObject(i)
-                    unlockedRewardIds.add(obj.optInt("reward_id"))
+    private val TAG = "ProfileRepositoryImpl"
+
+    override suspend fun getProfile(): Result<Profile> {
+        return try {
+            val profileJson = supabaseClient.getProfileForCurrentUser()
+            val userAttributes = supabaseClient.getUserAttributesForCurrentUser()
+            
+            // Fetch unlocked rewards
+            val unlockedRewardsResponse = withContext(Dispatchers.IO) {
+                supabaseClient.getUserUnlockedRewardsForCurrentUser()
+            }
+            
+            val unlockedRewardIds = mutableListOf<Int>()
+            if (unlockedRewardsResponse.isSuccessful) {
+                val body = unlockedRewardsResponse.body?.string()
+                if (!body.isNullOrEmpty()) {
+                    val arr = JSONArray(body)
+                    for (i in 0 until arr.length()) {
+                        val obj = arr.getJSONObject(i)
+                        unlockedRewardIds.add(obj.optInt("reward_id"))
+                    }
                 }
             }
-        }
-        val xp = userAttributes.optLong("xp", 0L)
-        val level = supabaseClient.calculateLevelFromXp(xp)
-        val bellPeppers = userAttributes.optInt("bell_peppers", 0)
-        return Profile(
-            displayName = profileJson.optString("display_name", ""),
-            email = profileJson.optString("email", ""),
-            bio = profileJson.optString("bio", null),
-            profilePicture = profileJson.optString("profile_picture", null),
-            level = level,
-            experience = xp.toInt(),
-            unlockedRewardIds = unlockedRewardIds,
-            bellPeppers = bellPeppers
-        )
-    }
-
-    override suspend fun updateProfile(displayName: String, bio: String?, profilePicture: String?): Profile {
-        val token = userData?.authToken ?: throw IllegalStateException("No auth token available")
-        val updated = supabaseClient.updateProfile(token, displayName = displayName, bio = bio, profilePicture = profilePicture)
-        return Profile(
-            displayName = updated.optString("display_name", displayName),
-            email = updated.optString("email", ""),
-            bio = updated.optString("bio", bio),
-            profilePicture = profilePicture,
-            level = 1,
-            experience = 0
-        )
-    }
-
-    override suspend fun updateProfilePicture(imagePath: String): Profile {
-        val token = userData?.authToken ?: throw IllegalStateException("No auth token available")
-        val updatedProfile = supabaseClient.updateProfile(token, profilePicture = imagePath)
-        return Profile(
-            displayName = updatedProfile.optString("display_name", ""),
-            email = updatedProfile.optString("email", ""),
-            bio = updatedProfile.optString("bio", null),
-            profilePicture = imagePath,
-            level = 1,
-            experience = 0
-        )
-    }
-
-    override suspend fun logout() {
-        userData = null
-    }
-
-    fun setUserData(user: CoreUser?) {
-        if (user == null) {
-            userData = null
-        } else {
-            userData = com.nhlstenden.appdev.supabase.User(
-                authToken = user.authToken,
-                id = try { java.util.UUID.fromString(user.id) } catch (e: Exception) { java.util.UUID(0, 0) },
-                username = user.username,
-                email = user.email,
-                points = 0,
-                friends = ArrayList(user.friends),
-                achievements = ArrayList(),
-                profilePicture = user.profilePicture ?: ""
+            
+            val xp = userAttributes.optLong("xp", 0L)
+            val level = supabaseClient.calculateLevelFromXp(xp)
+            val bellPeppers = userAttributes.optInt("bell_peppers", 0)
+            
+            val profile = Profile(
+                displayName = profileJson.optString("display_name", ""),
+                email = profileJson.optString("email", ""),
+                bio = profileJson.optString("bio", null),
+                profilePicture = profileJson.optString("profile_picture", null),
+                level = level,
+                experience = xp.toInt(),
+                unlockedRewardIds = unlockedRewardIds,
+                bellPeppers = bellPeppers
             )
+            
+            Log.d(TAG, "Profile loaded successfully for ${profile.displayName}")
+            Result.success(profile)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading profile", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateProfile(displayName: String, bio: String?, profilePicture: String?): Result<Profile> {
+        return try {
+            // Update the profile
+            supabaseClient.updateProfileForCurrentUser(
+                displayName = displayName,
+                bio = bio,
+                profilePicture = profilePicture
+            )
+            
+            // Fetch the complete profile data after update to ensure we have all current data
+            val profileResult = getProfile()
+            if (profileResult.isSuccess) {
+                Log.d(TAG, "Profile updated successfully")
+                profileResult
+            } else {
+                Log.e(TAG, "Failed to fetch profile after profile update")
+                profileResult
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating profile", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateProfilePicture(imagePath: String): Result<Profile> {
+        return try {
+            // Update the profile picture
+            supabaseClient.updateProfileForCurrentUser(profilePicture = imagePath)
+            
+            // Fetch the complete profile data after update to ensure we have all current data
+            val profileResult = getProfile()
+            if (profileResult.isSuccess) {
+                Log.d(TAG, "Profile picture updated successfully")
+                profileResult
+            } else {
+                Log.e(TAG, "Failed to fetch profile after profile picture update")
+                profileResult
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating profile picture", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateBio(bio: String): Result<Profile> {
+        return try {
+            // Update the bio
+            supabaseClient.updateProfileForCurrentUser(bio = bio)
+            
+            // Fetch the complete profile data after update to ensure we have all current data
+            val profileResult = getProfile()
+            if (profileResult.isSuccess) {
+                Log.d(TAG, "Bio updated successfully")
+                profileResult
+            } else {
+                Log.e(TAG, "Failed to fetch profile after bio update")
+                profileResult
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating bio", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateDisplayName(displayName: String): Result<Profile> {
+        return try {
+            // Update the display name
+            supabaseClient.updateProfileForCurrentUser(displayName = displayName)
+            
+            // Fetch the complete profile data after update to ensure we have all current data
+            val profileResult = getProfile()
+            if (profileResult.isSuccess) {
+                Log.d(TAG, "Display name updated successfully")
+                profileResult
+            } else {
+                Log.e(TAG, "Failed to fetch profile after display name update")
+                profileResult
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating display name", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun logout(): Result<Unit> {
+        return try {
+            // Clear UserManager
+            com.nhlstenden.appdev.core.utils.UserManager.logout()
+            Log.d(TAG, "User logged out successfully")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during logout", e)
+            Result.failure(e)
         }
     }
 } 

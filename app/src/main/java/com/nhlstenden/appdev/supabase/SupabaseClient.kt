@@ -14,6 +14,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
+import com.nhlstenden.appdev.core.utils.UserManager
 
 class SupabaseClient() {
     val client = OkHttpClient()
@@ -426,6 +427,82 @@ class SupabaseClient() {
         val arr = org.json.JSONArray(body)
         if (arr.length() == 0) throw RuntimeException("User attributes not found")
         return arr.getJSONObject(0)
+    }
+
+    // Convenience methods that use UserManager directly
+    suspend fun addFriendWithCurrentUser(friendId: String): Response {
+        val user = UserManager.getCurrentUser()
+            ?: throw IllegalStateException("No user logged in")
+        return createMutualFriendship(friendId, user.authToken)
+    }
+
+    suspend fun getAllFriendsForCurrentUser(): Response {
+        val user = UserManager.getCurrentUser()
+            ?: throw IllegalStateException("No user logged in")
+        return getAllFriends(user.authToken)
+    }
+
+    fun getCurrentUserId(): String? {
+        return UserManager.getCurrentUser()?.id?.toString()
+    }
+
+    suspend fun removeFriend(friendId: String, authToken: String): Response {
+        val json = """{"friend_id": "${friendId.trim()}"}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/remove_friend")
+            .post(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+
+        return withContext(Dispatchers.IO) {
+            client.newCall(request).execute()
+        }
+    }
+
+    suspend fun removeFriendWithCurrentUser(friendId: String): Response {
+        val user = UserManager.getCurrentUser()
+            ?: throw IllegalStateException("No user logged in")
+        return removeFriend(friendId, user.authToken)
+    }
+
+    // Convenience methods for profile operations using UserManager
+    suspend fun getProfileForCurrentUser(): JSONObject {
+        val user = UserManager.getCurrentUser()
+            ?: throw IllegalStateException("No user logged in")
+        return fetchProfile(user.authToken)
+    }
+
+    suspend fun getUserAttributesForCurrentUser(): JSONObject {
+        val user = UserManager.getCurrentUser()
+            ?: throw IllegalStateException("No user logged in")
+        return fetchUserAttributes(user.authToken)
+    }
+
+    suspend fun updateProfileForCurrentUser(
+        displayName: String? = null,
+        bio: String? = null,
+        profilePicture: String? = null
+    ): JSONObject {
+        val user = UserManager.getCurrentUser()
+            ?: throw IllegalStateException("No user logged in")
+        return updateProfile(user.authToken, displayName, bio, profilePicture)
+    }
+
+    suspend fun updateProfilePictureForCurrentUser(profilePicture: String): Response {
+        val user = UserManager.getCurrentUser()
+            ?: throw IllegalStateException("No user logged in")
+        return updateProfilePicture(user.id.toString(), profilePicture, user.authToken)
+    }
+
+    suspend fun getUserUnlockedRewardsForCurrentUser(): Response {
+        val user = UserManager.getCurrentUser()
+            ?: throw IllegalStateException("No user logged in")
+        return getUserUnlockedRewards(user.id.toString(), user.authToken)
     }
 
     suspend fun updateProfile(

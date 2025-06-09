@@ -123,15 +123,15 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        // Get user data from UserManager
+        // Load profile using new repository pattern
         val userData = UserManager.getCurrentUser()
         
         if (userData != null && userData.authToken.isNotEmpty()) {
             android.util.Log.d("ProfileFragment", "user.id=${userData.id}, user.authToken=${userData.authToken}")
-            viewModel.setUserData(userData)
             viewModel.loadProfile()
         } else {
             android.util.Log.e("ProfileFragment", "No valid user data or auth token available")
+            // Could show login prompt or redirect to login
         }
         
         xpCircularProgress = binding.root.findViewById(R.id.xpCircularProgress)
