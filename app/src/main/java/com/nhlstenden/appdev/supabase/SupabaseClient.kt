@@ -575,8 +575,12 @@ class SupabaseClient() {
     }
 
     suspend fun getUserProgress(userId: String, authToken: String): JSONArray {
+        val url = "$supabaseUrl/rest/v1/user_progress?user_id=eq.$userId"
+        Log.d("SupabaseClient", "getUserProgress URL: $url")
+        Log.d("SupabaseClient", "getUserProgress for userId: $userId")
+        
         val request = Request.Builder()
-            .url("$supabaseUrl/rest/v1/user_progress?user_id=eq.$userId")
+            .url(url)
             .get()
             .addHeader("apikey", supabaseKey)
             .addHeader("Authorization", "Bearer $authToken")
@@ -586,14 +590,142 @@ class SupabaseClient() {
 
         val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
         val bodyString = response.body?.string()
-        Log.d("SupabaseClient", "getUserProgress: code=${response.code}, body=$bodyString")
+        Log.d("SupabaseClient", "getUserProgress for userId=$userId: code=${response.code}, body=$bodyString")
+        
         if (!response.isSuccessful) {
             Log.e("SupabaseClient", "Progress fetching failed with response: $bodyString")
             throw RuntimeException(bodyString ?: "Progress fetching failed with code ${response.code}")
         }
 
         val arr = org.json.JSONArray(bodyString)
+        Log.d("SupabaseClient", "Parsed progress array length: ${arr.length()}")
+        for (i in 0 until arr.length()) {
+            val obj = arr.getJSONObject(i)
+            Log.d("SupabaseClient", "Progress entry $i: $obj")
+        }
+        
+        // Also try a broader query to see if there's any progress data for this user
+        if (arr.length() == 0) {
+            Log.d("SupabaseClient", "No progress found with exact query, trying broader search...")
+            val broadRequest = Request.Builder()
+                .url("$supabaseUrl/rest/v1/user_progress?select=*")
+                .get()
+                .addHeader("apikey", supabaseKey)
+                .addHeader("Authorization", "Bearer $authToken")
+                .addHeader("Content-Type", "application/json")
+                .build()
+            
+            val broadResponse = withContext(Dispatchers.IO) { client.newCall(broadRequest).execute() }
+            val broadBody = broadResponse.body?.string()
+            if (broadResponse.isSuccessful) {
+                val broadArr = org.json.JSONArray(broadBody)
+                Log.d("SupabaseClient", "Broad search found ${broadArr.length()} total progress records")
+                for (i in 0 until minOf(broadArr.length(), 5)) { // Show first 5 records
+                    val obj = broadArr.getJSONObject(i)
+                    Log.d("SupabaseClient", "Sample progress record $i: $obj")
+                }
+                
+                // Check if any records match our user ID
+                var foundMatches = 0
+                for (i in 0 until broadArr.length()) {
+                    val obj = broadArr.getJSONObject(i)
+                    val recordUserId = obj.optString("user_id", "")
+                    if (recordUserId == userId) {
+                        foundMatches++
+                        Log.d("SupabaseClient", "Found matching record for user $userId: $obj")
+                    }
+                }
+                Log.d("SupabaseClient", "Found $foundMatches matching records for user $userId")
+            }
+        }
+        
         return arr
+    }
+
+    // Convenience method for getting friend progress with current user's auth token
+    suspend fun getFriendProgressForCurrentUser(friendId: String): Result<JSONArray> {
+        return try {
+            val currentUserId = getCurrentUserId()
+                ?: return Result.failure(Exception("User not logged in"))
+            
+            val authToken = UserManager.getCurrentUser()?.authToken
+                ?: return Result.failure(Exception("No auth token available"))
+            
+            val progressArray = getUserProgress(friendId, authToken)
+            Result.success(progressArray)
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Error getting friend progress", e)
+            Result.failure(e)
+        }
+    }
+
+    // Get friend's profile data including points, streak, etc.
+    suspend fun getFriendProfileForCurrentUser(friendId: String): Result<org.json.JSONObject> {
+        return try {
+            val authToken = UserManager.getCurrentUser()?.authToken
+                ?: return Result.failure(Exception("No auth token available"))
+            
+            // Fetch from profile table which has display_name, bio, profile_picture, etc.
+            val profileRequest = Request.Builder()
+                .url("$supabaseUrl/rest/v1/profile?select=*&id=eq.$friendId")
+                .get()
+                .addHeader("apikey", supabaseKey)
+                .addHeader("Authorization", "Bearer $authToken")
+                .addHeader("Content-Type", "application/json")
+                .build()
+            
+            val profileResponse = withContext(Dispatchers.IO) { client.newCall(profileRequest).execute() }
+            val profileBody = profileResponse.body?.string()
+            Log.d("SupabaseClient", "getFriendProfile: code=${profileResponse.code}, body=$profileBody")
+            
+            if (profileResponse.isSuccessful && !profileBody.isNullOrEmpty()) {
+                val profileArr = org.json.JSONArray(profileBody)
+                if (profileArr.length() > 0) {
+                    val profileData = profileArr.getJSONObject(0)
+                    
+                    // Also fetch user_attributes for points, streak, etc.
+                    val attributesRequest = Request.Builder()
+                        .url("$supabaseUrl/rest/v1/user_attributes?select=*&id=eq.$friendId")
+                        .get()
+                        .addHeader("apikey", supabaseKey)
+                        .addHeader("Authorization", "Bearer $authToken")
+                        .addHeader("Content-Type", "application/json")
+                        .build()
+                    
+                    val attributesResponse = withContext(Dispatchers.IO) { client.newCall(attributesRequest).execute() }
+                    val attributesBody = attributesResponse.body?.string()
+                    Log.d("SupabaseClient", "getFriendAttributes: code=${attributesResponse.code}, body=$attributesBody")
+                    
+                    // Merge profile and attributes data
+                    val mergedData = org.json.JSONObject()
+                    
+                    // Copy profile data (display_name, bio, profile_picture, etc.)
+                    profileData.keys().forEach { key ->
+                        mergedData.put(key, profileData.get(key))
+                    }
+                    
+                    // Copy attributes data if available (includes last_task_date)
+                    if (attributesResponse.isSuccessful && !attributesBody.isNullOrEmpty()) {
+                        val attributesArr = org.json.JSONArray(attributesBody)
+                        if (attributesArr.length() > 0) {
+                            val attributesData = attributesArr.getJSONObject(0)
+                            attributesData.keys().forEach { key ->
+                                mergedData.put(key, attributesData.get(key))
+                            }
+                        }
+                    }
+                    
+                    Result.success(mergedData)
+                } else {
+                    Result.failure(Exception("Friend profile not found"))
+                }
+            } else {
+                Result.failure(Exception("Failed to fetch friend profile: ${profileResponse.code}"))
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Error getting friend profile", e)
+            Result.failure(e)
+        }
     }
 
     fun updateUserProgress(userId: String, taskId: String, newProgress: Int, authToken: String): Response {
@@ -688,6 +820,42 @@ class SupabaseClient() {
                 if (!response.isSuccessful) {
                     throw Exception("Failed to create user progress: ${response.code}")
                 }
+            }
+        }
+    }
+
+    // Get friend's progress using RPC to bypass RLS
+    suspend fun getFriendProgressViaRPC(friendId: String, authToken: String): Result<org.json.JSONArray> {
+        return try {
+            val request = Request.Builder()
+                .url("$supabaseUrl/rest/v1/rpc/get_friend_progress")
+                .post("""{"friend_user_id": "$friendId"}""".toRequestBody("application/json".toMediaType()))
+                .addHeader("apikey", supabaseKey)
+                .addHeader("Authorization", "Bearer $authToken")
+                .addHeader("Content-Type", "application/json")
+                .build()
+            
+            val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
+            val responseBody = response.body?.string()
+            Log.d("SupabaseClient", "getFriendProgressViaRPC: code=${response.code}, body=$responseBody")
+            
+            if (response.isSuccessful && !responseBody.isNullOrEmpty()) {
+                val progressArray = org.json.JSONArray(responseBody)
+                Result.success(progressArray)
+            } else {
+                Log.w("SupabaseClient", "RPC failed, falling back to direct query")
+                // Fallback to direct query
+                val directProgress = getUserProgress(friendId, authToken)
+                Result.success(directProgress)
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Error in getFriendProgressViaRPC", e)
+            // Fallback to direct query
+            try {
+                val directProgress = getUserProgress(friendId, authToken)
+                Result.success(directProgress)
+            } catch (fallbackError: Exception) {
+                Result.failure(fallbackError)
             }
         }
     }

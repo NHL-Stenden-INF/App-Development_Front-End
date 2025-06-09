@@ -1,11 +1,11 @@
-package com.nhlstenden.appdev.friends.ui.viewmodels
+package com.nhlstenden.appdev.features.friends.viewmodels
 
 import android.graphics.Bitmap
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
 import com.google.zxing.common.BitMatrix
 import com.journeyapps.barcodescanner.BarcodeEncoder
-import com.nhlstenden.appdev.friends.domain.models.Friend
+import com.nhlstenden.appdev.features.friends.models.Friend
 import com.nhlstenden.appdev.shared.ui.base.BaseViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -17,8 +17,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.nhlstenden.appdev.databinding.FragmentFriendsBinding
 import com.nhlstenden.appdev.friends.ui.QRScannerActivity
-import com.nhlstenden.appdev.friends.ui.adapters.FriendAdapter
-import com.nhlstenden.appdev.friends.ui.viewmodels.FriendsViewModel
+import com.nhlstenden.appdev.features.friends.adapters.FriendAdapter
+import com.nhlstenden.appdev.features.friends.viewmodels.FriendsViewModel
+import com.nhlstenden.appdev.features.friends.dialogs.FriendDetailsDialog
+import com.nhlstenden.appdev.features.friends.models.Friend
 import com.nhlstenden.appdev.shared.ui.base.BaseFragment
 import kotlinx.coroutines.launch
 import java.io.File
@@ -69,7 +71,8 @@ class FriendsFragment : BaseFragment() {
     private fun setupUI() {
         binding.friendsList.layoutManager = LinearLayoutManager(context)
         adapter = FriendAdapter { friend ->
-            // TODO: Handle friend click
+            // Show friend details dialog when friend is clicked
+            showFriendDetailsDialog(friend)
         }
         binding.friendsList.adapter = adapter
         
@@ -168,5 +171,10 @@ class FriendsFragment : BaseFragment() {
 
     private fun showError(message: String) {
         android.widget.Toast.makeText(requireContext(), message, android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showFriendDetailsDialog(friend: Friend) {
+        val dialog = FriendDetailsDialog.newInstance(friend)
+        dialog.show(parentFragmentManager, "FriendDetailsDialog")
     }
 } 
