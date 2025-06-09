@@ -263,7 +263,7 @@ class MainActivity : AppCompatActivity() {
                         homeFragment.setupUI(homeFragment.requireView())
                     }
                 }
-                1 -> { // Friends tab
+                3 -> { // Friends tab
                     val friendsFragment = supportFragmentManager.fragments.find { it is FriendsFragment }
                     if (friendsFragment is FriendsFragment) {
                         Log.d(TAG, "Refreshing FriendsFragment")
