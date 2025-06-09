@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.friends.ui.adapters
+package com.nhlstenden.appdev.features.friends.adapters
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.ItemFriendBinding
-import com.nhlstenden.appdev.friends.domain.models.Friend
+import com.nhlstenden.appdev.features.friends.models.Friend
 import java.io.File
 
 class FriendAdapter(
@@ -47,7 +47,7 @@ class FriendAdapter(
                 if (profilePic!!.startsWith("http")) {
                     // Load from URL
                     Glide.with(binding.friendProfilePicture.context)
-                        .load(profilePic)
+                        .load(profilePic as String)
                         .placeholder(R.drawable.ic_profile_placeholder)
                         .error(R.drawable.ic_profile_placeholder)
                         .circleCrop()
@@ -55,9 +55,9 @@ class FriendAdapter(
                 } else {
                     // Try to load as base64
                     try {
-                        val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
+                        val imageBytes = android.util.Base64.decode(profilePic as String, android.util.Base64.DEFAULT)
                         Glide.with(binding.friendProfilePicture.context)
-                            .load(imageBytes)
+                            .load(imageBytes as ByteArray)
                             .placeholder(R.drawable.ic_profile_placeholder)
                             .error(R.drawable.ic_profile_placeholder)
                             .circleCrop()
