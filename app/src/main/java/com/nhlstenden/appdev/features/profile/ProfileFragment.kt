@@ -59,6 +59,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.content.Context
+import android.util.Log
 import com.nhlstenden.appdev.shared.components.CameraActivity
 
 @AndroidEntryPoint
@@ -73,6 +74,8 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     private val MUSIC_LOBBY_KEY = "music_lobby_enabled"
     
     private val PROFILE_IMAGE_SIZE = 120
+    private val MAX_BIO_LENGTH = 128
+    private val MAX_NAME_LENGTH = 32
     
     private lateinit var xpCircularProgress: CircularProgressIndicator
     private lateinit var levelBadge: TextView
@@ -302,6 +305,17 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
             .setPositiveButton("Save") { dialog, which ->
                 val newName = usernameEdit.text.toString()
                 val newBio = bioEdit.text.toString()
+                if (newBio.length > MAX_BIO_LENGTH) {
+                    Log.d("ProfileFragment", "Bio too long")
+                    Toast.makeText(context, "Bio cannot be longer than $MAX_BIO_LENGTH characters", Toast.LENGTH_LONG).show()
+                    return@setPositiveButton
+                }
+                if (newName.length > MAX_NAME_LENGTH) {
+                    Log.d("ProfileFragment", "Name too long")
+                    Toast.makeText(context, "Name cannot be longer than $MAX_NAME_LENGTH characters", Toast.LENGTH_LONG).show()
+                    return@setPositiveButton
+                }
+                Log.d("ProfileFragment", "Updated displayname/ bio")
                 viewModel.updateProfile(newName, newBio, null)
             }
             .setNegativeButton("Cancel", null)
