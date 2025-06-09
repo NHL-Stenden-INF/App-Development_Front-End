@@ -75,6 +75,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     
     private val PROFILE_IMAGE_SIZE = 120
     private val MAX_BIO_LENGTH = 128
+    private val MAX_NAME_LENGTH = 32
     
     private lateinit var xpCircularProgress: CircularProgressIndicator
     private lateinit var levelBadge: TextView
@@ -307,6 +308,11 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                 if (newBio.length > MAX_BIO_LENGTH) {
                     Log.d("ProfileFragment", "Bio too long")
                     Toast.makeText(context, "Bio cannot be longer than $MAX_BIO_LENGTH characters", Toast.LENGTH_LONG).show()
+                    return@setPositiveButton
+                }
+                if (newName.length > MAX_NAME_LENGTH) {
+                    Log.d("ProfileFragment", "Name too long")
+                    Toast.makeText(context, "Name cannot be longer than $MAX_NAME_LENGTH characters", Toast.LENGTH_LONG).show()
                     return@setPositiveButton
                 }
                 Log.d("ProfileFragment", "Updated displayname/ bio")
