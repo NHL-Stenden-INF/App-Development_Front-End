@@ -19,7 +19,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.button.MaterialButton
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.core.utils.UserManager
+import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.databinding.ActivityTaskBinding
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import com.nhlstenden.appdev.features.task.TaskCompleteListener
@@ -30,12 +31,11 @@ import com.nhlstenden.appdev.features.task.models.Question
 import com.nhlstenden.appdev.features.task.viewmodels.TaskViewModel
 import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import com.nhlstenden.appdev.features.home.StreakManager
-import com.nhlstenden.appdev.supabase.SupabaseClient
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import javax.inject.Inject
 import org.json.JSONArray
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CoroutineScope
@@ -43,6 +43,9 @@ import org.json.JSONObject
 
 @AndroidEntryPoint
 class TaskActivity : AppCompatActivity() {
+    
+    @Inject lateinit var authRepository: AuthRepository
+    @Inject lateinit var userRepository: UserRepository
     private lateinit var binding: ActivityTaskBinding
     private val viewModel: TaskViewModel by viewModels()
     private lateinit var taskPagerAdapter: TaskPagerAdapter
@@ -57,9 +60,6 @@ class TaskActivity : AppCompatActivity() {
 
     @Inject
     lateinit var streakRepository: StreakRepository
-
-    @Inject
-    lateinit var supabaseClient: SupabaseClient
 
     @Inject
     lateinit var courseRepository: CourseRepositoryImpl
@@ -101,11 +101,20 @@ class TaskActivity : AppCompatActivity() {
     }
 
     private fun startTask() {
-        val currentUser = UserManager.getCurrentUser()
+        val currentUser = authRepository.getCurrentUserSync()
         if (currentUser != null) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val profile = supabaseClient.fetchUserAttributes(currentUser.authToken)
+                    val attributesResult = userRepository.getUserAttributes(currentUser.id)
+                    if (attributesResult.isFailure) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "Failed to get user data. Please try again.", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        return@launch
+                    }
+
+                    val profile = attributesResult.getOrThrow()
                     val currentBellPeppers = profile.optInt("bell_peppers", 0)
                     
                     Log.d("TaskActivity", "Starting task - Current bell peppers: $currentBellPeppers")
@@ -122,10 +131,10 @@ class TaskActivity : AppCompatActivity() {
                     val newBellPeppers = currentBellPeppers - 1
                     Log.d("TaskActivity", "Consuming bell pepper - New count: $newBellPeppers")
                     
-                    val response = supabaseClient.updateUserBellPeppers(currentUser.id, newBellPeppers, currentUser.authToken)
-                    Log.d("TaskActivity", "Bell pepper update response code: ${response.code}")
+                    val updateResult = userRepository.updateUserBellPeppers(currentUser.id, newBellPeppers)
+                    Log.d("TaskActivity", "Bell pepper update result: ${updateResult.isSuccess}")
                     
-                    if (response.code != 200 && response.code != 204) {
+                    if (updateResult.isFailure) {
                         withContext(Dispatchers.Main) {
                             Toast.makeText(this@TaskActivity, "Failed to start task. Please try again.", Toast.LENGTH_SHORT).show()
                             finish()
@@ -267,31 +276,18 @@ class TaskActivity : AppCompatActivity() {
                     val pointsEarned = calculatePoints()
                     updateUserPoints(pointsEarned)
                     // Update course progress
-                    val currentUser = UserManager.getCurrentUser()
+                    val currentUser = authRepository.getCurrentUserSync()
                     val taskId = intent.getStringExtra(EXTRA_TASK_ID)
                     Log.d("TaskActivity", "Calling updateTaskProgress for userId=${currentUser?.id}, taskId=$taskId")
                     if (currentUser != null && taskId != null) {
                         val courseId = taskId.substringBefore("_")
                         lifecycleScope.launch(Dispatchers.IO) {
                             try {
-                                // Get current progress
-                                val userProgresses = supabaseClient.getUserProgress(currentUser.id.toString(), currentUser.authToken)
-                                var currentProgress = 0
-                                
-                                // Find the current progress for this course
-                                for(i in 0 until userProgresses.length()) {
-                                    val jsonObject = userProgresses.getJSONObject(i)
-                                    if (jsonObject.getString("course_id") == courseId) {
-                                        currentProgress = jsonObject.getInt("progress")
-                                        break
-                                    }
-                                }
-                                
-                                // Update progress with the new value
+                                // Update progress using repository
                                 val progressUpdated = courseRepository.updateTaskProgress(
                                     currentUser.id.toString(),
                                     taskId,
-                                    currentProgress + 1
+                                    1 // Increment by 1
                                 )
                                 
                                 if (!progressUpdated) {
@@ -336,25 +332,23 @@ class TaskActivity : AppCompatActivity() {
     }
 
     private fun updateUserPoints(pointsEarned: Int) {
-        val currentUser = UserManager.getCurrentUser()
+        val currentUser = authRepository.getCurrentUserSync()
         if (currentUser != null) {
             lifecycleScope.launch(Dispatchers.IO) {
                 try {
                     // Get current points and XP
-                    val response = supabaseClient.getUserAttributes(currentUser.id, currentUser.authToken)
-                    if (response.isSuccessful) {
-                        val responseBody = response.body?.string()
-                        if (!responseBody.isNullOrEmpty()) {
-                            val userData = JSONArray(responseBody).getJSONObject(0)
-                            val currentPoints = userData.optInt("points", 0)
-                            val currentXp = userData.optInt("xp", 0)
-                            
-                            // Update points and XP (XP is 1:1 with points)
-                            val newPoints = currentPoints + pointsEarned
-                            val newXp = currentXp + pointsEarned
-                            supabaseClient.updateUserPoints(currentUser.id, newPoints, currentUser.authToken)
-                            supabaseClient.updateUserXp(currentUser.id, newXp, currentUser.authToken)
-                        }
+                    val attributesResult = userRepository.getUserAttributes(currentUser.id)
+                    if (attributesResult.isSuccess) {
+                        val userData = attributesResult.getOrThrow()
+                        val currentPoints = userData.optInt("points", 0)
+                        val currentXp = userData.optInt("xp", 0)
+                        
+                        // Update points and XP (XP is 1:1 with points)
+                        val newPoints = currentPoints + pointsEarned
+                        val newXp = currentXp + pointsEarned
+                        
+                        userRepository.updateUserPoints(currentUser.id, newPoints)
+                        userRepository.updateUserXp(currentUser.id, newXp.toLong())
                     }
                 } catch (e: Exception) {
                     Log.e("TaskActivity", "Error updating points and XP: ${e.message}")
@@ -364,17 +358,24 @@ class TaskActivity : AppCompatActivity() {
     }
 
     private fun showTaskFailedDialog() {
-        val currentUser = UserManager.getCurrentUser()
+        val currentUser = authRepository.getCurrentUserSync()
         if (currentUser != null) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val profile = supabaseClient.fetchUserAttributes(currentUser.authToken)
-                    val currentBellPeppers = profile.optInt("bell_peppers", 0)
-                    
-                    Log.d("TaskActivity", "Task failed - Current bell peppers: $currentBellPeppers (bell pepper was consumed and not returned)")
-                    
-                    withContext(Dispatchers.Main) {
-                        TaskFailureDialogFragment().show(supportFragmentManager, "task_failed")
+                    val attributesResult = userRepository.getUserAttributes(currentUser.id)
+                    if (attributesResult.isSuccess) {
+                        val profile = attributesResult.getOrThrow()
+                        val currentBellPeppers = profile.optInt("bell_peppers", 0)
+                        
+                        Log.d("TaskActivity", "Task failed - Current bell peppers: $currentBellPeppers (bell pepper was consumed and not returned)")
+                        
+                        withContext(Dispatchers.Main) {
+                            TaskFailureDialogFragment().show(supportFragmentManager, "task_failed")
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "Error checking bell peppers. Please try again.", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
@@ -386,24 +387,27 @@ class TaskActivity : AppCompatActivity() {
     }
 
     private fun onTaskCompleted() {
-        val currentUser = UserManager.getCurrentUser()
+        val currentUser = authRepository.getCurrentUserSync()
         if (currentUser != null) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val profile = supabaseClient.fetchUserAttributes(currentUser.authToken)
-                    val currentBellPeppers = profile.optInt("bell_peppers", 0)
-                    
-                    Log.d("TaskActivity", "Task completed - Current bell peppers: $currentBellPeppers")
-                    
-                    // Return the bell pepper on successful completion
-                    val newBellPeppers = currentBellPeppers + 1
-                    Log.d("TaskActivity", "Returning bell pepper - New count: $newBellPeppers")
-                    
-                    val response = supabaseClient.updateUserBellPeppers(currentUser.id, newBellPeppers, currentUser.authToken)
-                    Log.d("TaskActivity", "Bell pepper return response code: ${response.code}")
-                    
-                    if (response.code != 200 && response.code != 204) {
-                        Log.e("TaskActivity", "Failed to return bell pepper")
+                    val attributesResult = userRepository.getUserAttributes(currentUser.id)
+                    if (attributesResult.isSuccess) {
+                        val profile = attributesResult.getOrThrow()
+                        val currentBellPeppers = profile.optInt("bell_peppers", 0)
+                        
+                        Log.d("TaskActivity", "Task completed - Current bell peppers: $currentBellPeppers")
+                        
+                        // Return the bell pepper on successful completion
+                        val newBellPeppers = currentBellPeppers + 1
+                        Log.d("TaskActivity", "Returning bell pepper - New count: $newBellPeppers")
+                        
+                        val updateResult = userRepository.updateUserBellPeppers(currentUser.id, newBellPeppers)
+                        Log.d("TaskActivity", "Bell pepper return result: ${updateResult.isSuccess}")
+                        
+                        if (updateResult.isFailure) {
+                            Log.e("TaskActivity", "Failed to return bell pepper")
+                        }
                     }
 
                     withContext(Dispatchers.Main) {
@@ -439,11 +443,20 @@ class TaskActivity : AppCompatActivity() {
 
     fun resetForWrongQuestions() {
         // First check and consume a bell pepper for the retry
-        val currentUser = UserManager.getCurrentUser()
+        val currentUser = authRepository.getCurrentUserSync()
         if (currentUser != null) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val profile = supabaseClient.fetchUserAttributes(currentUser.authToken)
+                    val attributesResult = userRepository.getUserAttributes(currentUser.id)
+                    if (attributesResult.isFailure) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "Failed to get user data. Please try again.", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        return@launch
+                    }
+
+                    val profile = attributesResult.getOrThrow()
                     val currentBellPeppers = profile.optInt("bell_peppers", 0)
                     
                     Log.d("TaskActivity", "Retry attempt - Current bell peppers: $currentBellPeppers")
@@ -460,10 +473,10 @@ class TaskActivity : AppCompatActivity() {
                     val newBellPeppers = currentBellPeppers - 1
                     Log.d("TaskActivity", "Consuming bell pepper for retry - New count: $newBellPeppers")
                     
-                    val response = supabaseClient.updateUserBellPeppers(currentUser.id, newBellPeppers, currentUser.authToken)
-                    Log.d("TaskActivity", "Bell pepper retry consumption response code: ${response.code}")
+                    val updateResult = userRepository.updateUserBellPeppers(currentUser.id, newBellPeppers)
+                    Log.d("TaskActivity", "Bell pepper retry consumption result: ${updateResult.isSuccess}")
                     
-                    if (response.code != 200 && response.code != 204) {
+                    if (updateResult.isFailure) {
                         withContext(Dispatchers.Main) {
                             Toast.makeText(this@TaskActivity, "Failed to start retry. Please try again.", Toast.LENGTH_SHORT).show()
                             finish()

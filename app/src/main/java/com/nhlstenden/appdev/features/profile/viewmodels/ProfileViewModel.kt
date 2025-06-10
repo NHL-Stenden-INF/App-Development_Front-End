@@ -30,14 +30,17 @@ class ProfileViewModel @Inject constructor(
     val achievements: StateFlow<List<Achievement>> = _achievements.asStateFlow()
 
     fun loadProfile() {
+        Log.d("ProfileViewModel", "loadProfile() called - starting profile fetch...")
         launchWithLoading {
             profileRepository.getProfile()
                 .onSuccess { profile ->
+                    Log.d("ProfileViewModel", "Profile loaded successfully - Bell peppers: ${profile.bellPeppers}, Points: ${profile.experience}")
                     _profileState.value = ProfileState.Success(profile)
-                    Log.d("ProfileViewModel", "Profile loaded successfully for ${profile.displayName}")
+                    Log.d("ProfileViewModel", "ProfileState.Success emitted for ${profile.displayName}")
                 }
                 .onFailure { error ->
                     val errorMessage = error.message ?: "Failed to load profile"
+                    Log.e("ProfileViewModel", "Failed to load profile: $errorMessage")
                     _profileState.value = ProfileState.Error(errorMessage)
                     setError(errorMessage)
                     Log.e("ProfileViewModel", "Failed to load profile", error)

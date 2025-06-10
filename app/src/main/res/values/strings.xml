@@ -34,6 +34,7 @@
     <string name="progress_format" formatted="false">%d/%d</string>
 
     <string name="profile_picture">Profile picture</string>
+    <string name="greeting_text">Hey, %s!</string>
     <string name="achievements">Achievements</string>
     <string name="achievement_icon">Achievement icon</string>
 

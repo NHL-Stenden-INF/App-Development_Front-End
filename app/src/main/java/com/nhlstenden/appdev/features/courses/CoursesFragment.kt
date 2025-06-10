@@ -21,10 +21,12 @@ import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.shared.ui.base.BaseFragment
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
-import com.nhlstenden.appdev.core.utils.UserManager
+import com.nhlstenden.appdev.core.repositories.AuthRepository
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class CoursesFragment : BaseFragment() {
+    @Inject lateinit var authRepository: AuthRepository
     private val viewModel: CourseViewModel by viewModels()
     private lateinit var coursesList: RecyclerView
     private lateinit var searchEditText: TextInputEditText
@@ -54,7 +56,7 @@ class CoursesFragment : BaseFragment() {
 
     override fun onResume() {
         super.onResume()
-        val currentUser = UserManager.getCurrentUser()
+        val currentUser = authRepository.getCurrentUserSync()
         if (currentUser != null) {
             viewModel.loadCoursesWithProgress(currentUser)
         }
@@ -112,7 +114,7 @@ class CoursesFragment : BaseFragment() {
     }
 
     fun refreshCourses() {
-        val currentUser = UserManager.getCurrentUser()
+        val currentUser = authRepository.getCurrentUserSync()
         if (currentUser != null) {
             viewModel.loadCoursesWithProgress(currentUser)
         }

@@ -19,7 +19,7 @@ import androidx.lifecycle.lifecycleScope
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.FragmentLoginBinding
 import com.nhlstenden.appdev.features.login.viewmodels.LoginViewModel
-import com.nhlstenden.appdev.main.MainActivity
+import com.nhlstenden.appdev.MainActivity
 import com.nhlstenden.appdev.core.utils.UserManager
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -87,7 +87,7 @@ class LoginFragment : Fragment() {
                     is LoginViewModel.LoginState.Success -> {
                         binding.loginButton.isEnabled = true
                         binding.loginButton.text = getString(R.string.login)
-                        UserManager.setCurrentUser(state.user)
+                        // User is automatically stored in AuthRepository, no need for UserManager
                         val intent = Intent(requireContext(), MainActivity::class.java)
                         startActivity(intent)
                         requireActivity().finish()

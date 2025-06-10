@@ -11,19 +11,28 @@ import com.nhlstenden.appdev.features.courses.TaskParser
 import org.json.JSONArray
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.utils.LevelCalculator
+import okhttp3.Request
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Singleton
 class FriendsRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val courseParser: CourseParser,
-    private val taskParser: TaskParser
+    private val taskParser: TaskParser,
+    private val authRepository: AuthRepository
 ) : FriendsRepository {
 
     private val TAG = "FriendsRepositoryImpl"
 
     override suspend fun addFriend(friendId: String): Result<Unit> {
         return try {
-            val response = supabaseClient.addFriendWithCurrentUser(friendId)
+            val currentUser = authRepository.getCurrentUserSync()
+                ?: return Result.failure(Exception("User not logged in"))
+            
+            val response = supabaseClient.createMutualFriendship(friendId, currentUser.authToken)
             if (response.isSuccessful) {
                 Log.d(TAG, "Friend added successfully: $friendId")
                 Result.success(Unit)
@@ -40,7 +49,10 @@ class FriendsRepositoryImpl @Inject constructor(
 
     override suspend fun getAllFriends(): Result<List<Friend>> {
         return try {
-            val response = supabaseClient.getAllFriendsForCurrentUser()
+            val currentUser = authRepository.getCurrentUserSync()
+                ?: return Result.failure(Exception("User not logged in"))
+            
+            val response = supabaseClient.getAllFriends(currentUser.authToken)
             if (!response.isSuccessful) {
                 val error = "Failed to load friends: ${response.code}"
                 Log.e(TAG, error)
@@ -50,39 +62,66 @@ class FriendsRepositoryImpl @Inject constructor(
             val body = response.body?.string() ?: "[]"
             Log.d(TAG, "Get all friends response: $body")
             
-            val jsonArray = JSONArray(body)
-            val friendsList = mutableListOf<Friend>()
+            val friendsJson = org.json.JSONArray(body)
+            val friends = mutableListOf<Friend>()
             
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                val points = obj.optInt("points", 0)
-                val level = supabaseClient.calculateLevelFromXp(points.toLong())
+            for (i in 0 until friendsJson.length()) {
+                val friendObj = friendsJson.getJSONObject(i)
+                val friendId = friendObj.getString("id")
                 
-                // Calculate XP progress for current level
-                var requiredXp = 100.0
-                var totalXp = 0.0
-                for (j in 1 until level) {
-                    totalXp += requiredXp
-                    requiredXp *= 1.1
+                // Fetch XP from user_attributes table to ensure consistency with friend details
+                var actualXp = 0
+                try {
+                    val attributesRequest = okhttp3.Request.Builder()
+                        .url("${supabaseClient.supabaseUrl}/rest/v1/user_attributes?select=xp&id=eq.$friendId")
+                        .get()
+                        .addHeader("apikey", supabaseClient.supabaseKey)
+                        .addHeader("Authorization", "Bearer ${currentUser.authToken}")
+                        .addHeader("Content-Type", "application/json")
+                        .build()
+                    
+                    val attributesResponse = withContext(Dispatchers.IO) {
+                        supabaseClient.client.newCall(attributesRequest).execute()
+                    }
+                    val attributesBody = attributesResponse.body?.string()
+                    
+                    if (attributesResponse.isSuccessful && !attributesBody.isNullOrEmpty()) {
+                        val attributesArr = org.json.JSONArray(attributesBody)
+                        if (attributesArr.length() > 0) {
+                            val attributesData = attributesArr.getJSONObject(0)
+                            actualXp = attributesData.optInt("xp", 0)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not fetch XP for friend $friendId: ${e.message}")
+                    // Fallback to RPC points field if attributes fetch fails
+                    actualXp = friendObj.optInt("points", 0)
                 }
-                val xpForCurrentLevel = points - totalXp.toInt()
-                val xpForNextLevel = requiredXp.toInt()
+                
+                val (level, currentLevelProgress, currentLevelMax) = LevelCalculator.calculateLevelAndProgress(actualXp.toLong())
+                
+                Log.d(TAG, "=== FRIEND CARD DATA (getAllFriends) ===")
+                Log.d(TAG, "Friend ${i}: id=$friendId")
+                Log.d(TAG, "  - XP SOURCE: user_attributes 'xp' field = $actualXp")
+                Log.d(TAG, "  - CALCULATED LEVEL: $level")
+                Log.d(TAG, "=========================================")
                 
                 val friend = Friend(
-                    id = obj.optString("id"),
-                    username = obj.optString("display_name"),
-                    profilePicture = obj.optString("profile_picture", null),
-                    bio = obj.optString("bio", null),
-                    progress = points,
+                    id = friendId,
+                    username = friendObj.optString("display_name", "Friend"),
+                    profilePicture = friendObj.optString("profile_picture"),
+                    bio = friendObj.optString("bio"),
+                    progress = actualXp,
                     level = level,
-                    currentLevelProgress = xpForCurrentLevel.coerceAtLeast(0),
-                    currentLevelMax = xpForNextLevel
+                    currentLevelProgress = currentLevelProgress,
+                    currentLevelMax = currentLevelMax,
+                    lastActive = System.currentTimeMillis()
                 )
-                friendsList.add(friend)
-                Log.d(TAG, "Parsed friend: ${friend.username} (ID: ${friend.id})")
+                friends.add(friend)
             }
             
-            Result.success(friendsList)
+            Log.d(TAG, "Loaded ${friends.size} friends successfully")
+            Result.success(friends)
         } catch (e: Exception) {
             Log.e(TAG, "Error loading friends", e)
             Result.failure(e)
@@ -91,7 +130,10 @@ class FriendsRepositoryImpl @Inject constructor(
 
     override suspend fun removeFriend(friendId: String): Result<Unit> {
         return try {
-            val response = supabaseClient.removeFriendWithCurrentUser(friendId)
+            val currentUser = authRepository.getCurrentUserSync()
+                ?: return Result.failure(Exception("User not logged in"))
+            
+            val response = supabaseClient.removeFriend(friendId, currentUser.authToken)
             if (response.isSuccessful) {
                 Log.d(TAG, "Friend removed successfully: $friendId")
                 Result.success(Unit)
@@ -108,10 +150,11 @@ class FriendsRepositoryImpl @Inject constructor(
 
     override suspend fun getCurrentUserQRCode(): Result<String> {
         return try {
-            val userId = supabaseClient.getCurrentUserId()
+            val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not logged in"))
             
-            Result.success(userId)
+            // Return the user ID directly from the authenticated user
+            Result.success(currentUser.id)
         } catch (e: Exception) {
             Log.e(TAG, "Error getting current user QR code", e)
             Result.failure(e)
@@ -134,56 +177,111 @@ class FriendsRepositoryImpl @Inject constructor(
             var joinDate: String? = null
             
             // Get friend's profile data (points, streak, join date, etc.)
-            supabaseClient.getFriendProfileForCurrentUser(friendId)
-                .onSuccess { profileJson ->
-                    Log.d(TAG, "=== FRIEND PROFILE DATA ===")
-                    Log.d(TAG, "Full profile JSON: $profileJson")
-                    Log.d(TAG, "Available keys: ${profileJson.keys().asSequence().toList()}")
-                    
-                    username = profileJson.optString("display_name", "Friend User")
-                    profilePicture = profileJson.optString("profile_picture", null)
-                    bio = profileJson.optString("bio", null)
-                    totalPoints = profileJson.optInt("points", 0)
-                    streakDays = profileJson.optInt("streak", 0)
-                    
-                    Log.d(TAG, "Parsed profile data:")
-                    Log.d(TAG, "  - username: $username")
-                    Log.d(TAG, "  - points: $totalPoints") 
-                    Log.d(TAG, "  - streak: $streakDays")
-                    
-                    // Calculate level from points
-                    level = supabaseClient.calculateLevelFromXp(totalPoints.toLong())
-                    
-                    // Calculate level progress
-                    var requiredXp = 100.0
-                    var totalXp = 0.0
-                    for (i in 1 until level) {
-                        totalXp += requiredXp
-                        requiredXp *= 1.1
-                    }
-                    currentLevelProgress = (totalPoints - totalXp.toInt()).coerceAtLeast(0)
-                    currentLevelMax = requiredXp.toInt()
-                    
-                    // Use only last_task_date for last active
-                    val lastTaskDate = profileJson.optString("last_task_date", null)
-                    Log.d(TAG, "Last task date: '$lastTaskDate'")
-                    
-                    if (lastTaskDate != null && lastTaskDate != "null" && lastTaskDate.isNotEmpty()) {
-                        try {
-                            joinDate = lastTaskDate
-                            Log.d(TAG, "Using last_task_date as last active: $joinDate")
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Could not parse last_task_date: $lastTaskDate", e)
-                            joinDate = "Unknown"
+            val currentUser = authRepository.getCurrentUserSync()
+                ?: return Result.failure(Exception("User not logged in"))
+            
+            // Get friend's profile data using base methods with auth token
+            try {
+                // Fetch from profile table which has display_name, bio, profile_picture, etc.
+                val profileRequest = Request.Builder()
+                    .url("${supabaseClient.supabaseUrl}/rest/v1/profile?select=*&id=eq.$friendId")
+                    .get()
+                    .addHeader("apikey", supabaseClient.supabaseKey)
+                    .addHeader("Authorization", "Bearer ${currentUser.authToken}")
+                    .addHeader("Content-Type", "application/json")
+                    .build()
+                
+                val profileResponse = withContext(Dispatchers.IO) {
+                    supabaseClient.client.newCall(profileRequest).execute()
+                }
+                val profileBody = profileResponse.body?.string()
+                Log.d(TAG, "getFriendProfile: code=${profileResponse.code}, body=$profileBody")
+                
+                if (profileResponse.isSuccessful && !profileBody.isNullOrEmpty()) {
+                    val profileArr = org.json.JSONArray(profileBody)
+                    if (profileArr.length() > 0) {
+                        val profileData = profileArr.getJSONObject(0)
+                        
+                        // Also fetch user_attributes for points, streak, etc.
+                        val attributesRequest = Request.Builder()
+                            .url("${supabaseClient.supabaseUrl}/rest/v1/user_attributes?select=*&id=eq.$friendId")
+                            .get()
+                            .addHeader("apikey", supabaseClient.supabaseKey)
+                            .addHeader("Authorization", "Bearer ${currentUser.authToken}")
+                            .addHeader("Content-Type", "application/json")
+                            .build()
+                        
+                        val attributesResponse = withContext(Dispatchers.IO) {
+                            supabaseClient.client.newCall(attributesRequest).execute()
                         }
-                    } else {
-                        Log.w(TAG, "No last_task_date found")
-                        joinDate = "Unknown"
+                        val attributesBody = attributesResponse.body?.string()
+                        Log.d(TAG, "getFriendAttributes: code=${attributesResponse.code}, body=$attributesBody")
+                        
+                        Log.d(TAG, "=== FRIEND PROFILE DATA ===")
+                        Log.d(TAG, "Full profile JSON: $profileData")
+                        Log.d(TAG, "Available keys: ${profileData.keys().asSequence().toList()}")
+                        
+                        username = profileData.optString("display_name", "Friend User")
+                        profilePicture = profileData.optString("profile_picture", null)
+                        bio = profileData.optString("bio", null)
+                        
+                        // Get attributes data if available
+                        if (attributesResponse.isSuccessful && !attributesBody.isNullOrEmpty()) {
+                            val attributesArr = org.json.JSONArray(attributesBody)
+                            if (attributesArr.length() > 0) {
+                                val attributesData = attributesArr.getJSONObject(0)
+                                
+                                Log.d(TAG, "=== ATTRIBUTES DATA EXTRACTION ===")
+                                Log.d(TAG, "Full attributes JSON: $attributesData")
+                                Log.d(TAG, "Available attribute keys: ${attributesData.keys().asSequence().toList()}")
+                                
+                                totalPoints = attributesData.optInt("xp", 0)  // Changed from "points" to "xp"
+                                streakDays = attributesData.optInt("streak", 0)
+                                
+                                Log.d(TAG, "Extracted values:")
+                                Log.d(TAG, "  - totalPoints (from 'xp'): $totalPoints")
+                                Log.d(TAG, "  - streakDays (from 'streak'): $streakDays")
+                                
+                                // Use last_task_date for last active
+                                val lastTaskDate = attributesData.optString("last_task_date", null)
+                                Log.d(TAG, "  - lastTaskDate (from 'last_task_date'): '$lastTaskDate'")
+                                
+                                if (lastTaskDate != null && lastTaskDate != "null" && lastTaskDate.isNotEmpty()) {
+                                    joinDate = lastTaskDate
+                                    Log.d(TAG, "  - Using last_task_date as joinDate: $joinDate")
+                                } else {
+                                    joinDate = "Unknown"
+                                    Log.d(TAG, "  - Setting joinDate to 'Unknown' due to empty/null last_task_date")
+                                }
+                            } else {
+                                Log.w(TAG, "Attributes array is empty")
+                            }
+                        } else {
+                            Log.w(TAG, "Attributes response failed or empty. Code: ${attributesResponse.code}, Body: '$attributesBody'")
+                        }
+                        
+                        Log.d(TAG, "Parsed profile data:")
+                        Log.d(TAG, "  - username: $username")
+                        Log.d(TAG, "  - totalPoints: $totalPoints") 
+                        Log.d(TAG, "  - streakDays: $streakDays")
+                        
+                        // Calculate level and progress from points
+                        val (calculatedLevel, calculatedProgress, calculatedMax) = LevelCalculator.calculateLevelAndProgress(totalPoints.toLong())
+                        level = calculatedLevel
+                        currentLevelProgress = calculatedProgress  
+                        currentLevelMax = calculatedMax
+                        
+                        Log.d(TAG, "=== FRIEND INFO CARD DATA (getFriendDetails) ===")
+                        Log.d(TAG, "Friend ID: $friendId")
+                        Log.d(TAG, "  - XP SOURCE: user_attributes 'xp' field = $totalPoints")
+                        Log.d(TAG, "  - CALCULATED LEVEL: $level") 
+                        Log.d(TAG, "  - level progress: $currentLevelProgress / $currentLevelMax XP")
+                        Log.d(TAG, "=================================================")
                     }
                 }
-                .onFailure { error ->
-                    Log.w(TAG, "Could not fetch friend profile data: ${error.message}")
-                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not fetch friend profile data: ${e.message}", e)
+            }
             
             // Get friend's course progress
             val courseProgressList = mutableListOf<CourseProgress>()
@@ -192,9 +290,8 @@ class FriendsRepositoryImpl @Inject constructor(
             Log.d(TAG, "About to call getFriendProgressForCurrentUser with ID: $friendId")
             
             // Try RPC first, fall back to direct query
-            val authToken = com.nhlstenden.appdev.core.utils.UserManager.getCurrentUser()?.authToken
-            if (authToken != null) {
-                supabaseClient.getFriendProgressViaRPC(friendId, authToken)
+            if (currentUser != null) {
+                supabaseClient.getFriendProgressViaRPC(friendId, currentUser.authToken)
                     .onSuccess { progressArray ->
                     Log.d(TAG, "=== FRIEND PROGRESS DATA ===")
                     Log.d(TAG, "Progress array: $progressArray")
@@ -266,8 +363,20 @@ class FriendsRepositoryImpl @Inject constructor(
                         Log.d(TAG, "RPC failed, friend progress will show as empty")
                     }
             } else {
-                Log.e(TAG, "No auth token available for RPC call")
+                Log.e(TAG, "No current user available for RPC call")
             }
+
+            Log.d(TAG, "=== CREATING FRIEND DETAILS OBJECT ===")
+            Log.d(TAG, "About to create FriendDetails with:")
+            Log.d(TAG, "  - id: $friendId")
+            Log.d(TAG, "  - username: $username")
+            Log.d(TAG, "  - totalPoints: $totalPoints")
+            Log.d(TAG, "  - level: $level")
+            Log.d(TAG, "  - currentLevelProgress: $currentLevelProgress")
+            Log.d(TAG, "  - currentLevelMax: $currentLevelMax")
+            Log.d(TAG, "  - streakDays: $streakDays")
+            Log.d(TAG, "  - joinDate: $joinDate")
+            Log.d(TAG, "  - courseProgressList.size: ${courseProgressList.size}")
 
             val friendDetails = FriendDetails(
                 id = friendId,

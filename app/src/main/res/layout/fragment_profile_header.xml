@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/headerLayout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/colorSurface"
+    android:elevation="4dp"
+    android:padding="16dp">
+
+    <!-- Profile image on left -->
+    <ImageView
+        android:id="@+id/profileImage"
+        android:layout_width="47dp"
+        android:layout_height="48dp"
+        android:background="@drawable/round_mask"
+        android:clipToOutline="true"
+        android:contentDescription="@string/profile_picture"
+        android:scaleType="centerCrop"
+        android:src="@drawable/zorotlpf"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Greeting and subText in the middle -->
+    <TextView
+        android:id="@+id/greetingText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="6dp"
+        android:text="Hey, User!"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end"
+        app:layout_constraintBottom_toTopOf="@+id/subText"
+        app:layout_constraintEnd_toStartOf="@+id/livesContainer"
+        app:layout_constraintStart_toEndOf="@+id/profileImage"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <TextView
+        android:id="@+id/subText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Let's continue learning!"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="14sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/greetingText"
+        app:layout_constraintStart_toStartOf="@+id/greetingText"
+        app:layout_constraintTop_toBottomOf="@+id/greetingText" />
+
+    <!-- Lives Display -->
+    <LinearLayout
+        android:id="@+id/livesContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/xpCircleContainer"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- XP circle on right -->
+    <FrameLayout
+        android:id="@+id/xpCircleContainer"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.mikhaellopez.circularprogressbar.CircularProgressBar
+            android:id="@+id/circularXpBar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:cpb_background_progressbar_color="#E0E0E0"
+            app:cpb_background_progressbar_width="4dp"
+            app:cpb_progress="0"
+            app:cpb_progress_max="100"
+            app:cpb_progressbar_color="#FFA500"
+            app:cpb_progressbar_width="8dp"
+            app:cpb_round_border="true" />
+
+        <TextView
+            android:id="@+id/levelInCircleText"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="1"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout> 

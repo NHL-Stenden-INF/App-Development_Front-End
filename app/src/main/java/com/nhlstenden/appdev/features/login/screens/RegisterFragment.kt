@@ -16,7 +16,7 @@ import com.nhlstenden.appdev.core.utils.UserManager
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import android.content.Intent
-import com.nhlstenden.appdev.main.MainActivity
+import com.nhlstenden.appdev.MainActivity
 import android.util.Patterns
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -98,7 +98,7 @@ class RegisterFragment : Fragment() {
                     }
                     is RegisterViewModel.RegisterState.Success -> {
                         binding.registerButton.isEnabled = true
-                        UserManager.setCurrentUser(state.user)
+                        // User is automatically stored in AuthRepository, no need for UserManager
                         val intent = Intent(requireContext(), MainActivity::class.java)
                         startActivity(intent)
                         requireActivity().finish()

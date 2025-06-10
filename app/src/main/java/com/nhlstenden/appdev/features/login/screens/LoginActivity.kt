@@ -17,7 +17,7 @@ import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.ActivityLoginBinding
 import com.nhlstenden.appdev.features.login.adapters.LoginPagerAdapter
 import com.nhlstenden.appdev.features.login.viewmodels.LoginViewModel
-import com.nhlstenden.appdev.main.MainActivity
+import com.nhlstenden.appdev.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch

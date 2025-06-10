@@ -22,7 +22,7 @@ import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.core.utils.UserManager
+import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.features.courses.CourseFragment
 import com.nhlstenden.appdev.features.courses.CourseParser
 import com.nhlstenden.appdev.features.courses.model.Course
@@ -35,14 +35,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.nhlstenden.appdev.core.utils.NavigationManager
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class ProgressFragment : Fragment() {
+    @Inject lateinit var authRepository: AuthRepository
+    @Inject lateinit var courseRepositoryImpl: CourseRepositoryImpl
     private lateinit var pieChart: PieChart
     private lateinit var courseProgressList: RecyclerView
     private lateinit var overallProgressTitle: TextView
     private lateinit var overallProgressPercentage: TextView
-    private lateinit var courseRepositoryImpl: CourseRepositoryImpl
     private var courses: List<Course>? = null
 
     override fun onCreateView(
@@ -51,16 +53,12 @@ class ProgressFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_progress, container, false)
 
-        // Initialize views
         pieChart = view.findViewById(R.id.tasksPieChart)
         courseProgressList = view.findViewById(R.id.courseProgressList)
         overallProgressTitle = view.findViewById(R.id.overallProgressTitle)
         overallProgressPercentage = view.findViewById(R.id.overallProgressPercentage)
         
-        // Set accessibility content descriptions
         courseProgressList.contentDescription = "List of course progress"
-        
-        // Set text from resources
         overallProgressTitle.text = getString(R.string.overall_progress_title)
         
         loadData()
@@ -73,11 +71,11 @@ class ProgressFragment : Fragment() {
         loadData()
     }
 
+    // Fetch course data from the repository in background thread
     private fun loadData() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                courseRepositoryImpl = CourseRepositoryImpl(requireContext().applicationContext as Application)
-                val currentUser = UserManager.getCurrentUser()
+                val currentUser = authRepository.getCurrentUserSync()
                 if (currentUser != null) {
                     courses = courseRepositoryImpl.getCourses(currentUser)
                     withContext(Dispatchers.Main) {
@@ -91,6 +89,7 @@ class ProgressFragment : Fragment() {
         }
     }
 
+    // Create and configure the pie chart showing overall task completion
     private fun setupPieChart() {
         var totalTasks = 0
         var completedTasks = 0
@@ -110,7 +109,6 @@ class ProgressFragment : Fragment() {
             0
         }
 
-        // Update overall progress percentage
         overallProgressPercentage.text = getString(R.string.overall_progress_percentage, completionPercentage)
 
         val entries = listOf(
@@ -120,19 +118,19 @@ class ProgressFragment : Fragment() {
 
         val dataSet = PieDataSet(entries, "Task Progress")
         dataSet.colors = listOf(
-            Color.rgb(76, 175, 80), // Green for completed
-            Color.rgb(158, 158, 158) // Gray for remaining
+            Color.rgb(76, 175, 80),
+            Color.rgb(158, 158, 158)
         )
-        dataSet.sliceSpace = 0f // Remove gap between slices
-        dataSet.selectionShift = 0f // Remove selection shift effect
-        dataSet.valueLinePart1Length = 0.1f // Make the value lines shorter
+        dataSet.sliceSpace = 0f
+        dataSet.selectionShift = 0f
+        dataSet.valueLinePart1Length = 0.1f
         dataSet.valueLinePart2Length = 0.1f
-        dataSet.yValuePosition = PieDataSet.ValuePosition.INSIDE_SLICE // Move values inside slices
-        dataSet.valueLineWidth = 0.2f // Make the value lines very thin
-        dataSet.valueLineColor = Color.TRANSPARENT // Hide the value lines completely
+        dataSet.yValuePosition = PieDataSet.ValuePosition.INSIDE_SLICE
+        dataSet.valueLineWidth = 0.2f
+        dataSet.valueLineColor = Color.TRANSPARENT
 
         val data = PieData(dataSet)
-        data.setValueTextSize(10f) // Make the text slightly smaller
+        data.setValueTextSize(10f)
         data.setValueTextColor(Color.WHITE)
         data.setValueFormatter(object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
@@ -151,19 +149,19 @@ class ProgressFragment : Fragment() {
             legend.isEnabled = false
             animateY(1000)
             centerText = "$completedTasks/$totalTasks\ntasks"
-            setCenterTextSize(14f) // Make center text slightly smaller
+            setCenterTextSize(14f)
             setCenterTextColor(Color.BLACK)
             setDrawCenterText(true)
-            setHoleRadius(50f) // Make the center hole larger
-            setDrawSliceText(false) // Hide slice labels
-            setRotationEnabled(false) // Disable rotation
-            setHighlightPerTapEnabled(false) // Disable highlight on tap
+            setHoleRadius(50f)
+            setDrawSliceText(false)
+            setRotationEnabled(false)
+            setHighlightPerTapEnabled(false)
             contentDescription = "Task completion chart showing $completedTasks completed and $remainingTasks remaining tasks"
             invalidate()
         }
     }
 
-
+    // Create and populate the recyclerview showing individual course progress
     private fun setupCourseList() {
         val progressCourses: List<CourseProgress> = courses?.mapNotNull{ course ->
             if (course.progress == 0) {
@@ -174,6 +172,7 @@ class ProgressFragment : Fragment() {
 
             CourseProgress(
                 course.id,
+                course.title,
                 "${course.progress}/${course.totalTasks}",
                 ((course.progress.toFloat() / course.totalTasks.toFloat()) * 100).toInt(),
                 course.imageResId,
@@ -188,6 +187,7 @@ class ProgressFragment : Fragment() {
         }
     }
     
+    // Legacy navigation method - kept for potential future use
     private fun navigateToCourse(courseName: String) {
         val fragment = CourseFragment().apply {
             arguments = Bundle().apply {
@@ -206,6 +206,7 @@ class ProgressFragment : Fragment() {
 }
 
 data class CourseProgress(
+    val id: String,
     val title: String,
     val completionStatus: String,
     val progressPercentage: Int,
@@ -239,7 +240,7 @@ class CourseProgressAdapter(
         holder.courseImage.setImageResource(course.imageResId)
 
         holder.root.setOnClickListener {
-            onCourseClick(course.title)
+            onCourseClick(course.id)
         }
     }
 

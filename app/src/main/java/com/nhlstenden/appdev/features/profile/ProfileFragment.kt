@@ -30,7 +30,7 @@ import com.nhlstenden.appdev.features.profile.repositories.ProfileRepositoryImpl
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel.ProfileState
 import com.nhlstenden.appdev.shared.components.ImageCropActivity
-import com.nhlstenden.appdev.core.utils.UserManager
+import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.shared.ui.base.BaseFragment
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
@@ -61,6 +61,8 @@ import android.hardware.SensorManager
 import android.content.Context
 import android.util.Log
 import com.nhlstenden.appdev.shared.components.CameraActivity
+import com.nhlstenden.appdev.utils.LevelCalculator
+import com.nhlstenden.appdev.utils.RewardChecker
 
 @AndroidEntryPoint
 class ProfileFragment : BaseFragment(), SensorEventListener {
@@ -72,6 +74,12 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     private val MUSIC_LOBBY_REWARD_ID = 11
     private val PREFS_NAME = "reward_settings"
     private val MUSIC_LOBBY_KEY = "music_lobby_enabled"
+    
+    @Inject
+    lateinit var authRepository: AuthRepository
+    
+    @Inject
+    lateinit var rewardChecker: RewardChecker
     
     private val PROFILE_IMAGE_SIZE = 120
     private val MAX_BIO_LENGTH = 128
@@ -91,7 +99,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         }
 
         binding.logoutButton.setOnClickListener {
-            viewModel.logout()
+            onLogoutClicked()
         }
 
         binding.settingsIcon.setOnClickListener {
@@ -111,7 +119,15 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         val isMusicLobbyEnabled = sharedPrefs.getBoolean(MUSIC_LOBBY_KEY, true)
         musicLobbySwitch.isChecked = isMusicLobbyEnabled
         musicLobbySwitch.setOnCheckedChangeListener { _, isChecked ->
-            sharedPrefs.edit().putBoolean(MUSIC_LOBBY_KEY, isChecked).apply()
+            // Use RewardChecker to properly validate and update music lobby preference
+            lifecycleScope.launch {
+                val success = rewardChecker.setMusicLobbyEnabled(requireContext(), isChecked)
+                if (!success && isChecked) {
+                    // If trying to enable but not unlocked, revert the switch
+                    musicLobbySwitch.isChecked = false
+                    Toast.makeText(requireContext(), "Music lobby reward not unlocked", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
         musicLobbySwitch.isEnabled = false
 
@@ -123,15 +139,22 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        // Load profile using new repository pattern
-        val userData = UserManager.getCurrentUser()
-        
-        if (userData != null && userData.authToken.isNotEmpty()) {
-            android.util.Log.d("ProfileFragment", "user.id=${userData.id}, user.authToken=${userData.authToken}")
-            viewModel.loadProfile()
+        // Check authentication using AuthRepository instead of UserManager
+        if (authRepository.isLoggedIn()) {
+            val currentUser = authRepository.getCurrentUserSync()
+            if (currentUser != null) {
+                android.util.Log.d("ProfileFragment", "user.id=${currentUser.id}, authenticated")
+                viewModel.loadProfile()
+            } else {
+                android.util.Log.e("ProfileFragment", "User is logged in but current user is null")
+                viewModel.loadProfile() // Try loading anyway, repository will handle authentication
+            }
         } else {
-            android.util.Log.e("ProfileFragment", "No valid user data or auth token available")
-            // Could show login prompt or redirect to login
+            android.util.Log.e("ProfileFragment", "User is not logged in")
+            // Redirect to login or show login prompt
+            startActivity(Intent(requireContext(), LoginActivity::class.java))
+            requireActivity().finish()
+            return
         }
         
         xpCircularProgress = binding.root.findViewById(R.id.xpCircularProgress)
@@ -268,17 +291,10 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                         val level = state.profile.level
                         val xp = state.profile.experience
                         levelBadge.text = "Lv. $level"
-                        // Calculate XP needed for next level
-                        var requiredXp = 100.0
-                        var totalXp = 0.0
-                        for (i in 1 until level) {
-                            totalXp += requiredXp
-                            requiredXp *= 1.1
-                        }
-                        val xpForCurrentLevel = xp - totalXp.toInt()
-                        val xpForNextLevel = requiredXp.toInt()
-                        xpCircularProgress.max = xpForNextLevel
-                        xpCircularProgress.progress = xpForCurrentLevel.coerceAtLeast(0)
+                        // Calculate XP needed for next level using centralized calculator
+                        val (currentLevelProgress, currentLevelMax) = LevelCalculator.calculateLevelProgress(xp.toLong())
+                        xpCircularProgress.max = currentLevelMax
+                        xpCircularProgress.progress = currentLevelProgress
                     }
                     is ProfileState.Error -> {
                         binding.progressBar.visibility = View.GONE
@@ -453,7 +469,11 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
 
     private fun onLogoutClicked() {
         viewModel.logout()
-        startActivity(Intent(requireContext(), LoginActivity::class.java))
+        
+        // Navigate to LoginActivity and clear the entire task stack
+        val intent = Intent(requireContext(), LoginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
         requireActivity().finish()
     }
 
