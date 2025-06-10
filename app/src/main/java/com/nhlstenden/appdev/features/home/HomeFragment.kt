@@ -43,16 +43,18 @@ import kotlinx.coroutines.withContext
 import java.time.temporal.ChronoUnit
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import com.daimajia.numberprogressbar.NumberProgressBar
-import com.nhlstenden.appdev.core.utils.UserManager
+import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.core.utils.NavigationManager
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import android.widget.Toast
 import com.nhlstenden.appdev.features.task.BuyBellPepperDialogFragment
-import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.utils.LevelCalculator
 
 // Data class for course info
 data class HomeCourse(
+    val id: String,
     val title: String,
     val progressText: String,
     val progressPercent: Int,
@@ -85,7 +87,7 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>, private val fragm
         holder.progressBar.progress = course.progressPercent
 
         holder.root.setOnClickListener {
-            NavigationManager.navigateToCourseTasks(fragment.requireActivity(), course.title)
+            NavigationManager.navigateToCourseTasks(fragment.requireActivity(), course.id)
         }
     }
 
@@ -99,16 +101,13 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>, private val fragm
  */
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
-    private lateinit var greetingText: TextView
-    private lateinit var motivationalMessage: TextView
-    private lateinit var profilePicture: ImageView
-    private lateinit var circularXpBar: CircularProgressBar
-    private lateinit var levelInCircleText: TextView
-    private lateinit var courseRepositoryImpl: CourseRepositoryImpl
+    
+    @Inject lateinit var authRepository: AuthRepository
+    @Inject lateinit var userRepository: UserRepository
+    @Inject lateinit var courseRepositoryImpl: CourseRepositoryImpl
     private val profileViewModel: ProfileViewModel by viewModels()
     private var displayNameDialogShown = false
-    private val supabaseClient = SupabaseClient()
-    private lateinit var livesContainer: LinearLayout
+
     private lateinit var continueLearningRecyclerView: RecyclerView
 
     @Inject
@@ -125,10 +124,8 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        courseRepositoryImpl = CourseRepositoryImpl(requireContext().applicationContext as Application)
-        // Wait for user data to be set before setting up UI
-        val userData = UserManager.getCurrentUser()
-        if (userData != null && userData.authToken.isNotEmpty()) {
+        val userData = authRepository.getCurrentUserSync()
+        if (userData != null) {
             setupUI(view)
         } else {
             Log.e("HomeFragment", "No valid user data available")
@@ -136,26 +133,9 @@ class HomeFragment : Fragment() {
         observeViewModel()
         dayCounter(view)
         
-        // Set up fragment result listener for profile picture updates
         parentFragmentManager.setFragmentResultListener("profile_picture_updated", viewLifecycleOwner) { _, bundle ->
             if (bundle.getBoolean("updated", false)) {
-                // Reload the profile to get the updated picture
                 profileViewModel.loadProfile()
-            }
-        }
-        livesContainer = view.findViewById(R.id.livesContainer)
-
-        // Fetch user profile and update UI
-        val currentUser = UserManager.getCurrentUser()
-        if (currentUser != null) {
-            lifecycleScope.launch {
-                try {
-                    val profile = supabaseClient.fetchUserAttributes(currentUser.authToken)
-                    val bellPeppers = profile.optInt("bell_peppers", 0)
-                    updateLivesDisplay(bellPeppers)
-                } catch (e: Exception) {
-                    // Handle error
-                }
             }
         }
     }
@@ -165,52 +145,27 @@ class HomeFragment : Fragment() {
         setupUI(requireView())
         dayCounter(requireView())
         
-        // Refresh continue learning section
-        val userData = UserManager.getCurrentUser()
-        if (userData != null && userData.authToken.isNotEmpty()) {
+        val userData = authRepository.getCurrentUserSync()
+        if (userData != null) {
             setupContinueLearning(userData)
         }
     }
 
+    // Initialize UI components and load user profile data
     fun setupUI(view: View) {
-        greetingText = view.findViewById(R.id.greetingText)
-        motivationalMessage = view.findViewById(R.id.motivationalMessage)
-        profilePicture = view.findViewById(R.id.profileImage)
-        circularXpBar = view.findViewById(R.id.circularXpBar)
-        levelInCircleText = view.findViewById(R.id.levelInCircleText)
         continueLearningRecyclerView = view.findViewById(R.id.continueLearningList)
 
-        val userData = UserManager.getCurrentUser()
-        if (userData == null || userData.authToken.isEmpty()) {
-            Log.e("HomeFragment", "No valid user data or auth token available")
+        val userData = authRepository.getCurrentUserSync()
+        if (userData == null) {
+            Log.e("HomeFragment", "No valid user data available")
             return
         }
 
-        // Load profile picture
-        loadProfilePicture(userData.profilePicture ?: "")
-
-        // Add click listener to profile picture
-        profilePicture.setOnClickListener {
-            val profileFragment = ProfileFragment()
-            
-            // Hide ViewPager and show fragment container
-            activity?.findViewById<ViewPager2>(R.id.viewPager)?.visibility = View.GONE
-            activity?.findViewById<FrameLayout>(R.id.fragment_container)?.visibility = View.VISIBLE
-            
-            // Replace fragment container with profile fragment
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, profileFragment)
-                .addToBackStack(null)
-                .commit()
-        }
-
-        // Load profile using new repository pattern  
         profileViewModel.loadProfile()
-        
-        // Set up continue learning section
         setupContinueLearning(userData)
     }
 
+    // Monitor profile state changes and handle invalid display names
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             profileViewModel.profileState.collect { state ->
@@ -219,65 +174,13 @@ class HomeFragment : Fragment() {
                     val invalidNames = listOf("", "null", "default", "user", "anonymous")
                     if (displayName in invalidNames && !displayNameDialogShown) {
                         showDisplayNameDialog()
-                    } else {
-                        greetingText.text = getString(R.string.greeting_format, displayName)
                     }
-
-                    // Update profile picture
-                    loadProfilePicture(state.profile.profilePicture ?: "")
-
-                    // Update lives display
-                    updateLivesDisplay(state.profile.bellPeppers)
-
-                    // Set circular XP bar and level
-                    val level = state.profile.level
-                    val xp = state.profile.experience
-                    levelInCircleText.text = level.toString()
-                    
-                    // Calculate XP needed for next level
-                    var requiredXp = 100.0
-                    var totalXp = 0.0
-                    for (i in 1 until level) {
-                        totalXp += requiredXp
-                        requiredXp *= 1.1
-                    }
-                    val xpForCurrentLevel = xp - totalXp.toInt()
-                    val xpForNextLevel = requiredXp.toInt()
-                    circularXpBar.progressMax = xpForNextLevel.toFloat()
-                    circularXpBar.setProgressWithAnimation(xpForCurrentLevel.coerceAtLeast(0).toFloat(), 800)
                 }
             }
         }
     }
 
-    private fun loadProfilePicture(profilePic: String) {
-        if (profilePic.isNotEmpty() && profilePic != "null") {
-            if (profilePic.startsWith("http")) {
-                Glide.with(this)
-                    .load(profilePic)
-                    .placeholder(R.drawable.zorotlpf)
-                    .error(R.drawable.zorotlpf)
-                    .circleCrop()
-                    .into(profilePicture)
-            } else {
-                // Try to load as base64
-                try {
-                    val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
-                    Glide.with(this)
-                        .load(imageBytes)
-                        .placeholder(R.drawable.zorotlpf)
-                        .error(R.drawable.zorotlpf)
-                        .circleCrop()
-                        .into(profilePicture)
-                } catch (e: Exception) {
-                    profilePicture.setImageResource(R.drawable.zorotlpf)
-                }
-            }
-        } else {
-            profilePicture.setImageResource(R.drawable.zorotlpf)
-        }
-    }
-
+    // Show dialog to prompt user for a valid display name
     private fun showDisplayNameDialog() {
         displayNameDialogShown = true
         val editText = EditText(requireContext()).apply {
@@ -302,6 +205,7 @@ class HomeFragment : Fragment() {
             .show()
     }
 
+    // Create and display the weekly streak counter with visual indicators
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun dayCounter(view: View) {
         val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
@@ -315,7 +219,7 @@ class HomeFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val currentUser = com.nhlstenden.appdev.core.utils.UserManager.getCurrentUser()
+                val currentUser = authRepository.getCurrentUserSync()
                 if (currentUser != null) {
                     Log.d("HomeFragment", "Fetching last task date for user: ${currentUser.id}")
                     val lastTaskDate = streakRepository.getLastTaskDate(currentUser.id.toString(), currentUser.authToken)
@@ -323,15 +227,11 @@ class HomeFragment : Fragment() {
                     Log.d("HomeFragment", "Last task date: $lastTaskDate")
                     Log.d("HomeFragment", "Current streak from DB: $currentStreak")
                     
-                    // Initialize streak manager with database values
                     streakManager.initializeFromDatabase(lastTaskDate, currentStreak)
                     
-                    // Switch to main thread for UI updates
                     withContext(Dispatchers.Main) {
-                        // Update streak counter with the value from streak manager
                         streakCounter.text = "${streakManager.getCurrentStreak()} days"
                         
-                        // Draw the days
                         for (i in 0..6) {
                             val currentDate = startOfWeek.plusDays(i.toLong())
                             val dayLayout = LinearLayout(requireContext()).apply {
@@ -340,16 +240,13 @@ class HomeFragment : Fragment() {
                                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                             }
 
-                            // Calculate if this day should be marked as completed
                             val isCompleted = if (lastTaskDate != null) {
-                                // Check if this date is within the streak period
                                 val daysFromLastTask = ChronoUnit.DAYS.between(currentDate, lastTaskDate)
                                 daysFromLastTask >= 0 && daysFromLastTask < currentStreak
                             } else {
                                 false
                             }
 
-                            // Draw the circle
                             val circle = FrameLayout(requireContext()).apply {
                                 layoutParams = FrameLayout.LayoutParams(64, 64).apply {
                                     gravity = Gravity.CENTER
@@ -361,7 +258,6 @@ class HomeFragment : Fragment() {
                                 )
                             }
 
-                            // Draw the fire icon for completed days
                             val fireIcon = ImageView(requireContext()).apply {
                                 layoutParams = FrameLayout.LayoutParams(32, 32, Gravity.CENTER)
                                 setImageResource(R.drawable.ic_fire)
@@ -399,6 +295,7 @@ class HomeFragment : Fragment() {
         }
     }
     
+    // Check if the app is currently in dark mode
     private fun isNightMode(): Boolean {
         return resources.configuration.uiMode and 
             android.content.res.Configuration.UI_MODE_NIGHT_MASK == 
@@ -409,68 +306,10 @@ class HomeFragment : Fragment() {
         // Implementation
     }
 
-    private fun updateLivesDisplay(bellPeppers: Int) {
-        livesContainer.removeAllViews()
-
-        // Make the lives container clickable
-        livesContainer.setOnClickListener {
-            val currentUser = UserManager.getCurrentUser()
-            if (currentUser != null) {
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val profile = supabaseClient.fetchUserAttributes(currentUser.authToken)
-                        val currentBellPeppers = profile.optInt("bell_peppers", 0)
-                        val currentPoints = profile.optInt("points", 0)
-
-                        withContext(Dispatchers.Main) {
-                            if (currentBellPeppers >= 3) {
-                                Toast.makeText(context, "You already have the maximum number of bell peppers!", Toast.LENGTH_SHORT).show()
-                            } else {
-                                BuyBellPepperDialogFragment().show(parentFragmentManager, "buy_bell_pepper")
-                            }
-                        }
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(context, "Error checking bell peppers. Please try again.", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-            }
-        }
-
-        // Add the appropriate bell pepper image based on the number of lives
-        val imageView = ImageView(requireContext()).apply {
-            when (bellPeppers) {
-                0 -> {
-                    // Use animated drawable for zero lives
-                    setImageResource(R.drawable.animated_zero_lives)
-                    val animationDrawable = drawable as? android.graphics.drawable.AnimationDrawable
-                    animationDrawable?.start()
-                }
-                1 -> setImageResource(R.drawable.profile_bellpepper_one_life)
-                2 -> setImageResource(R.drawable.profile_bellpepper_two_lifes)
-                3 -> setImageResource(R.drawable.profile_bellpepper_three_lifes)
-                else -> {
-                    // Use animated drawable for zero lives as default
-                    setImageResource(R.drawable.animated_zero_lives)
-                    val animationDrawable = drawable as? android.graphics.drawable.AnimationDrawable
-                    animationDrawable?.start()
-                }
-            }
-            scaleType = ImageView.ScaleType.FIT_CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
-            )
-        }
-        livesContainer.addView(imageView)
-    }
-
+    // Load and display courses that the user is currently progressing through
     private fun setupContinueLearning(userData: com.nhlstenden.appdev.core.models.User) {
-        // Set up the RecyclerView
         continueLearningRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
         
-        // Load courses with progress
         lifecycleScope.launch {
             try {
                 val courses = withContext(Dispatchers.IO) {
@@ -478,12 +317,10 @@ class HomeFragment : Fragment() {
                 }
                 
                 if (courses != null) {
-                    // Filter for active courses (progress > 0 and < totalTasks)
                     val activeCourses = courses.filter { course ->
                         course.progress > 0 && course.progress < course.totalTasks
                     }
                     
-                    // Convert to HomeCourse objects
                     val homeCourses = activeCourses.map { course ->
                         val progressText = "${course.progress}/${course.totalTasks} tasks"
                         val progressPercent = if (course.totalTasks > 0) {
@@ -493,6 +330,7 @@ class HomeFragment : Fragment() {
                         }
                         
                         HomeCourse(
+                            id = course.id,
                             title = course.title,
                             progressText = progressText,
                             progressPercent = progressPercent,
@@ -501,28 +339,16 @@ class HomeFragment : Fragment() {
                         )
                     }
                     
-                    // Set up adapter
                     val adapter = HomeCourseAdapter(homeCourses, this@HomeFragment)
                     continueLearningRecyclerView.adapter = adapter
                     
-                    // Update motivational message based on active courses
-                    updateMotivationalMessage(activeCourses.size)
                 } else {
                     Log.e("HomeFragment", "Failed to load courses")
-                    updateMotivationalMessage(0)
                 }
             } catch (e: Exception) {
                 Log.e("HomeFragment", "Error setting up continue learning: ${e.message}")
-                updateMotivationalMessage(0)
             }
         }
     }
-    
-    private fun updateMotivationalMessage(activeCourseCount: Int) {
-        motivationalMessage.text = when {
-            activeCourseCount == 0 -> "Start a course to begin your learning journey!"
-            activeCourseCount == 1 -> "Keep going! You're making great progress!"
-            else -> "Amazing! You're working on $activeCourseCount courses!"
-        }
-    }
+
 }

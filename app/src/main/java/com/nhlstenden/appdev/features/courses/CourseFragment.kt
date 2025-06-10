@@ -25,12 +25,11 @@ import android.util.Log
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel
-import com.nhlstenden.appdev.main.MainActivity
+import com.nhlstenden.appdev.MainActivity
 import android.widget.ImageView
 import com.daimajia.numberprogressbar.NumberProgressBar
 import android.content.Intent
 import android.app.Activity
-import com.nhlstenden.appdev.core.utils.UserManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.media.AudioManager
@@ -38,6 +37,9 @@ import android.media.AudioAttributes
 import android.os.Build
 import android.content.Context
 import android.media.AudioFocusRequest
+import com.nhlstenden.appdev.utils.RewardChecker
+import com.nhlstenden.appdev.core.repositories.AuthRepository
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class CourseFragment : Fragment() {
@@ -46,10 +48,14 @@ class CourseFragment : Fragment() {
     private val profileViewModel: ProfileViewModel by viewModels()
     private var taskAdapter: TaskAdapter? = null
     private var mediaPlayer: MediaPlayer? = null
-    private val PREFS_NAME = "reward_settings"
-    private val MUSIC_LOBBY_KEY = "music_lobby_enabled"
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
+    
+    @Inject
+    lateinit var rewardChecker: RewardChecker
+    
+    @Inject
+    lateinit var authRepository: AuthRepository
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -97,7 +103,7 @@ class CourseFragment : Fragment() {
 
         // Load tasks for the course
         val courseId = arguments?.getString("COURSE_ID") ?: return
-        val currentUser = UserManager.getCurrentUser()
+        val currentUser = authRepository.getCurrentUserSync()
         if (currentUser != null) {
             viewModel.loadTasks(courseId, currentUser)
             
@@ -141,7 +147,7 @@ class CourseFragment : Fragment() {
         // Set up back button
         binding.backButton.setOnClickListener {
             // Trigger refresh of courses list before navigating back
-            val currentUser = UserManager.getCurrentUser()
+            val currentUser = authRepository.getCurrentUserSync()
             if (currentUser != null) {
                 (requireActivity() as? MainActivity)?.let { mainActivity ->
                     val coursesFragment = mainActivity.supportFragmentManager.fragments.find { it is CoursesFragment }
@@ -159,7 +165,7 @@ class CourseFragment : Fragment() {
         if (requestCode == TASK_COMPLETION_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             // Refresh the course progress
             val courseId = arguments?.getString("COURSE_ID") ?: return
-            val currentUser = UserManager.getCurrentUser()
+            val currentUser = authRepository.getCurrentUserSync()
             if (currentUser != null) {
                 // Reload tasks and course progress
                 viewModel.loadTasks(courseId, currentUser)
@@ -172,7 +178,7 @@ class CourseFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         val courseId = arguments?.getString("COURSE_ID") ?: return
-        val currentUser = UserManager.getCurrentUser()
+        val currentUser = authRepository.getCurrentUserSync()
         if (currentUser != null) {
             // Force refresh the view
             binding.swipeRefreshLayout.isRefreshing = true
@@ -192,11 +198,24 @@ class CourseFragment : Fragment() {
     }
 
     private fun setupMusic() {
-        val sharedPrefs = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
-        val isMusicLobbyEnabled = sharedPrefs.getBoolean(MUSIC_LOBBY_KEY, false)
-        Log.d("CourseFragment", "Music lobby enabled: $isMusicLobbyEnabled")
-        
-        if (isMusicLobbyEnabled) {
+        // Use RewardChecker to properly validate music lobby unlock and user preference
+        lifecycleScope.launch {
+            try {
+                val isMusicLobbyEnabledAndUnlocked = rewardChecker.isMusicLobbyEnabledAndUnlocked(requireContext())
+                Log.d("CourseFragment", "Music lobby enabled and unlocked: $isMusicLobbyEnabledAndUnlocked")
+                
+                if (isMusicLobbyEnabledAndUnlocked) {
+                    startMusicPlayback()
+                } else {
+                    Log.d("CourseFragment", "Music lobby is not enabled or not unlocked")
+                }
+            } catch (e: Exception) {
+                Log.e("CourseFragment", "Error checking music lobby status", e)
+            }
+        }
+    }
+    
+    private fun startMusicPlayback() {
             try {
                 val courseId = arguments?.getString("COURSE_ID") ?: return
                 Log.d("CourseFragment", "Setting up music for course: $courseId")
@@ -259,9 +278,6 @@ class CourseFragment : Fragment() {
             } catch (e: Exception) {
                 Log.e("CourseFragment", "Error playing music", e)
             }
-        } else {
-            Log.d("CourseFragment", "Music lobby is not enabled in settings")
-        }
     }
 
     private fun stopMusic() {
@@ -301,7 +317,7 @@ class CourseFragment : Fragment() {
     private fun setupSwipeRefresh() {
         binding.swipeRefreshLayout.setOnRefreshListener {
             val courseId = arguments?.getString("COURSE_ID") ?: return@setOnRefreshListener
-            val currentUser = UserManager.getCurrentUser()
+            val currentUser = authRepository.getCurrentUserSync()
             if (currentUser != null) {
                 viewModel.loadTasks(courseId, currentUser)
             }
@@ -311,7 +327,7 @@ class CourseFragment : Fragment() {
     private fun setupBackButton() {
         binding.backButton.setOnClickListener {
             // Trigger refresh of courses list before navigating back
-            val currentUser = UserManager.getCurrentUser()
+            val currentUser = authRepository.getCurrentUserSync()
             if (currentUser != null) {
                 (requireActivity() as? MainActivity)?.let { mainActivity ->
                     val coursesFragment = mainActivity.supportFragmentManager.fragments.find { it is CoursesFragment }
