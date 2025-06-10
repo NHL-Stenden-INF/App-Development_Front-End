@@ -5,6 +5,8 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -13,20 +15,30 @@ import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.core.utils.UserManager
-import com.nhlstenden.appdev.main.MainActivity
-import com.nhlstenden.appdev.supabase.SupabaseClient
-import kotlinx.coroutines.CoroutineScope
+import com.nhlstenden.appdev.MainActivity
+import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.core.repositories.UserRepository
+import com.nhlstenden.appdev.shared.ProfileHeaderFragment
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class BuyBellPepperDialogFragment : DialogFragment() {
-    private val supabaseClient = SupabaseClient()
+    
+    @Inject
+    lateinit var authRepository: AuthRepository
+    
+    @Inject
+    lateinit var userRepository: UserRepository
+    
     private val BELL_PEPPER_COST = 300
-    private val TAG = "TASK_BELL_PEPPER_DIALOG"
+    private val TAG = "BuyBellPepperDialog"
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return super.onCreateDialog(savedInstanceState).apply {
@@ -48,75 +60,46 @@ class BuyBellPepperDialogFragment : DialogFragment() {
         val buttonContainer = view.findViewById<LinearLayout>(R.id.buttonContainer)
         buttonContainer.removeAllViews()
 
-        val currentUser = UserManager.getCurrentUser()
+        val currentUser = authRepository.getCurrentUserSync()
         if (currentUser != null) {
-            CoroutineScope(Dispatchers.IO).launch {
+            lifecycleScope.launch(Dispatchers.IO) {
                 try {
-                    Log.i(TAG, "Fetching user attributes...")
-                    val profile = supabaseClient.fetchUserAttributes(currentUser.authToken)
+                    Log.d(TAG, "Fetching user attributes...")
+                    val attributesResult = userRepository.getUserAttributes(currentUser.id)
+                    
+                    if (attributesResult.isFailure) {
+                        val error = attributesResult.exceptionOrNull()
+                        Log.e(TAG, "Failed to fetch user attributes: ${error?.message}")
+                        withContext(Dispatchers.Main) {
+                            if (error?.message?.contains("Session expired") == true) {
+                                // JWT expired, dialog will close and app will redirect to login
+                                dismiss()
+                            } else {
+                                Toast.makeText(context, "Error fetching user data. Please try again.", Toast.LENGTH_SHORT).show()
+                                dismiss()
+                            }
+                        }
+                        return@launch
+                    }
+                    
+                    val profile = attributesResult.getOrNull()!!
                     val currentPoints = profile.optInt("points", 0)
                     val currentBellPeppers = profile.optInt("bell_peppers", 0)
-                    Log.i(TAG, "Current points: $currentPoints, Current bell peppers: $currentBellPeppers")
+                    Log.d(TAG, "Current points: $currentPoints, Current bell peppers: $currentBellPeppers")
 
                     withContext(Dispatchers.Main) {
                         if (currentBellPeppers >= 3) {
-                            Log.i(TAG, "Purchase rejected: Too many bell peppers ($currentBellPeppers)")
+                            Log.d(TAG, "Purchase rejected: Already at maximum bell peppers ($currentBellPeppers)")
                             Toast.makeText(context, "You already have the maximum number of bell peppers!", Toast.LENGTH_SHORT).show()
                             dismiss()
                             return@withContext
                         }
 
                         val buyButton = MaterialButton(requireContext()).apply {
-                            text = "Buy Bell Pepper (300 points)"
+                            text = "Buy Bell Pepper ($BELL_PEPPER_COST points)"
                             isEnabled = currentPoints >= BELL_PEPPER_COST
                             setOnClickListener {
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    try {
-                                        Log.i(TAG, "Starting purchase process...")
-                                        val newPoints = currentPoints - BELL_PEPPER_COST
-                                        val newBellPeppers = currentBellPeppers + 1
-                                        
-                                        Log.i(TAG, "Updating points...")
-                                        val pointsResponse = supabaseClient.updateUserPoints(currentUser.id, newPoints, currentUser.authToken)
-                                        Log.i(TAG, "Points update response code: ${pointsResponse.code}")
-                                        
-                                        Log.i(TAG, "Updating bell peppers...")
-                                        val bellPeppersResponse = supabaseClient.updateUserBellPeppers(currentUser.id, newBellPeppers, currentUser.authToken)
-                                        Log.i(TAG, "Bell peppers update response code: ${bellPeppersResponse.code}")
-                                        
-                                        if ((pointsResponse.code == 200 || pointsResponse.code == 204) && 
-                                            (bellPeppersResponse.code == 200 || bellPeppersResponse.code == 204)) {
-                                            Log.i(TAG, "Purchase completed successfully")
-                                            withContext(Dispatchers.Main) {
-                                                Toast.makeText(context, "Bell pepper purchased!", Toast.LENGTH_SHORT).show()
-                                                // Get the activity and reset the questions
-                                                (activity as? com.nhlstenden.appdev.features.task.screens.TaskActivity)?.let { taskActivity ->
-                                                    taskActivity.resetForWrongQuestions()
-                                                }
-                                                // Reload the profile to update the UI
-                                                (activity as? com.nhlstenden.appdev.main.MainActivity)?.let { mainActivity ->
-                                                    // Find the HomeFragment and reload its data
-                                                    mainActivity.supportFragmentManager.fragments.forEach { fragment ->
-                                                        if (fragment is com.nhlstenden.appdev.features.home.HomeFragment) {
-                                                            fragment.setupUI(fragment.requireView())
-                                                        }
-                                                    }
-                                                }
-                                                dismiss()
-                                            }
-                                        } else {
-                                            Log.e(TAG, "Purchase failed - Points response: ${pointsResponse.code}, Bell peppers response: ${bellPeppersResponse.code}")
-                                            withContext(Dispatchers.Main) {
-                                                Toast.makeText(context, "Failed to purchase bell pepper. Please try again.", Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
-                                    } catch (e: Exception) {
-                                        Log.e(TAG, "Error during purchase: ${e.message}", e)
-                                        withContext(Dispatchers.Main) {
-                                            Toast.makeText(context, "Error during purchase. Please try again.", Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-                                }
+                                performPurchase(currentPoints, currentBellPeppers)
                             }
                             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f).apply {
                                 marginEnd = 8
@@ -129,13 +112,6 @@ class BuyBellPepperDialogFragment : DialogFragment() {
                         val cancelButton = MaterialButton(requireContext()).apply {
                             text = "Cancel"
                             setOnClickListener {
-                                val context = requireContext()
-                                val intent = Intent(context, MainActivity::class.java)
-                                context.startActivity(intent)
-                                
-                                if (context is android.app.Activity) {
-                                    context.finish()
-                                }
                                 dismiss()
                             }
                             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f).apply {
@@ -146,17 +122,126 @@ class BuyBellPepperDialogFragment : DialogFragment() {
                             )
                         }
 
+                        if (currentPoints < BELL_PEPPER_COST) {
+                            Toast.makeText(context, "Not enough points! You need $BELL_PEPPER_COST points.", Toast.LENGTH_SHORT).show()
+                        }
+
                         buttonContainer.addView(buyButton)
                         buttonContainer.addView(cancelButton)
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error checking user data: ${e.message}", e)
+                    Log.e(TAG, "Error setting up dialog: ${e.message}", e)
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "Error checking points. Please try again.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Error loading dialog. Please try again.", Toast.LENGTH_SHORT).show()
+                        dismiss()
                     }
                 }
             }
+        } else {
+            Log.w(TAG, "No current user found")
+            Toast.makeText(context, "Please log in again.", Toast.LENGTH_SHORT).show()
+            dismiss()
         }
+    }
+    
+    private fun performPurchase(currentPoints: Int, currentBellPeppers: Int) {
+        val currentUser = authRepository.getCurrentUserSync()
+        if (currentUser == null) {
+            Toast.makeText(context, "Please log in again.", Toast.LENGTH_SHORT).show()
+            dismiss()
+            return
+        }
+        
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "Starting purchase process...")
+                val newPoints = currentPoints - BELL_PEPPER_COST
+                val newBellPeppers = currentBellPeppers + 1
+                
+                // Update points
+                Log.d(TAG, "Updating points to $newPoints...")
+                val pointsResult = userRepository.updateUserPoints(currentUser.id, newPoints)
+                if (pointsResult.isFailure) {
+                    val error = pointsResult.exceptionOrNull()
+                    Log.e(TAG, "Failed to update points: ${error?.message}")
+                    withContext(Dispatchers.Main) {
+                        if (error?.message?.contains("Session expired") == true) {
+                            dismiss() // JWT expired, app will redirect to login
+                        } else {
+                            Toast.makeText(context, "Failed to update points. Please try again.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    return@launch
+                }
+                
+                // Update bell peppers
+                Log.d(TAG, "Updating bell peppers to $newBellPeppers...")
+                val bellPeppersResult = userRepository.updateUserBellPeppers(currentUser.id, newBellPeppers)
+                if (bellPeppersResult.isFailure) {
+                    val error = bellPeppersResult.exceptionOrNull()
+                    Log.e(TAG, "Failed to update bell peppers: ${error?.message}")
+                    withContext(Dispatchers.Main) {
+                        if (error?.message?.contains("Session expired") == true) {
+                            dismiss() // JWT expired, app will redirect to login
+                        } else {
+                            Toast.makeText(context, "Failed to update bell peppers. Please try again.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    return@launch
+                }
+                
+                Log.d(TAG, "Purchase completed successfully!")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Bell pepper purchased successfully!", Toast.LENGTH_SHORT).show()
+                    
+                    // Reset task if called from TaskActivity
+                    (activity as? com.nhlstenden.appdev.features.task.screens.TaskActivity)?.let { taskActivity ->
+                        taskActivity.resetForWrongQuestions()
+                    }
+                    
+                    // Trigger immediate refresh first
+                    Log.d(TAG, "Triggering immediate profile data refresh...")
+                    refreshProfileData()
+                    
+                    // Also add a delayed refresh as backup
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        Log.d(TAG, "Triggering delayed profile data refresh...")
+                        refreshProfileData()
+                    }, 1000) // 1 second delay
+                    
+                    dismiss()
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Unexpected error during purchase: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Unexpected error during purchase. Please try again.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+    
+    private fun refreshProfileData() {
+        Log.d(TAG, "refreshProfileData() called - checking activity...")
+        // Use MainActivity's public method to refresh profile data
+        (activity as? MainActivity)?.let { mainActivity ->
+            Log.d(TAG, "MainActivity found, calling refreshProfileData()...")
+            mainActivity.refreshProfileData()
+            
+            // Also try to directly refresh the ProfileHeaderFragment
+            Log.d(TAG, "Searching for ProfileHeaderFragment by tag...")
+            val profileHeaderFragment = mainActivity.supportFragmentManager.findFragmentByTag("profile_header") as? ProfileHeaderFragment
+            profileHeaderFragment?.let { fragment ->
+                Log.d(TAG, "Found ProfileHeaderFragment by tag, calling refreshProfile() directly...")
+                fragment.refreshProfile()
+                
+                // Force an immediate view refresh as well
+                mainActivity.runOnUiThread {
+                    Log.d(TAG, "Forcing immediate UI refresh on main thread...")
+                    fragment.forceRefreshUI()
+                }
+            } ?: Log.w(TAG, "ProfileHeaderFragment not found by tag 'profile_header'")
+        } ?: Log.w(TAG, "MainActivity not found - cannot refresh profile data")
     }
 
     override fun onStart() {

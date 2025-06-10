@@ -9,19 +9,17 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.models.Reward
 import com.nhlstenden.appdev.rewards.manager.RewardsManager
-import com.nhlstenden.appdev.core.utils.UserManager
-import com.nhlstenden.appdev.supabase.SupabaseClient
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import com.nhlstenden.appdev.features.rewards.viewmodels.RewardsViewModel
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -37,19 +35,17 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.content.Context
 import android.widget.FrameLayout
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class RewardsFragment : Fragment(), SensorEventListener {
     private lateinit var pointsValue: TextView
     private lateinit var timerText: TextView
     private lateinit var openChestButton: MaterialButton
     private lateinit var rewardShopList: RecyclerView
     private var countDownTimer: CountDownTimer? = null
-    private var currentPoints = 0
     private lateinit var rewardShopAdapter: RewardShopAdapter
-    private val supabaseClient = SupabaseClient()
-    private lateinit var userId: String
-    private lateinit var authToken: String
-    private var openedDailyAt: String? = null
+    private val viewModel: RewardsViewModel by viewModels()
     private var sensorManager: SensorManager? = null
     private var accelerometer: Sensor? = null
     private var lastShakeTime: Long = 0
@@ -78,23 +74,15 @@ class RewardsFragment : Fragment(), SensorEventListener {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val userData = UserManager.getCurrentUser()
-        if (userData == null) {
-            Toast.makeText(context, "Error: User data not found", Toast.LENGTH_LONG).show()
-            currentPoints = 0
-            updatePointsDisplay()
-            return
-        }
-        userId = userData.id
-        authToken = userData.authToken
         setupRewardShop()
+        observeViewModel()
         sensorManager = requireContext().getSystemService(Context.SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     }
 
     override fun onResume() {
         super.onResume()
-        fetchUserAttributesAndUpdateUI()
+        viewModel.refreshData()
         accelerometer?.let {
             sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
@@ -131,64 +119,36 @@ class RewardsFragment : Fragment(), SensorEventListener {
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
-    private fun fetchUserAttributesAndUpdateUI() {
-        val userData = UserManager.getCurrentUser()
-        if (userData == null) {
-            Toast.makeText(context, "Error: User data not found", Toast.LENGTH_LONG).show()
-            currentPoints = 0
-            updatePointsDisplay()
-            return
-        }
-        userId = userData.id
-        authToken = userData.authToken
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val response = supabaseClient.getUserAttributes(userId, authToken)
-                val responseBody = response.body?.string()
-                if (response.code == 200) {
-                    val userResponse = JSONArray(responseBody)
-                    if (userResponse.length() > 0) {
-                        val userDataJson = userResponse.getJSONObject(0)
-                        currentPoints = userDataJson.optInt("points", 0)
-                        openedDailyAt = userDataJson.optString("opened_daily_at", null)
-                        withContext(Dispatchers.Main) {
-                            updatePointsDisplay()
-                            setupDailyRewardTimer()
-                        }
-                    } else {
-                        withContext(Dispatchers.Main) {
-                            currentPoints = 0
-                            updatePointsDisplay()
-                            Toast.makeText(context, "Error: User data not found", Toast.LENGTH_LONG).show()
-                        }
-                    }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        currentPoints = 0
-                        updatePointsDisplay()
-                        Toast.makeText(context, "Error: Failed to load user data", Toast.LENGTH_LONG).show()
-                    }
+    private fun observeViewModel() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.uiState.collectLatest { state ->
+                updatePointsDisplay(state.points)
+                setupDailyRewardTimer(state.openedDailyAt, state.canCollectDailyReward, state.isCollectingReward)
+                
+                state.error?.let { error ->
+                    Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                    viewModel.clearError()
                 }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    currentPoints = 0
-                    updatePointsDisplay()
-                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                
+                // Only show reward amount toast if it's a new reward (not initial load)
+                if (state.lastRewardAmount > 0 && state.canCollectDailyReward == false) {
+                    Toast.makeText(context, "You earned ${state.lastRewardAmount} points!", Toast.LENGTH_SHORT).show()
+                }
+                
+                if (::rewardShopAdapter.isInitialized) {
+                    rewardShopAdapter.updatePoints(state.points)
+                    rewardShopAdapter.updateUnlockedRewards(state.unlockedRewardIds)
                 }
             }
         }
     }
 
-    private fun updatePointsDisplay() {
-        pointsValue.text = String.format("%,d", currentPoints)
-        if (::rewardShopAdapter.isInitialized) {
-            rewardShopAdapter.updatePoints(currentPoints)
-        }
+    private fun updatePointsDisplay(points: Int) {
+        pointsValue.text = String.format("%,d", points)
     }
 
-    private fun setupDailyRewardTimer() {
-        val today = LocalDate.now().toString()
-        if (openedDailyAt == null || openedDailyAt != today) {
+    private fun setupDailyRewardTimer(openedDailyAt: String?, canCollect: Boolean, isCollecting: Boolean) {
+        if (canCollect && !isCollecting) {
             timerText.text = "Ready to collect!"
             openChestButton.isEnabled = true
             openChestButton.text = "Open Now"
@@ -200,64 +160,14 @@ class RewardsFragment : Fragment(), SensorEventListener {
             val msUntilMidnight = java.time.Duration.between(now, midnight).toMillis()
             startCountDownTimer(msUntilMidnight)
             openChestButton.isEnabled = false
-            openChestButton.text = "Wait for next reward"
+            openChestButton.text = if (isCollecting) "Collecting..." else "Wait for next reward"
             openChestButton.alpha = 0.6f
             openChestButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.gray))
         }
+        
         openChestButton.setOnClickListener {
-            openChestButton.isEnabled = false
-            val rewardPoints = (1..100).random()
-            CoroutineScope(Dispatchers.IO).launch {
-                var retryCount = 0
-                val maxRetries = 3
-                var success = false
-                while (!success && retryCount < maxRetries) {
-                    try {
-                        val todayDate = LocalDate.now().toString()
-                        val response = supabaseClient.updateUserOpenedDaily(userId, todayDate, authToken)
-                        if (response.code == 204 || response.code == 200) {
-                            openedDailyAt = todayDate
-                            val newPoints = currentPoints + rewardPoints
-                            val pointsResponse = supabaseClient.updateUserPoints(userId, newPoints, authToken)
-                            if (pointsResponse.code == 204 || pointsResponse.code == 200) {
-                                withContext(Dispatchers.Main) {
-                                    currentPoints = newPoints
-                                    updatePointsDisplay()
-                                    Toast.makeText(context, "You earned $rewardPoints points!", Toast.LENGTH_SHORT).show()
-                                    openChestButton.text = "Wait for next reward"
-                                    openChestButton.alpha = 0.6f
-                                    openChestButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.gray))
-                                    val now = ZonedDateTime.now()
-                                    val midnight = now.toLocalDate().plusDays(1).atStartOfDay(now.zone)
-                                    val msUntilMidnight = java.time.Duration.between(now, midnight).toMillis()
-                                    startCountDownTimer(msUntilMidnight)
-                                }
-                                success = true
-                            } else {
-                                retryCount++
-                                if (retryCount < maxRetries) {
-                                    kotlinx.coroutines.delay(1000)
-                                }
-                            }
-                        } else {
-                            retryCount++
-                            if (retryCount < maxRetries) {
-                                kotlinx.coroutines.delay(1000)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        retryCount++
-                        if (retryCount < maxRetries) {
-                            kotlinx.coroutines.delay(1000)
-                        }
-                    }
-                }
-                if (!success) {
-                    withContext(Dispatchers.Main) {
-                        openChestButton.isEnabled = true
-                        Toast.makeText(context, "Failed to collect reward after multiple attempts. Please try again.", Toast.LENGTH_SHORT).show()
-                    }
-                }
+            if (canCollect && !isCollecting) {
+                viewModel.collectDailyReward()
             }
         }
     }
@@ -309,125 +219,24 @@ class RewardsFragment : Fragment(), SensorEventListener {
         val rewards = rewardsManager.loadRewards()
         rewardShopAdapter = RewardShopAdapter(rewards.toMutableList(), { reward ->
             if (reward.title == "Extra Life (Bell Pepper)") {
-                // Check if user already has 3 bell peppers
-                CoroutineScope(Dispatchers.IO).launch {
-                    val profile = supabaseClient.fetchUserAttributes(authToken)
-                    val currentBellPeppers = profile.optInt("bell_peppers", 0)
-                    if (currentBellPeppers >= 3) {
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(context, "You already have the maximum number of bell peppers!", Toast.LENGTH_SHORT).show()
-                        }
-                        return@launch
-                    }
-                    
-                    if (canAffordReward(reward.pointsCost)) {
-                        spendPoints(reward.pointsCost)
-                        // Update bell peppers count
-                        val newBellPeppers = currentBellPeppers + 1
-                        val response = supabaseClient.updateUserBellPeppers(userId, newBellPeppers, authToken)
-                        if (response.code == 200 || response.code == 204) {
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(context, "Unlocked: ${reward.title}!", Toast.LENGTH_SHORT).show()
-                            }
-                        } else {
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(context, "Failed to update bell peppers. Please try again.", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    } else {
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(context, "Not enough points!", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
+                viewModel.purchaseBellPepper(reward.pointsCost)
+                Toast.makeText(context, "Unlocked: ${reward.title}!", Toast.LENGTH_SHORT).show()
                 true
             } else {
-                if (canAffordReward(reward.pointsCost)) {
-                    spendPoints(reward.pointsCost)
-                    Toast.makeText(context, "Unlocked: ${reward.title}!", Toast.LENGTH_SHORT).show()
-                    true
-                } else {
-                    Toast.makeText(context, "Not enough points!", Toast.LENGTH_SHORT).show()
-                    false
-                }
+                viewModel.purchaseReward(reward.id, reward.pointsCost)
+                Toast.makeText(context, "Unlocked: ${reward.title}!", Toast.LENGTH_SHORT).show()
+                true
             }
-        }, currentPoints, { rewardId ->
-            saveUnlockedRewardToSupabase(rewardId)
+        }, 0, { _ ->
+            // Reward saving is now handled by the ViewModel
         })
         rewardShopList.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = rewardShopAdapter
         }
-        refreshRewardsList()
     }
 
-    private fun canAffordReward(cost: Int): Boolean {
-        return currentPoints >= cost
-    }
 
-    private fun spendPoints(points: Int) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val newPoints = currentPoints - points
-            val response = supabaseClient.updateUserPoints(userId, newPoints, authToken)
-            if (response.code == 204 || response.code == 200) {
-                withContext(Dispatchers.Main) {
-                    currentPoints = newPoints
-                    updatePointsDisplay()
-                }
-            } else {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Failed to update points. Please try again.", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    private fun saveUnlockedRewardToSupabase(rewardId: Int) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val response = supabaseClient.unlockReward(userId, rewardId, authToken)
-                if (response.code == 201 || response.code == 200 || response.code == 204) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "Reward unlocked and saved to server!", Toast.LENGTH_SHORT).show()
-                        refreshRewardsList()
-                    }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "Failed to save unlocked reward.", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Error saving unlocked reward: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    private fun refreshRewardsList() {
-        val rewardsManager = RewardsManager(requireContext(), resources)
-        val rewards = rewardsManager.loadRewards()
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val response = supabaseClient.getUserUnlockedRewards(userId, authToken)
-                if (response.code == 200) {
-                    val responseBody = response.body?.string()
-                    val unlockedIds = mutableListOf<Int>()
-                    if (responseBody != null) {
-                        val arr = JSONArray(responseBody)
-                        for (i in 0 until arr.length()) {
-                            val obj = arr.getJSONObject(i)
-                            unlockedIds.add(obj.getInt("reward_id"))
-                        }
-                    }
-                    val updatedRewards = rewardsManager.updateUnlockedStatus(rewards, unlockedIds)
-                    withContext(Dispatchers.Main) {
-                        rewardShopAdapter.updateRewards(updatedRewards.toMutableList())
-                    }
-                }
-            } catch (_: Exception) {}
-        }
-    }
 
     class RewardShopAdapter(
         private val rewards: MutableList<Reward>,
@@ -435,15 +244,33 @@ class RewardsFragment : Fragment(), SensorEventListener {
         private var currentPoints: Int,
         private val onSaveReward: (Int) -> Unit
     ) : RecyclerView.Adapter<RewardShopAdapter.ViewHolder>() {
+        
+        private var unlockedRewardIds: Set<Int> = emptySet()
+        
         fun updatePoints(newPoints: Int) {
             currentPoints = newPoints
             notifyDataSetChanged()
         }
+        
+        fun updateUnlockedRewards(newUnlockedIds: Set<Int>) {
+            unlockedRewardIds = newUnlockedIds
+            updateRewardsUnlockedStatus()
+            notifyDataSetChanged()
+        }
+        
         fun updateRewards(newRewards: MutableList<Reward>) {
             rewards.clear()
             rewards.addAll(newRewards)
+            updateRewardsUnlockedStatus()
             notifyDataSetChanged()
         }
+        
+        private fun updateRewardsUnlockedStatus() {
+            for (i in rewards.indices) {
+                rewards[i] = rewards[i].copy(unlocked = unlockedRewardIds.contains(rewards[i].id))
+            }
+        }
+        
         private fun canAffordReward(cost: Int): Boolean {
             return currentPoints >= cost
         }
