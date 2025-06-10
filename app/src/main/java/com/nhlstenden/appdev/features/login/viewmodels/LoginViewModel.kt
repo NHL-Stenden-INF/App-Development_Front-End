@@ -5,7 +5,8 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.core.repositories.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -20,24 +21,52 @@ import com.nhlstenden.appdev.core.models.User
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val supabaseClient: SupabaseClient
+    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Initial)
     val loginState: StateFlow<LoginState> = _loginState
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun login(email: String, password: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             _loginState.value = LoginState.Loading
             try {
                 Log.d("LoginViewModel", "Attempting to login with email: $email")
-                // Login and get the access token
-                val accessToken = supabaseClient.login(email, password)
-                // Fetch profile and attributes using the access token
-                val profile = supabaseClient.fetchProfile(accessToken)
-                val attributes = supabaseClient.fetchUserAttributes(accessToken)
                 
-                // Get current streak and last task date
+                val result = authRepository.login(email, password)
+                if (result.isSuccess) {
+                    val user = result.getOrThrow()
+                    
+                    // Update streak logic using the new UserRepository
+                    updateStreakIfNeeded(user)
+                    
+                    Log.d("LoginViewModel", "Login successful for user: ${user.email}")
+                    _loginState.value = LoginState.Success(user)
+                } else {
+                    val error = result.exceptionOrNull()
+                    Log.e("LoginViewModel", "Login failed", error)
+                    val errorMessage = when {
+                        error?.message?.contains("Invalid login credentials") == true -> "Invalid email or password"
+                        error?.message?.contains("Email not confirmed") == true -> "Please confirm your email first"
+                        else -> "Login failed: ${error?.message}"
+                    }
+                    _loginState.value = LoginState.Error(errorMessage)
+                }
+            } catch (e: Exception) {
+                Log.e("LoginViewModel", "Unexpected login error", e)
+                _loginState.value = LoginState.Error("Login failed: ${e.message}")
+            }
+        }
+    }
+    
+    @RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun updateStreakIfNeeded(user: User) {
+        try {
+            val attributesResult = userRepository.getUserAttributes(user.id)
+            if (attributesResult.isSuccess) {
+                val attributes = attributesResult.getOrThrow()
+                
                 val currentStreak = attributes.optInt("streak", 0)
                 val lastTaskDateStr = attributes.optString("last_task_date", "")
                 Log.d("LoginViewModel", "Current streak from DB: $currentStreak")
@@ -52,7 +81,6 @@ class LoginViewModel @Inject constructor(
                     }
                 } else null
 
-                // Check if streak should be reset
                 val today = LocalDate.now()
                 Log.d("LoginViewModel", "Today's date: $today")
                 
@@ -82,36 +110,13 @@ class LoginViewModel @Inject constructor(
                 // Update streak in database if it changed
                 if (newStreak != currentStreak) {
                     Log.d("LoginViewModel", "Updating streak in database from $currentStreak to $newStreak")
-                    supabaseClient.updateUserStreak(profile.getString("id"), newStreak, accessToken)
+                    userRepository.updateUserStreak(user.id, newStreak)
                 } else {
                     Log.d("LoginViewModel", "No streak update needed, keeping streak at $currentStreak")
                 }
-
-                // Construct the User object
-                val user = User(
-                    id = profile.getString("id"),
-                    email = profile.optString("email", email),
-                    username = profile.optString("display_name", email.split("@")[0]),
-                    profilePicture = profile.optString("profile_picture", ""),
-                    friends = mutableListOf(),
-                    authToken = accessToken
-                )
-                
-                Log.d("LoginViewModel", "Login successful for user: ${user.email}")
-                withContext(Dispatchers.Main) {
-                    _loginState.value = LoginState.Success(user)
-                }
-            } catch (e: Exception) {
-                Log.e("LoginViewModel", "Login failed", e)
-                val errorMessage = when {
-                    e.message?.contains("Invalid login credentials") == true -> "Invalid email or password"
-                    e.message?.contains("Email not confirmed") == true -> "Please confirm your email first"
-                    else -> "Login failed: ${e.message}"
-                }
-                withContext(Dispatchers.Main) {
-                    _loginState.value = LoginState.Error(errorMessage)
-                }
             }
+        } catch (e: Exception) {
+            Log.e("LoginViewModel", "Error updating streak", e)
         }
     }
 
