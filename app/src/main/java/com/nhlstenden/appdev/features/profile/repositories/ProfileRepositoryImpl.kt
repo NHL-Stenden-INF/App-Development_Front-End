@@ -5,27 +5,78 @@ import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.models.Profile
 import com.nhlstenden.appdev.core.repositories.ProfileRepository
 import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.utils.LevelCalculator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ProfileRepositoryImpl @Inject constructor(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val authRepository: com.nhlstenden.appdev.core.repositories.AuthRepository
 ) : ProfileRepository {
 
     private val TAG = "ProfileRepositoryImpl"
 
+    private suspend fun isJWTExpired(response: okhttp3.Response): Boolean {
+        if (response.code == 401) {
+            val body = response.body?.string()
+            if (body?.contains("JWT expired") == true) {
+                Log.w(TAG, "JWT expired detected, clearing session")
+                authRepository.handleJWTExpiration()
+                return true
+            }
+        }
+        return false
+    }
+
+    private suspend fun handleSupabaseCall(call: suspend () -> okhttp3.Response): Result<okhttp3.Response> {
+        return try {
+            val response = call()
+            if (response.isSuccessful) {
+                Result.success(response)
+            } else {
+                if (isJWTExpired(response)) {
+                    Result.failure(Exception("Session expired. Please login again."))
+                } else {
+                    Result.failure(Exception("Request failed: ${response.code}"))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Supabase call failed", e)
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getProfile(): Result<Profile> {
         return try {
-            val profileJson = supabaseClient.getProfileForCurrentUser()
-            val userAttributes = supabaseClient.getUserAttributesForCurrentUser()
+            val currentUser = authRepository.getCurrentUserSync()
+                ?: return Result.failure(Exception("User not logged in"))
+            
+            // Use the base SupabaseClient methods with auth token instead of UserManager-dependent methods
+            val profileJson: JSONObject
+            val userAttributes: JSONObject
+            
+            try {
+                profileJson = supabaseClient.fetchProfile(currentUser.authToken)
+                userAttributes = supabaseClient.fetchUserAttributes(currentUser.authToken)
+            } catch (e: RuntimeException) {
+                // Check if this is a JWT expiration error
+                if (e.message?.contains("JWT expired") == true) {
+                    Log.w(TAG, "JWT expired during profile fetch")
+                    authRepository.handleJWTExpiration()
+                    return Result.failure(Exception("Session expired. Please login again."))
+                } else {
+                    throw e
+                }
+            }
             
             // Fetch unlocked rewards
             val unlockedRewardsResponse = withContext(Dispatchers.IO) {
-                supabaseClient.getUserUnlockedRewardsForCurrentUser()
+                supabaseClient.getUserUnlockedRewards(currentUser.id, currentUser.authToken)
             }
             
             val unlockedRewardIds = mutableListOf<Int>()
@@ -38,10 +89,15 @@ class ProfileRepositoryImpl @Inject constructor(
                         unlockedRewardIds.add(obj.optInt("reward_id"))
                     }
                 }
+            } else {
+                // Check for JWT expiration on rewards fetch
+                if (isJWTExpired(unlockedRewardsResponse)) {
+                    return Result.failure(Exception("Session expired. Please login again."))
+                }
             }
             
             val xp = userAttributes.optLong("xp", 0L)
-            val level = supabaseClient.calculateLevelFromXp(xp)
+            val level = LevelCalculator.calculateLevelFromXp(xp)
             val bellPeppers = userAttributes.optInt("bell_peppers", 0)
             
             val profile = Profile(
@@ -65,12 +121,11 @@ class ProfileRepositoryImpl @Inject constructor(
 
     override suspend fun updateProfile(displayName: String, bio: String?, profilePicture: String?): Result<Profile> {
         return try {
-            // Update the profile
-            supabaseClient.updateProfileForCurrentUser(
-                displayName = displayName,
-                bio = bio,
-                profilePicture = profilePicture
-            )
+            val currentUser = authRepository.getCurrentUserSync()
+                ?: return Result.failure(Exception("User not logged in"))
+            
+            // Update the profile using the base method with auth token
+            supabaseClient.updateProfile(currentUser.authToken, displayName, bio, profilePicture)
             
             // Fetch the complete profile data after update to ensure we have all current data
             val profileResult = getProfile()
@@ -89,8 +144,11 @@ class ProfileRepositoryImpl @Inject constructor(
 
     override suspend fun updateProfilePicture(imagePath: String): Result<Profile> {
         return try {
-            // Update the profile picture
-            supabaseClient.updateProfileForCurrentUser(profilePicture = imagePath)
+            val currentUser = authRepository.getCurrentUserSync()
+                ?: return Result.failure(Exception("User not logged in"))
+            
+            // Update the profile picture using the base method with auth token
+            supabaseClient.updateProfile(currentUser.authToken, profilePicture = imagePath)
             
             // Fetch the complete profile data after update to ensure we have all current data
             val profileResult = getProfile()
@@ -109,8 +167,11 @@ class ProfileRepositoryImpl @Inject constructor(
 
     override suspend fun updateBio(bio: String): Result<Profile> {
         return try {
-            // Update the bio
-            supabaseClient.updateProfileForCurrentUser(bio = bio)
+            val currentUser = authRepository.getCurrentUserSync()
+                ?: return Result.failure(Exception("User not logged in"))
+            
+            // Update the bio using the base method with auth token
+            supabaseClient.updateProfile(currentUser.authToken, bio = bio)
             
             // Fetch the complete profile data after update to ensure we have all current data
             val profileResult = getProfile()
@@ -129,8 +190,11 @@ class ProfileRepositoryImpl @Inject constructor(
 
     override suspend fun updateDisplayName(displayName: String): Result<Profile> {
         return try {
-            // Update the display name
-            supabaseClient.updateProfileForCurrentUser(displayName = displayName)
+            val currentUser = authRepository.getCurrentUserSync()
+                ?: return Result.failure(Exception("User not logged in"))
+            
+            // Update the display name using the base method with auth token
+            supabaseClient.updateProfile(currentUser.authToken, displayName = displayName)
             
             // Fetch the complete profile data after update to ensure we have all current data
             val profileResult = getProfile()
@@ -149,8 +213,8 @@ class ProfileRepositoryImpl @Inject constructor(
 
     override suspend fun logout(): Result<Unit> {
         return try {
-            // Clear UserManager
-            com.nhlstenden.appdev.core.utils.UserManager.logout()
+            // Use AuthRepository instead of UserManager
+            authRepository.logout()
             Log.d(TAG, "User logged out successfully")
             Result.success(Unit)
         } catch (e: Exception) {

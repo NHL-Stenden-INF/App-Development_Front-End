@@ -574,7 +574,7 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
-    suspend fun getUserProgress(userId: String, authToken: String): JSONArray {
+    suspend fun getUserProgressResponse(userId: String, authToken: String): Response {
         val url = "$supabaseUrl/rest/v1/user_progress?user_id=eq.$userId"
         Log.d("SupabaseClient", "getUserProgress URL: $url")
         Log.d("SupabaseClient", "getUserProgress for userId: $userId")
@@ -588,7 +588,11 @@ class SupabaseClient() {
             .addHeader("Prefer", "return=minimal")
             .build()
 
-        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
+        return withContext(Dispatchers.IO) { client.newCall(request).execute() }
+    }
+
+    suspend fun getUserProgress(userId: String, authToken: String): JSONArray {
+        val response = getUserProgressResponse(userId, authToken)
         val bodyString = response.body?.string()
         Log.d("SupabaseClient", "getUserProgress for userId=$userId: code=${response.code}, body=$bodyString")
         
@@ -790,8 +794,8 @@ class SupabaseClient() {
         return response
     }
 
-    suspend fun createUserProgress(userId: String, courseId: String, progress: Int, authToken: String) {
-        withContext(Dispatchers.IO) {
+    suspend fun createUserProgress(userId: String, courseId: String, progress: Int, authToken: String): Response {
+        return withContext(Dispatchers.IO) {
             val url = "$supabaseUrl/rest/v1/rpc/insert_user_progress"
             val jsonObject = JSONObject().apply {
                 put("_user_id", userId)
@@ -816,11 +820,7 @@ class SupabaseClient() {
                 .post(jsonObject.toString().toRequestBody("application/json".toMediaType()))
                 .build()
 
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    throw Exception("Failed to create user progress: ${response.code}")
-                }
-            }
+            client.newCall(request).execute()
         }
     }
 
