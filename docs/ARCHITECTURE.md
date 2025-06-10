@@ -1,148 +1,376 @@
 # Architecture Overview
 
-This document provides a detailed overview of the application's architecture, design patterns, and component interactions.
+This document provides a comprehensive overview of the application's architecture, design patterns, and component interactions in the Android learning application.
 
-## Architecture Pattern
+## 🏗 Architecture Pattern
 
-The application follows the MVVM (Model-View-ViewModel) architecture pattern with Clean Architecture principles, using the following layers:
+The application follows **MVVM (Model-View-ViewModel)** architecture pattern with **Clean Architecture** principles, implementing a layered approach for maintainability, testability, and scalability.
 
-### Presentation Layer
-- **Activities/Fragments**: Handle UI and user interactions
-- **ViewModels**: Manage UI state and business logic
-- **UI State**: Sealed classes for handling different states
+### Architecture Layers
 
-### Domain Layer
-- **Use Cases**: Business logic implementation
-- **Repository Interfaces**: Define data operations
-- **Domain Models**: Business entities
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   PRESENTATION LAYER                        │
+├─────────────────────────────────────────────────────────────┤
+│  Activities & Fragments  │  ViewModels  │  UI State Classes │
+│  ─────────────────────────────────────────────────────────  │
+│  • HomeFragment          │  • ProfileVM │  • UiState<T>     │
+│  • CoursesFragment       │  • CourseVM  │  • ProfileState   │
+│  • ProgressFragment      │  • AuthVM    │  • LoadingState   │
+│  • ProfileFragment       │  • FriendsVM │  • ErrorState     │
+│  • MainActivity          │  • RewardsVM │                   │
+└─────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────┐
+│                    DOMAIN LAYER                             │
+├─────────────────────────────────────────────────────────────┤
+│    Use Cases    │    Repository Interfaces   │  Domain Models│
+│  ────────────────────────────────────────────────────────   │
+│  • AuthUseCases │  • AuthRepository          │  • User       │
+│  • CourseUseCase│  • CourseRepository        │  • Course     │
+│  • ProfileCase  │  • ProfileRepository       │  • Progress   │
+│                 │  • FriendsRepository       │  • Friend     │
+└─────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────┐
+│                     DATA LAYER                              │
+├─────────────────────────────────────────────────────────────┤
+│  Repository Implementations │  Data Sources │  Data Models  │
+│  ─────────────────────────────────────────────────────────  │
+│  • AuthRepositoryImpl       │  • Local DS   │  • UserDto    │
+│  • CourseRepositoryImpl     │  • Remote DS  │  • CourseDto  │
+│  • ProfileRepositoryImpl    │  • Cache DS   │  • ApiModels  │
+│  • FriendsRepositoryImpl    │               │               │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### Data Layer
-- **Repositories**: Implement data operations
-- **Data Sources**: Local and remote data handling
-- **Data Models**: Data transfer objects
+## 🔧 Key Architectural Components
 
-For project structure and naming conventions, see [CODE_CONVENTIONS.md](CODE_CONVENTIONS.md).
+### 1. Presentation Layer
 
-## Key Components
+**Activities & Fragments**
+- **MainActivity**: Main container with navigation and profile header management
+- **SplashActivity**: Authentication pre-validation and app initialization
+- **Feature Fragments**: Modular UI components for each main feature
+- **Custom Views**: Reusable UI components with specific functionality
 
-### 1. UI Components
-- **Activities**: Main entry points for features
-- **Fragments**: Reusable UI components
-- **Custom Views**: Specialized UI components
-- **Adapters**: List and grid view handlers
-
-### 2. ViewModels
-- Handle UI state
-- Process user actions
-- Coordinate with repositories
-- Manage data flow
-
-### 3. Repositories
-- Abstract data sources
-- Handle data operations
-- Implement caching strategies
-- Manage data synchronization
-
-### 4. Data Sources
-- **Local**: Room database, SharedPreferences
-- **Remote**: API clients, network operations
-- **Cache**: Memory and disk caching
-
-## Dependency Injection
-
-The application uses Hilt for dependency injection:
-
+**ViewModels (MVVM Pattern)**
 ```kotlin
-@HiltAndroidApp
-class MainApplication : Application()
-
-@Module
-@InstallIn(SingletonComponent::class)
-object AppModule {
-    // Dependency providers
+class ProfileViewModel @Inject constructor(
+    private val profileRepository: ProfileRepository,
+    private val authRepository: AuthRepository
+) : ViewModel() {
+    
+    private val _profileState = MutableStateFlow<ProfileState>(ProfileState.Loading)
+    val profileState: StateFlow<ProfileState> = _profileState.asStateFlow()
+    
+    fun loadProfile() {
+        viewModelScope.launch {
+            try {
+                _profileState.value = ProfileState.Loading
+                val profile = profileRepository.getUserProfile()
+                _profileState.value = ProfileState.Success(profile)
+            } catch (e: Exception) {
+                _profileState.value = ProfileState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
 }
 ```
 
-## Navigation
-
-Navigation is handled using the Navigation component:
-
-```xml
-<navigation>
-    <fragment
-        android:id="@+id/loginFragment"
-        android:name="com.nhlstenden.appdev.features.login.LoginFragment"
-        android:label="Login">
-        <action
-            android:id="@+id/action_login_to_register"
-            app:destination="@id/registerFragment" />
-    </fragment>
-</navigation>
-```
-
-## State Management
-
-### UI State
+**State Management**
 ```kotlin
-sealed class UiState<out T> {
-    object Loading : UiState<Nothing>()
-    data class Success<T>(val data: T) : UiState<T>()
-    data class Error(val message: String) : UiState<Nothing>()
+sealed class ProfileState {
+    object Loading : ProfileState()
+    data class Success(val profile: Profile) : ProfileState()
+    data class Error(val message: String) : ProfileState()
 }
 ```
 
-### ViewModel State
+### 2. Domain Layer
+
+**Repository Interfaces**
 ```kotlin
-data class ViewState(
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val data: T? = null
+interface AuthRepository {
+    suspend fun login(email: String, password: String): Result<User>
+    suspend fun getCurrentUser(): Flow<User?>
+    suspend fun logout()
+    fun getCurrentUserSync(): User?
+}
+```
+
+**Domain Models**
+```kotlin
+data class User(
+    val id: UUID,
+    val email: String,
+    val displayName: String,
+    val authToken: String,
+    val profilePictureUrl: String? = null
+)
+
+data class Course(
+    val id: String,
+    val title: String,
+    val description: String,
+    val difficulty: String,
+    val imageResId: Int,
+    var progress: Int,
+    var totalTasks: Int
 )
 ```
 
-## Error Handling
+### 3. Data Layer
 
-- Use sealed classes for error states
-- Implement error boundaries
-- Provide user-friendly error messages
-- Log errors for debugging
+**Repository Implementations**
+```kotlin
+@Singleton
+class AuthRepositoryImpl @Inject constructor(
+    private val supabaseClient: SupabaseClient,
+    private val encryptedPrefs: EncryptedSharedPreferences
+) : AuthRepository {
+    
+    private val _currentUser = MutableStateFlow<User?>(null)
+    override val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
+    
+    override suspend fun login(email: String, password: String): Result<User> {
+        return try {
+            val response = supabaseClient.login(email, password)
+            if (response.isSuccessful) {
+                val user = response.body()!!
+                saveUserToPrefs(user)
+                _currentUser.value = user
+                Result.success(user)
+            } else {
+                Result.failure(Exception("Login failed"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}
+```
 
-## Testing Strategy
+## 🔐 Authentication & Security Architecture
 
-### Unit Tests
-- ViewModel tests
-- Repository tests
-- Use case tests
-- Utility function tests
+### JWT Authentication Flow
+```
+┌─────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ SplashActivity│───▶│  JWT Validation │───▶│ MainActivity or │
+│               │    │                 │    │ LoginActivity   │
+└─────────────┘    └─────────────────┘    └─────────────────┘
+                            │
+                    ┌─────────────────┐
+                    │ Repository Layer│
+                    │ JWT Expiration  │
+                    │ Detection       │
+                    └─────────────────┘
+```
 
-### Integration Tests
-- Repository integration tests
-- Navigation tests
-- Data flow tests
+**Security Features:**
+- **Encrypted Storage**: User tokens stored in EncryptedSharedPreferences
+- **Automatic Token Validation**: Pre-validation in SplashActivity
+- **JWT Expiration Handling**: Automatic detection and graceful session cleanup
+- **Repository-Level Security**: JWT validation across all API calls
 
-### UI Tests
-- Activity tests
-- Fragment tests
-- Custom view tests
-- User flow tests
+### Authentication Implementation
+```kotlin
+class SplashActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        lifecycleScope.launch {
+            try {
+                // Validate JWT by making a real API call
+                val user = userRepository.getUserAttributes()
+                if (user != null) {
+                    // JWT valid, proceed to main app
+                    startActivity(Intent(this@SplashActivity, MainActivity::class.java))
+                } else {
+                    // JWT invalid, redirect to login
+                    startActivity(Intent(this@SplashActivity, LoginActivity::class.java))
+                }
+            } catch (e: Exception) {
+                // Handle JWT expiration
+                authRepository.clearSession()
+                startActivity(Intent(this@SplashActivity, LoginActivity::class.java))
+            }
+            finish()
+        }
+    }
+}
+```
 
-## Security
+## 🎯 Dependency Injection with Hilt
 
-- Secure data storage
-- Network security
-- Input validation
-- Authentication and authorization
+### Application Module
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+object AppModule {
+    
+    @Provides
+    @Singleton
+    fun provideSupabaseClient(): SupabaseClient = SupabaseClient()
+    
+    @Provides
+    @Singleton
+    fun provideEncryptedSharedPreferences(
+        @ApplicationContext context: Context
+    ): SharedPreferences = EncryptedSharedPreferences.create(
+        "secure_prefs",
+        MasterKey.DEFAULT_MASTER_KEY_ALIAS,
+        context,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
+    
+    @Binds
+    abstract fun bindAuthRepository(
+        authRepositoryImpl: AuthRepositoryImpl
+    ): AuthRepository
+}
+```
 
-## Performance Considerations
+## 🚀 Navigation Architecture
 
-- Efficient data loading
-- Background processing
-- Memory management
-- UI responsiveness
+### NavigationManager Utility
+```kotlin
+object NavigationManager {
+    fun navigateToCourseTasks(activity: Activity, courseId: String) {
+        val fragment = CourseFragment()
+        val args = Bundle().apply {
+            putString("COURSE_ID", courseId)
+        }
+        fragment.arguments = args
+        
+        val fragmentManager = (activity as FragmentActivity).supportFragmentManager
+        fragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
+            
+        // Hide main navigation during course view
+        activity.findViewById<ViewPager2>(R.id.viewPager)?.visibility = View.GONE
+        activity.findViewById<FrameLayout>(R.id.fragment_container)?.visibility = View.VISIBLE
+    }
+}
+```
 
-## Future Improvements
+## 📊 State Management Strategy
 
-- Implement offline support
-- Add analytics
-- Enhance error handling
-- Improve testing coverage 
+### UI State Patterns
+```kotlin
+// Generic UI State
+sealed class UiState<out T> {
+    object Initial : UiState<Nothing>()
+    object Loading : UiState<Nothing>()
+    data class Success<T>(val data: T) : UiState<T>()
+    data class Error(val exception: Throwable) : UiState<Nothing>()
+}
+
+// Feature-Specific State
+sealed class CourseState {
+    object Loading : CourseState()
+    data class Success(
+        val courses: List<Course>,
+        val filteredCourses: List<Course>,
+        val searchQuery: String = "",
+        val selectedDifficulty: String? = null
+    ) : CourseState()
+    data class Error(val message: String) : CourseState()
+}
+```
+
+## 🔄 Error Handling Architecture
+
+### Repository-Level Error Handling
+```kotlin
+class ProfileRepositoryImpl @Inject constructor(
+    private val supabaseClient: SupabaseClient,
+    private val authRepository: AuthRepository
+) : ProfileRepository {
+    
+    override suspend fun getUserProfile(): Profile {
+        return try {
+            val response = supabaseClient.getUserProfile()
+            if (response.isSuccessful) {
+                response.body()!!.toDomain()
+            } else {
+                // Check for JWT expiration
+                if (isJWTExpired(response)) {
+                    handleJWTExpiration()
+                    throw JWTExpiredException("Session expired")
+                }
+                throw ApiException("Failed to load profile: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e("ProfileRepository", "Error loading profile", e)
+            throw e
+        }
+    }
+    
+    private fun isJWTExpired(response: Response<*>): Boolean {
+        return response.code() == 401 && 
+               response.errorBody()?.string()?.contains("JWT expired") == true
+    }
+    
+    private suspend fun handleJWTExpiration() {
+        authRepository.clearSession()
+        // Trigger app-wide logout
+    }
+}
+```
+
+## 🧪 Testing Architecture
+
+### Test Strategy
+```kotlin
+// ViewModel Testing
+@Test
+fun `loadProfile should emit success state when repository returns profile`() = runTest {
+    // Given
+    val expectedProfile = Profile(name = "Test User")
+    coEvery { profileRepository.getUserProfile() } returns expectedProfile
+    
+    // When
+    viewModel.loadProfile()
+    
+    // Then
+    assertEquals(ProfileState.Success(expectedProfile), viewModel.profileState.value)
+}
+```
+
+## 🚀 Performance Optimizations
+
+### Memory Management
+- **ViewBinding nullification** in fragment onDestroyView
+- **StateFlow scope management** with appropriate lifecycles
+- **Image loading optimization** with Glide caching
+- **Database query optimization** with proper indexing
+
+### UI Performance
+- **RecyclerView optimization** with DiffUtil
+- **Layout inflation caching** for frequently used views
+- **Background processing** for heavy operations
+- **Progressive loading** for large datasets
+
+## 📱 Recent Architectural Improvements
+
+### JWT Expiration Handling (Latest)
+- **Proactive validation** in SplashActivity
+- **Repository-wide detection** of expired tokens
+- **Graceful session cleanup** across all layers
+- **Automatic redirect** to login without UI flash
+
+### Real-time UI Updates
+- **Immediate feedback** for user actions (bell pepper purchases)
+- **StateFlow reactive streams** for consistent state
+- **Profile update synchronization** across fragments
+- **Course navigation consistency** across all entry points
+
+### Code Quality Enhancements
+- **SOLID principles** implementation
+- **DRY code structure** with shared utilities
+- **Professional commenting** for maintainability
+- **Clean Architecture adherence** throughout
