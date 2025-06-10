@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.main
+package com.nhlstenden.appdev
 
 import android.os.Bundle
 import android.view.View
@@ -23,17 +23,24 @@ import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.rewards.ui.RewardsFragment
 import com.nhlstenden.appdev.core.models.User
 import com.nhlstenden.appdev.features.courses.CoursesFragment
-import com.nhlstenden.appdev.core.utils.UserManager
+import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.shared.ProfileHeaderFragment
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+    
+    @Inject lateinit var authRepository: AuthRepository
     private lateinit var viewPager: ViewPager2
     private lateinit var bottomNavigation: BottomNavigationView
     private var userData: User? = null
     private val TAG = "MainActivity"
     private var lastUpdateTime = 0L
     private val UPDATE_DEBOUNCE_MS = 500L // Half second debounce
+    private var profileHeaderFragment: ProfileHeaderFragment? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,15 +61,47 @@ class MainActivity : AppCompatActivity() {
                     if (supportFragmentManager.backStackEntryCount == 0) {
                         findViewById<ViewPager2>(R.id.viewPager).visibility = View.VISIBLE
                         findViewById<FrameLayout>(R.id.fragment_container).visibility = View.GONE
+                        
+                        // Show profile header if needed when returning to main tabs
+                        showProfileHeaderIfNeeded()
                     }
                 } else {
                     finish()
                 }
             }
         })
-        userData = UserManager.getCurrentUser()
+        
+        // Check if user is still authenticated (safety check)
+        userData = authRepository.getCurrentUserSync()
+        if (userData == null || !authRepository.isLoggedIn()) {
+            // User session is invalid, redirect to login
+            Log.w(TAG, "Invalid session in MainActivity, redirecting to login")
+            val intent = Intent(this, com.nhlstenden.appdev.features.login.screens.LoginActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            finish()
+            return
+        }
+        
+        // Observe authentication state for automatic logout on JWT expiration
+        lifecycleScope.launch {
+            authRepository.getCurrentUser().collect { user ->
+                if (user == null && !isFinishing) {
+                    Log.w(TAG, "User session cleared, redirecting to login")
+                    val loginIntent = Intent(this@MainActivity, com.nhlstenden.appdev.features.login.screens.LoginActivity::class.java)
+                    loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(loginIntent)
+                    finish()
+                }
+            }
+        }
+        
         viewPager = findViewById(R.id.viewPager)
         bottomNavigation = findViewById(R.id.bottom_navigation)
+        
+        // Set up profile header fragment
+        setupProfileHeader()
+        
         viewPager.adapter = MainPagerAdapter(this)
         viewPager.offscreenPageLimit = 1
         viewPager.overScrollMode = View.OVER_SCROLL_NEVER
@@ -86,6 +125,9 @@ class MainActivity : AppCompatActivity() {
                     4 -> R.id.nav_progress
                     else -> R.id.nav_home
                 }
+                
+                // Show/hide profile header based on current tab
+                updateProfileHeaderVisibility(position)
             }
         })
 
@@ -109,6 +151,10 @@ class MainActivity : AppCompatActivity() {
             supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
             findViewById<ViewPager2>(R.id.viewPager).visibility = View.VISIBLE
             findViewById<FrameLayout>(R.id.fragment_container).visibility = View.GONE
+            
+            // Update profile header visibility when switching to ViewPager mode
+            updateProfileHeaderVisibility(position)
+            
             true
         }
         
@@ -163,6 +209,9 @@ class MainActivity : AppCompatActivity() {
                 
                 // Mark this tab in the intent for persistence
                 intent.putExtra("CURRENT_TAB", tabName)
+                
+                // Update profile header visibility
+                updateProfileHeaderVisibility(tabPosition)
                 
                 // Clear any back stack if we're explicitly navigating
                 supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
@@ -278,8 +327,63 @@ class MainActivity : AppCompatActivity() {
         userData?.let { user ->
             // Update the stored user data
             this.userData = user
-            // Update UserManager
-            UserManager.setCurrentUser(user)
+            // AuthRepository already manages user state, no need to manually set
+        }
+    }
+    
+    private fun setupProfileHeader() {
+        profileHeaderFragment = ProfileHeaderFragment()
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.profileHeaderContainer, profileHeaderFragment!!, "profile_header")
+            .commit()
+        
+        // Show profile header for the initial tab (Home)
+        updateProfileHeaderVisibility(0)
+    }
+    
+    private fun updateProfileHeaderVisibility(tabPosition: Int) {
+        val profileHeaderContainer = findViewById<FrameLayout>(R.id.profileHeaderContainer)
+        
+        // Show profile header on all tabs except courses (position 1)
+        // Also hide when we're in fragment_container mode (course details, etc.)
+        val fragmentContainer = findViewById<FrameLayout>(R.id.fragment_container)
+        val isInFragmentMode = fragmentContainer.visibility == View.VISIBLE
+        
+        val shouldShowHeader = !isInFragmentMode && tabPosition != 1
+        
+        profileHeaderContainer.visibility = if (shouldShowHeader) View.VISIBLE else View.GONE
+        
+        Log.d(TAG, "Profile header visibility: ${if (shouldShowHeader) "VISIBLE" else "GONE"} for tab $tabPosition, fragmentMode: $isInFragmentMode")
+    }
+    
+    // Call this method when navigating to course details or other sub-pages
+    fun hideProfileHeader() {
+        val profileHeaderContainer = findViewById<FrameLayout>(R.id.profileHeaderContainer)
+        profileHeaderContainer.visibility = View.GONE
+    }
+    
+    // Call this method when returning to main tabs
+    fun showProfileHeaderIfNeeded() {
+        val currentTab = viewPager.currentItem
+        updateProfileHeaderVisibility(currentTab)
+    }
+    
+    // Public method to refresh profile data after bell pepper purchases
+    fun refreshProfileData() {
+        Log.d(TAG, "refreshProfileData() called - checking if profileHeaderFragment exists...")
+        if (profileHeaderFragment != null) {
+            Log.d(TAG, "ProfileHeaderFragment found, calling refreshProfile()")
+            profileHeaderFragment?.refreshProfile()
+        } else {
+            Log.w(TAG, "ProfileHeaderFragment is null! Cannot refresh profile data")
+        }
+        
+        // Also refresh HomeFragment if it exists
+        supportFragmentManager.fragments.forEach { fragment ->
+            if (fragment is HomeFragment) {
+                Log.d(TAG, "Found HomeFragment, refreshing...")
+                fragment.setupUI(fragment.requireView())
+            }
         }
     }
 
@@ -295,7 +399,7 @@ class MainActivity : AppCompatActivity() {
                 4 -> ProgressFragment()
                 else -> HomeFragment()
             }
-            // Do not set user data in fragment arguments; rely on UserManager
+            // Do not set user data in fragment arguments; rely on AuthRepository
             return fragment
         }
     }
