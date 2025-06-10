@@ -19,9 +19,13 @@ import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import dagger.hilt.android.AndroidEntryPoint
 import com.nhlstenden.appdev.features.courses.screens.CourseAdapter
 import kotlinx.coroutines.runBlocking
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class TasksFragment : Fragment() {
+    @Inject lateinit var courseRepository: CourseRepositoryImpl
     private lateinit var tasksList: RecyclerView
     private lateinit var searchEditText: TextInputEditText
     private lateinit var filterButton: MaterialButton
@@ -55,8 +59,8 @@ class TasksFragment : Fragment() {
     }
 
     private fun setupTasksList() {
-        runBlocking {
-            val courses = CourseRepositoryImpl(context as Application).getCoursesWithoutProgress()
+        lifecycleScope.launch {
+            val courses = courseRepository.getCoursesWithoutProgress()
             adapter.submitList(courses)
         }
     }
