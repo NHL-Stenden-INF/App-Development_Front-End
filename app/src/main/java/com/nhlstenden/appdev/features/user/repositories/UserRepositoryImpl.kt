@@ -18,6 +18,7 @@ class UserRepositoryImpl @Inject constructor(
 ) : UserRepository {
 
     private val TAG = "UserRepositoryImpl"
+    override var cachedProfile: JSONObject? = null
     
     private suspend fun isJWTExpired(response: okhttp3.Response): Boolean {
         if (response.code == 401) {
@@ -43,23 +44,25 @@ class UserRepositoryImpl @Inject constructor(
                 if (!body.isNullOrEmpty()) {
                     val array = JSONArray(body)
                     if (array.length() > 0) {
-                        Result.success(array.getJSONObject(0))
+                        val profile = array.getJSONObject(0)
+                        cachedProfile = profile
+                        return Result.success(profile)
                     } else {
-                        Result.failure(Exception("User attributes not found"))
+                        return Result.failure(Exception("User attributes not found"))
                     }
                 } else {
-                    Result.failure(Exception("Empty response body"))
+                    return Result.failure(Exception("Empty response body"))
                 }
             } else {
                 if (isJWTExpired(response)) {
-                    Result.failure(Exception("Session expired. Please login again."))
+                    return Result.failure(Exception("Session expired. Please login again."))
                 } else {
-                    Result.failure(Exception("Failed to fetch user attributes: ${response.code}"))
+                    return Result.failure(Exception("Failed to fetch user attributes: ${response.code}"))
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching user attributes", e)
-            Result.failure(e)
+            return Result.failure(e)
         }
     }
 
