@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.Date
+import java.util.concurrent.TimeUnit
 
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
@@ -177,5 +179,23 @@ class AuthRepositoryImpl @Inject constructor(
     
     private fun clearUserSession() {
         sharedPreferences.edit().clear().apply()
+    }
+    
+    private fun isTokenExpired(token: String): Boolean {
+        try {
+            val jwt = com.auth0.android.jwt.JWT(token)
+            val expiresAt = jwt.expiresAt
+            val now = Date()
+            // If the token has an expiry, check if it's more than 24 hours old
+            if (expiresAt != null) {
+                val diff = expiresAt.time - now.time
+                // 24 hours = 86400000 ms
+                return diff < 0 || diff > 86400000
+            }
+            return false
+        } catch (e: Exception) {
+            Log.w(TAG, "Invalid JWT token", e)
+            return true
+        }
     }
 } 

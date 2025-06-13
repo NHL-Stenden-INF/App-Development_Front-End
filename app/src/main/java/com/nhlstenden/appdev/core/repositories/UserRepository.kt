@@ -4,6 +4,7 @@ import com.nhlstenden.appdev.core.models.User
 import org.json.JSONObject
 
 interface UserRepository {
+    var cachedProfile: JSONObject?
     suspend fun getUserAttributes(userId: String): Result<JSONObject>
     suspend fun updateUserPoints(userId: String, points: Int): Result<Unit>
     suspend fun updateUserXp(userId: String, xp: Long): Result<Unit>
