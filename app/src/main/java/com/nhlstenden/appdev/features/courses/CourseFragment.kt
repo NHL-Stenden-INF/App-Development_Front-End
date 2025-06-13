@@ -39,6 +39,7 @@ import android.content.Context
 import android.media.AudioFocusRequest
 import com.nhlstenden.appdev.utils.RewardChecker
 import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.core.repositories.SettingsRepository
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -56,6 +57,9 @@ class CourseFragment : Fragment() {
     
     @Inject
     lateinit var authRepository: AuthRepository
+
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -201,10 +205,7 @@ class CourseFragment : Fragment() {
         // Use RewardChecker to properly validate music lobby unlock and user preference
         lifecycleScope.launch {
             try {
-                val isMusicLobbyEnabledAndUnlocked = rewardChecker.isMusicLobbyEnabledAndUnlocked(requireContext())
-                Log.d("CourseFragment", "Music lobby enabled and unlocked: $isMusicLobbyEnabledAndUnlocked")
-                
-                if (isMusicLobbyEnabledAndUnlocked) {
+                if (settingsRepository.hasValue("lobby_music_enabled")) {
                     startMusicPlayback()
                 } else {
                     Log.d("CourseFragment", "Music lobby is not enabled or not unlocked")

@@ -80,7 +80,6 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     private lateinit var musicLobbySwitch: SwitchMaterial
     private val MUSIC_LOBBY_REWARD_ID = 11
     private val PREFS_NAME = "reward_settings"
-    private val MUSIC_LOBBY_KEY = "music_lobby_enabled"
     
     @Inject
     lateinit var authRepository: AuthRepository
@@ -123,7 +122,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
 
         musicLobbySwitch = binding.root.findViewById(R.id.musicLobbySwitch)
         val sharedPrefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val isMusicLobbyEnabled = sharedPrefs.getBoolean(MUSIC_LOBBY_KEY, true)
+        val isMusicLobbyEnabled = settingsRepository.hasValue("lobby_music_enabled")
         musicLobbySwitch.isChecked = isMusicLobbyEnabled
         musicLobbySwitch.setOnCheckedChangeListener { _, isChecked ->
             // Use RewardChecker to properly validate and update music lobby preference
