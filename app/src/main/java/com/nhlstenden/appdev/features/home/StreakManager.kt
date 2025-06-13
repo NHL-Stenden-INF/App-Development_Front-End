@@ -22,18 +22,13 @@ class StreakManager {
         currentStreak = currentStreakFromDb
 
         if (lastCompletedDate == null) {
-            // If we have a streak but no last completed date, this is the first update
-            // after initialization, so we should increment the streak
-            if (currentStreak > 0) {
-                currentStreak++
-            } else {
-                currentStreak = 1
-            }
+            // First task ever or first after being initialized
+            currentStreak = 1
         } else {
             val daysBetween = ChronoUnit.DAYS.between(lastCompletedDate, taskCompletionDate)
             when {
                 daysBetween == 0L -> {
-                    // Same day, do nothing
+                    // Same day, do nothing - streak stays the same
                 }
                 daysBetween == 1L -> {
                     // Next day, increment streak
@@ -48,6 +43,24 @@ class StreakManager {
 
         // Always update the last completed date
         lastCompletedDate = taskCompletionDate
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun checkAndResetStreak(lastTaskDate: LocalDate?): Int {
+        val today = LocalDate.now()
+        
+        if (lastTaskDate == null) {
+            return 0
+        }
+        
+        val daysSinceLastTask = ChronoUnit.DAYS.between(lastTaskDate, today)
+        
+        // If more than 1 day has passed since last task, reset streak to 0
+        return if (daysSinceLastTask > 1) {
+            0
+        } else {
+            currentStreak
+        }
     }
 
     fun getCurrentStreak(): Int = currentStreak

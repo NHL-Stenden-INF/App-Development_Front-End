@@ -52,28 +52,24 @@ class ProfileHeaderFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        // If cachedProfile is available, use it immediately
-        val cached = userRepository.cachedProfile
-        Log.d("ProfileHeaderFragment", "Cached profile: $cached")
-        Log.d("ProfileHeaderFragment", "Cached profile keys: ${cached?.keys()?.asSequence()?.toList()}")
-        Log.d("ProfileHeaderFragment", "Cached profile display_name: ${cached?.optString("display_name")}")
-        Log.d("ProfileHeaderFragment", "Cached profile profile_picture: ${cached?.optString("profile_picture")}")
-        if (cached != null && !isProfileLoaded) {
-            Log.d("ProfileHeaderFragment", "Using cached profile for header...")
-            // Manually update the header using cachedProfile
-            updateProfileHeaderFromJson(cached)
+        Log.d("ProfileHeaderFragment", "ProfileHeaderFragment onViewCreated - setting up profile observation and loading")
+        
+        // Hide content initially to prevent showing default values
+        hideProfileContent()
+        
+        // Always use ProfileViewModel for complete profile data (display_name, profile_picture, etc.)
+        // The cached profile only contains user_attributes (points, streak, etc.) not profile table data
+        observeProfile()
+        
+        // Only load profile if not already loaded
+        if (!isProfileLoaded) {
+            Log.d("ProfileHeaderFragment", "Loading profile for the first time...")
+            profileViewModel.loadProfile()
             isProfileLoaded = true
         } else {
-            observeProfile()
-            // Only load profile if not already loaded
-            if (!isProfileLoaded) {
-                Log.d("ProfileHeaderFragment", "Loading profile for the first time...")
-                profileViewModel.loadProfile()
-                isProfileLoaded = true
-            } else {
-                Log.d("ProfileHeaderFragment", "Profile already loaded, skipping...")
-            }
+            Log.d("ProfileHeaderFragment", "Profile already loaded, skipping...")
         }
+        
         setupClickListeners()
     }
     
@@ -100,6 +96,19 @@ class ProfileHeaderFragment : Fragment() {
             .commit()
     }
 
+    private fun hideProfileContent() {
+        Log.d("ProfileHeaderFragment", "Hiding profile content to prevent showing default values")
+        binding.root.alpha = 0f
+    }
+    
+    private fun showProfileContent() {
+        Log.d("ProfileHeaderFragment", "Showing profile content with loaded data")
+        binding.root.animate()
+            .alpha(1f)
+            .setDuration(200)
+            .start()
+    }
+
     private fun observeProfile() {
         Log.d("ProfileHeaderFragment", "Setting up profile state observation...")
         viewLifecycleOwner.lifecycleScope.launch {
@@ -108,21 +117,24 @@ class ProfileHeaderFragment : Fragment() {
                 when (state) {
                     is ProfileViewModel.ProfileState.Loading -> {
                         Log.d("ProfileHeaderFragment", "Profile state: Loading")
-                        // Could show a loading state if needed
+                        // Keep content hidden while loading
                     }
                     is ProfileViewModel.ProfileState.Success -> {
                         Log.d("ProfileHeaderFragment", "Profile state: Success - Bell peppers: ${state.profile.bellPeppers}")
                         updateProfileHeader(state)
+                        showProfileContent() // Show content after successful load
                     }
                     is ProfileViewModel.ProfileState.Error -> {
                         Log.e("ProfileHeaderFragment", "Profile state: Error - ${state.message}")
-                        // Set default values on error
+                        // Set default values on error and show content
                         setDefaultValues()
+                        showProfileContent()
                     }
                     is ProfileViewModel.ProfileState.LoggedOut -> {
                         Log.d("ProfileHeaderFragment", "Profile state: LoggedOut")
                         // Handle logged out state if needed
                         setDefaultValues()
+                        showProfileContent()
                     }
                 }
             }
@@ -328,48 +340,7 @@ class ProfileHeaderFragment : Fragment() {
         }
     }
     
-    private fun updateProfileHeaderFromJson(profile: org.json.JSONObject) {
-        val displayName = profile.optString("display_name", null)
-        val greetingText = getString(R.string.greeting_text, if (!displayName.isNullOrBlank()) displayName else "User")
-        binding.greetingText.text = greetingText
 
-        val profilePicture = profile.optString("profile_picture", "")
-        if (profilePicture.startsWith("http")) {
-            Glide.with(this)
-                .load(profilePicture)
-                .placeholder(R.drawable.zorotlpf)
-                .error(R.drawable.zorotlpf)
-                .circleCrop()
-                .into(binding.profileImage)
-        } else if (profilePicture.isNotBlank()) {
-            try {
-                val imageBytes = android.util.Base64.decode(profilePicture, android.util.Base64.DEFAULT)
-                Glide.with(this)
-                    .load(imageBytes)
-                    .placeholder(R.drawable.zorotlpf)
-                    .error(R.drawable.zorotlpf)
-                    .circleCrop()
-                    .into(binding.profileImage)
-            } catch (e: Exception) {
-                binding.profileImage.setImageResource(R.drawable.zorotlpf)
-            }
-        } else {
-            binding.profileImage.setImageResource(R.drawable.zorotlpf)
-        }
-
-        val xp = profile.optLong("xp", 0L)
-        val level = com.nhlstenden.appdev.utils.LevelCalculator.calculateLevelFromXp(xp)
-        val (currentLevel, xpInLevel, xpForNextLevel) = com.nhlstenden.appdev.utils.LevelCalculator.calculateLevelAndProgress(xp)
-        binding.levelInCircleText.text = level.toString()
-        val progressPercentage = if (xpForNextLevel > 0) {
-            (xpInLevel.toFloat() / xpForNextLevel.toFloat() * 100).toInt()
-        } else {
-            100
-        }
-        binding.circularXpBar.progress = progressPercentage.toFloat()
-        updateLivesDisplay(profile.optInt("bell_peppers", 0))
-        Log.d("ProfileHeaderFragment", "Updated profile header from cachedProfile - Level: $level, XP: $xp")
-    }
     
     override fun onDestroyView() {
         super.onDestroyView()

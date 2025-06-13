@@ -303,6 +303,71 @@ class SupabaseClient() {
         return client.newCall(request).execute()
     }
 
+    fun getUserUnlockedAchievements(userId: String, authToken: String): Response {
+        if (userId.isBlank() || userId == "null") {
+            Log.e("SupabaseClient", "Invalid userId provided for unlocked achievements: $userId")
+            throw IllegalArgumentException("Invalid userId provided")
+        }
+        
+        // Use database function to get achievements with proper RLS handling
+        val rpcRequest = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/get_user_achievements")
+            .post("""{"user_uuid": "$userId"}""".toRequestBody("application/json".toMediaType()))
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .build()
+        
+        val response = client.newCall(rpcRequest).execute()
+        Log.d("SupabaseClient", "Get user achievements function response code: ${response.code}")
+        return response
+    }
+
+    fun unlockAchievement(userId: String, achievementId: Int, authToken: String): Response {
+        // Use database function to unlock achievement with proper RLS handling
+        val rpcRequest = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/unlock_achievement")
+            .post("""{"user_uuid": "$userId", "ach_id": $achievementId}""".toRequestBody("application/json".toMediaType()))
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .build()
+        
+        val response = client.newCall(rpcRequest).execute()
+        Log.d("SupabaseClient", "Unlock achievement function response code: ${response.code}")
+        return response
+    }
+
+    fun unlockAchievementIfNotExists(userId: String, achievementId: Int, title: String, authToken: String): Response {
+        // Use database function to unlock achievement only if not already unlocked
+        val rpcRequest = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/unlock_achievement_if_not_exists")
+            .post("""{"user_uuid": "$userId", "ach_id": $achievementId, "ach_title": "$title"}""".toRequestBody("application/json".toMediaType()))
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .build()
+        
+        val response = client.newCall(rpcRequest).execute()
+        Log.d("SupabaseClient", "Unlock achievement if not exists function response code: ${response.code}")
+        return response
+    }
+
+    fun checkStreakAchievement(userId: String, authToken: String): Response {
+        // Use database function to check and unlock streak achievement
+        val rpcRequest = Request.Builder()
+            .url("$supabaseUrl/rest/v1/rpc/check_streak_achievement")
+            .post("""{"user_uuid": "$userId"}""".toRequestBody("application/json".toMediaType()))
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .build()
+        
+        val response = client.newCall(rpcRequest).execute()
+        Log.d("SupabaseClient", "Check streak achievement function response code: ${response.code}")
+        return response
+    }
+
     suspend fun getAllFriends(authToken: String): Response {
         val request = Request.Builder()
             .url("$supabaseUrl/rest/v1/rpc/get_all_friends")
@@ -399,6 +464,39 @@ class SupabaseClient() {
         return jsonObj.optString("access_token", "")
     }
 
+    suspend fun createProfile(authToken: String, displayName: String = "", email: String = ""): JSONObject {
+        val userId = getUserIdFromToken(authToken)
+        
+        val profileJson = JSONObject()
+        profileJson.put("id", userId)
+        profileJson.put("display_name", displayName)
+        profileJson.put("email", email)
+        profileJson.put("created_at", "now()")
+        profileJson.put("updated_at", "now()")
+        
+        val requestBody = profileJson.toString().toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/profile")
+            .post(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=representation")
+            .build()
+            
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
+        if (!response.isSuccessful) {
+            val errorBody = response.body?.string()
+            Log.e("SupabaseClient", "Profile creation failed with response: $errorBody")
+            throw RuntimeException(errorBody ?: "Profile creation failed with code ${response.code}")
+        }
+        
+        val body = response.body?.string() ?: throw RuntimeException("No response body")
+        val arr = org.json.JSONArray(body)
+        if (arr.length() == 0) throw RuntimeException("Profile creation failed")
+        return arr.getJSONObject(0)
+    }
+
     suspend fun fetchProfile(authToken: String): JSONObject {
         val request = Request.Builder()
             .url("$supabaseUrl/rest/v1/profile?select=*&id=eq.${getUserIdFromToken(authToken)}")
@@ -411,6 +509,53 @@ class SupabaseClient() {
         val body = response.body?.string() ?: throw RuntimeException("No response body")
         val arr = org.json.JSONArray(body)
         if (arr.length() == 0) throw RuntimeException("Profile not found")
+        return arr.getJSONObject(0)
+    }
+    
+    suspend fun fetchProfileOrCreate(authToken: String, displayName: String = "", email: String = ""): JSONObject {
+        return try {
+            fetchProfile(authToken)
+        } catch (e: Exception) {
+            if (e.message?.contains("Profile not found") == true) {
+                Log.d("SupabaseClient", "Profile not found, creating new profile")
+                createProfile(authToken, displayName, email)
+            } else {
+                throw e
+            }
+        }
+    }
+
+    suspend fun createUserAttributes(authToken: String): JSONObject {
+        val userId = getUserIdFromToken(authToken)
+        
+        val attributesJson = JSONObject()
+        attributesJson.put("id", userId)
+        attributesJson.put("xp", 0)
+        attributesJson.put("bell_peppers", 0)
+        attributesJson.put("streak", 0)
+        attributesJson.put("last_task_date", "")
+        attributesJson.put("opened_daily_at", "")
+        
+        val requestBody = attributesJson.toString().toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/user_attributes")
+            .post(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=representation")
+            .build()
+            
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
+        if (!response.isSuccessful) {
+            val errorBody = response.body?.string()
+            Log.e("SupabaseClient", "User attributes creation failed with response: $errorBody")
+            throw RuntimeException(errorBody ?: "User attributes creation failed with code ${response.code}")
+        }
+        
+        val body = response.body?.string() ?: throw RuntimeException("No response body")
+        val arr = org.json.JSONArray(body)
+        if (arr.length() == 0) throw RuntimeException("User attributes creation failed")
         return arr.getJSONObject(0)
     }
 
@@ -427,6 +572,19 @@ class SupabaseClient() {
         val arr = org.json.JSONArray(body)
         if (arr.length() == 0) throw RuntimeException("User attributes not found")
         return arr.getJSONObject(0)
+    }
+    
+    suspend fun fetchUserAttributesOrCreate(authToken: String): JSONObject {
+        return try {
+            fetchUserAttributes(authToken)
+        } catch (e: Exception) {
+            if (e.message?.contains("User attributes not found") == true) {
+                Log.d("SupabaseClient", "User attributes not found, creating new user attributes")
+                createUserAttributes(authToken)
+            } else {
+                throw e
+            }
+        }
     }
 
     // Convenience methods that use UserManager directly

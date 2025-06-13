@@ -46,6 +46,9 @@ class RewardsFragment : Fragment(), SensorEventListener {
     private var countDownTimer: CountDownTimer? = null
     private lateinit var rewardShopAdapter: RewardShopAdapter
     private val viewModel: RewardsViewModel by viewModels()
+    
+
+    
     private var sensorManager: SensorManager? = null
     private var accelerometer: Sensor? = null
     private var lastShakeTime: Long = 0
@@ -68,7 +71,7 @@ class RewardsFragment : Fragment(), SensorEventListener {
         val pointsIcon = view.findViewById<ImageView>(R.id.pointsIcon)
         (pointsIcon.drawable as? android.graphics.drawable.AnimationDrawable)?.start()
         
-        setupAchievements(view)
+
         return view
     }
 
@@ -194,25 +197,7 @@ class RewardsFragment : Fragment(), SensorEventListener {
         }.start()
     }
 
-    private fun setupAchievements(view: View) {
-        val achievementIds = listOf(
-            R.id.achievement1, R.id.achievement2, R.id.achievement3, R.id.achievement4, R.id.achievement5, R.id.achievement6,
-            R.id.achievement7, R.id.achievement8, R.id.achievement9, R.id.achievement10, R.id.achievement11, R.id.achievement12
-        )
-        val titles = resources.getStringArray(R.array.achievement_titles)
-        val descriptions = resources.getStringArray(R.array.achievement_descriptions)
-        val icons = resources.getStringArray(R.array.achievement_icons)
-        val unlockedIds = setOf<Int>() // TODO: Replace with actual unlocked achievement ids
-        for (i in achievementIds.indices) {
-            val achView = view.findViewById<View>(achievementIds[i])
-            achView.findViewById<TextView>(R.id.achievementTitle).text = titles.getOrNull(i) ?: ""
-            achView.findViewById<TextView>(R.id.achievementDescription).text = descriptions.getOrNull(i) ?: ""
-            val iconName = icons.getOrNull(i) ?: "ic_achievement"
-            val iconResId = resources.getIdentifier(iconName, "drawable", requireContext().packageName)
-            achView.findViewById<ImageView>(R.id.achievementIcon).setImageResource(if (iconResId != 0) iconResId else R.drawable.ic_achievement)
-            achView.alpha = if (unlockedIds.contains(i + 1)) 1.0f else 0.4f
-        }
-    }
+
 
     private fun setupRewardShop() {
         val rewardsManager = RewardsManager(requireContext(), resources)

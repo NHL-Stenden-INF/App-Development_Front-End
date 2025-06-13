@@ -32,6 +32,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import com.bumptech.glide.Glide
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.nhlstenden.appdev.features.home.StreakManager
+import com.nhlstenden.appdev.features.rewards.AchievementManager
 import java.time.LocalDate
 import android.util.Log
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
@@ -112,6 +113,10 @@ class HomeFragment : Fragment() {
 
     @Inject
     lateinit var streakRepository: StreakRepository
+    
+    @Inject
+    lateinit var achievementManager: AchievementManager
+    
     private val streakManager = StreakManager()
 
     override fun onCreateView(
@@ -229,8 +234,30 @@ class HomeFragment : Fragment() {
                     
                     streakManager.initializeFromDatabase(lastTaskDate, currentStreak)
                     
+                    // Check if streak should be reset due to inactivity
+                    val actualStreak = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        streakManager.checkAndResetStreak(lastTaskDate)
+                    } else {
+                        currentStreak
+                    }
+                    
+                    // Update streak in database if it changed
+                    if (actualStreak != currentStreak) {
+                        Log.d("HomeFragment", "Resetting streak from $currentStreak to $actualStreak due to inactivity")
+                        try {
+                            streakRepository.updateStreak(currentUser.id.toString(), actualStreak, currentUser.authToken)
+                        } catch (e: Exception) {
+                            Log.e("HomeFragment", "Failed to update streak in database", e)
+                        }
+                    }
+                    
+                    // Check for streak achievement if streak is 7 or more
+                    if (actualStreak >= 7) {
+                        achievementManager.checkStreakAchievement(currentUser.id.toString())
+                    }
+                    
                     withContext(Dispatchers.Main) {
-                        streakCounter.text = "${streakManager.getCurrentStreak()} days"
+                        streakCounter.text = "$actualStreak days"
                         
                         for (i in 0..6) {
                             val currentDate = startOfWeek.plusDays(i.toLong())

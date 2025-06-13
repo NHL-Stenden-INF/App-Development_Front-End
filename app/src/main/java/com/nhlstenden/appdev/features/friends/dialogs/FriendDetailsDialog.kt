@@ -17,14 +17,16 @@ import com.bumptech.glide.Glide
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.DialogFriendDetailsBinding
 import com.nhlstenden.appdev.features.friends.adapters.CourseProgressAdapter
-import com.nhlstenden.appdev.features.friends.adapters.AchievementAdapter
+import com.nhlstenden.appdev.features.profile.adapters.AchievementAdapter
 import com.nhlstenden.appdev.features.friends.models.Friend
 import com.nhlstenden.appdev.features.friends.models.FriendDetails
 import com.nhlstenden.appdev.features.friends.viewmodels.FriendDetailsViewModel
+import com.nhlstenden.appdev.core.repositories.AchievementRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class FriendDetailsDialog : DialogFragment() {
@@ -35,6 +37,9 @@ class FriendDetailsDialog : DialogFragment() {
     private val viewModel: FriendDetailsViewModel by viewModels()
     private lateinit var courseProgressAdapter: CourseProgressAdapter
     private lateinit var achievementAdapter: AchievementAdapter
+    
+    @Inject
+    lateinit var achievementRepository: AchievementRepository
     
     private lateinit var friend: Friend
     
@@ -236,8 +241,8 @@ class FriendDetailsDialog : DialogFragment() {
         Log.d("FriendDetailsDialog", "Course progress data: ${details.courseProgress}")
         courseProgressAdapter.submitList(details.courseProgress)
         
-        // Update achievements
-        achievementAdapter.submitList(details.achievements)
+        // Load real achievements for this friend
+        loadFriendAchievements(details.id)
         
         // Hide sections if no data
         if (details.courseProgress.isEmpty()) {
@@ -290,6 +295,41 @@ class FriendDetailsDialog : DialogFragment() {
         } catch (e: Exception) {
             Log.w("FriendDetailsDialog", "Could not parse date: $dateString", e)
             "Never"
+        }
+    }
+    
+    private fun loadFriendAchievements(friendId: String) {
+        lifecycleScope.launch {
+            try {
+                // Get all achievements
+                val allAchievements = achievementRepository.getAllAchievements()
+                // Get friend's unlocked achievements
+                val unlockedResult = achievementRepository.getUserUnlockedAchievements(friendId)
+                val unlockedIds = unlockedResult.getOrElse { emptyList() }.toSet()
+                
+                // Filter to only show unlocked achievements
+                val unlockedAchievements = allAchievements.filter { achievement ->
+                    unlockedIds.contains(achievement.id.toInt())
+                }.map { achievement ->
+                    achievement.copy(unlocked = true)
+                }
+                
+                achievementAdapter.submitList(unlockedAchievements)
+                
+                // Show achievements card only if there are unlocked achievements
+                if (unlockedAchievements.isNotEmpty()) {
+                    binding.achievementsCard.visibility = View.VISIBLE
+                } else {
+                    binding.achievementsCard.visibility = View.GONE
+                }
+                
+                Log.d("FriendDetailsDialog", "Loaded ${unlockedAchievements.size} unlocked achievements for friend $friendId")
+            } catch (e: Exception) {
+                Log.e("FriendDetailsDialog", "Error loading friend achievements", e)
+                // Fallback: hide achievements card
+                achievementAdapter.submitList(emptyList())
+                binding.achievementsCard.visibility = View.GONE
+            }
         }
     }
 } 
