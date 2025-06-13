@@ -18,6 +18,8 @@ import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.features.user.repositories.UserRepositoryImpl
 import com.nhlstenden.appdev.core.repositories.RewardsRepository
 import com.nhlstenden.appdev.features.rewards.repositories.RewardsRepositoryImpl
+import com.nhlstenden.appdev.core.repositories.AchievementRepository
+import com.nhlstenden.appdev.features.rewards.repositories.AchievementRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -49,6 +51,9 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindFriendsRepository(impl: FriendsRepositoryImpl): FriendsRepository
+
+    @Binds
+    abstract fun bindAchievementRepository(impl: AchievementRepositoryImpl): AchievementRepository
 }
 
 @Module

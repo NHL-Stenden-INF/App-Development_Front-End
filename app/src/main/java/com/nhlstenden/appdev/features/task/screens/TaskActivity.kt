@@ -31,6 +31,7 @@ import com.nhlstenden.appdev.features.task.models.Question
 import com.nhlstenden.appdev.features.task.viewmodels.TaskViewModel
 import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import com.nhlstenden.appdev.features.home.StreakManager
+import com.nhlstenden.appdev.features.rewards.AchievementManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +64,9 @@ class TaskActivity : AppCompatActivity() {
 
     @Inject
     lateinit var courseRepository: CourseRepositoryImpl
+
+    @Inject
+    lateinit var achievementManager: AchievementManager
 
     private val streakManager = StreakManager()
 
@@ -290,7 +294,13 @@ class TaskActivity : AppCompatActivity() {
                                     1 // Increment by 1
                                 )
                                 
-                                if (!progressUpdated) {
+                                if (progressUpdated) {
+                                    // Check for achievements after successful task completion
+                                    achievementManager.checkAchievementsAfterTaskCompletion(
+                                        currentUser.id.toString(),
+                                        courseId
+                                    )
+                                } else {
                                     Log.e("TaskActivity", "Failed to update task progress")
                                 }
                             } catch (e: Exception) {

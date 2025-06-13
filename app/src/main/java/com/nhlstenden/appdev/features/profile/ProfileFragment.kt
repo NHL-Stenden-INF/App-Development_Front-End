@@ -20,6 +20,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import com.bumptech.glide.Glide
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.FragmentProfileBinding
@@ -63,6 +64,7 @@ import android.util.Log
 import com.nhlstenden.appdev.shared.components.CameraActivity
 import com.nhlstenden.appdev.utils.LevelCalculator
 import com.nhlstenden.appdev.utils.RewardChecker
+import com.nhlstenden.appdev.core.repositories.AchievementRepository
 
 @AndroidEntryPoint
 class ProfileFragment : BaseFragment(), SensorEventListener {
@@ -80,6 +82,9 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     
     @Inject
     lateinit var rewardChecker: RewardChecker
+    
+    @Inject
+    lateinit var achievementRepository: AchievementRepository
     
     private val PROFILE_IMAGE_SIZE = 120
     private val MAX_BIO_LENGTH = 128
@@ -106,7 +111,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
             showSettingsDialog()
         }
 
-        binding.achievementsRecyclerView.layoutManager = LinearLayoutManager(context)
+        binding.achievementsRecyclerView.layoutManager = GridLayoutManager(context, 2)
         achievementAdapter = AchievementAdapter()
         binding.achievementsRecyclerView.adapter = achievementAdapter
         
@@ -183,6 +188,8 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         gyroSensor?.let {
             sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
+        // Refresh achievements in case user completed tasks
+        refreshAchievements()
     }
 
     override fun onPause() {
@@ -276,6 +283,8 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                         profileCardBio.text = displayBio
                         profileCardUsername.text = state.profile.displayName
                         
+                        android.util.Log.d("ProfileFragment", "Profile UI updated: displayName='${state.profile.displayName}', bio='$displayBio'")
+                        
                         // Add click listener to show full bio in toast
                         profileCardBio.setOnClickListener {
                             if (!bio.isNullOrEmpty() && bio != "null" && bio != "No bio set yet") {
@@ -314,6 +323,60 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                     achievementAdapter.submitList(achievements)
                 }
             }
+        }
+        
+        // Load real achievements from repository
+        loadAchievements()
+    }
+    
+    private fun loadAchievements() {
+        lifecycleScope.launch {
+            try {
+                val currentUser = authRepository.getCurrentUserSync()
+                if (currentUser != null) {
+                    // Get all achievements and user's unlocked ones
+                    val allAchievements = achievementRepository.getAllAchievements()
+                    val unlockedResult = achievementRepository.getUserUnlockedAchievements(currentUser.id.toString())
+                    val unlockedIds = unlockedResult.getOrElse { emptyList() }.toSet()
+                    
+                    // Filter to only show unlocked achievements
+                    val unlockedAchievements = allAchievements.filter { achievement ->
+                        unlockedIds.contains(achievement.id.toInt())
+                    }.map { achievement ->
+                        achievement.copy(unlocked = true)
+                    }
+                    
+                    achievementAdapter.submitList(unlockedAchievements)
+                    updateAchievementsVisibility(unlockedAchievements.isNotEmpty())
+                    Log.d("ProfileFragment", "Loaded ${unlockedAchievements.size} unlocked achievements")
+                } else {
+                    // Show empty list if no user
+                    achievementAdapter.submitList(emptyList())
+                    updateAchievementsVisibility(false)
+                }
+            } catch (e: Exception) {
+                Log.e("ProfileFragment", "Error loading achievements", e)
+                // Fallback: show empty list
+                achievementAdapter.submitList(emptyList())
+                updateAchievementsVisibility(false)
+            }
+        }
+    }
+    
+    fun refreshAchievements() {
+        loadAchievements()
+    }
+    
+    private fun updateAchievementsVisibility(hasAchievements: Boolean) {
+        val emptyState = binding.root.findViewById<View>(R.id.achievementsEmptyState)
+        val recyclerView = binding.achievementsRecyclerView
+        
+        if (hasAchievements) {
+            recyclerView.visibility = View.VISIBLE
+            emptyState.visibility = View.GONE
+        } else {
+            recyclerView.visibility = View.GONE
+            emptyState.visibility = View.VISIBLE
         }
     }
     

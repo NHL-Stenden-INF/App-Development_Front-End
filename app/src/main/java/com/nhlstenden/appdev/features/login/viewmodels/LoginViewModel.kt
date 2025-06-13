@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
+import com.nhlstenden.appdev.features.rewards.AchievementManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +23,8 @@ import com.nhlstenden.appdev.core.models.User
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val achievementManager: AchievementManager
 ) : ViewModel() {
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Initial)
     val loginState: StateFlow<LoginState> = _loginState
@@ -40,6 +42,9 @@ class LoginViewModel @Inject constructor(
                     
                     // Update streak logic using the new UserRepository
                     updateStreakIfNeeded(user)
+                    
+                    // Check for any achievements that should be unlocked
+                    checkExistingAchievements(user)
                     
                     Log.d("LoginViewModel", "Login successful for user: ${user.email}")
                     _loginState.value = LoginState.Success(user)
@@ -98,7 +103,7 @@ class LoginViewModel @Inject constructor(
                             currentStreak
                         }
                         else -> {
-                            Log.d("LoginViewModel", "More than one day has passed, resetting streak from $currentStreak to 0")
+                            Log.d("LoginViewModel", "More than one day has passed ($daysBetween days), resetting streak from $currentStreak to 0")
                             0
                         }
                     }
@@ -117,6 +122,26 @@ class LoginViewModel @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e("LoginViewModel", "Error updating streak", e)
+        }
+    }
+    
+    private fun checkExistingAchievements(user: User) {
+        viewModelScope.launch {
+            try {
+                Log.d("LoginViewModel", "🎯 === STARTING LOGIN ACHIEVEMENT CHECK for user: ${user.id} ===")
+                
+                Log.d("LoginViewModel", "🎯 Calling achievementManager.checkAchievementsAfterTaskCompletion() for login")
+                // Check course completion achievements
+                achievementManager.checkAchievementsAfterTaskCompletion(user.id.toString(), "all")
+                
+                Log.d("LoginViewModel", "🎯 Calling achievementManager.checkStreakAchievement() for login")
+                // Check streak achievement
+                achievementManager.checkStreakAchievement(user.id.toString())
+                
+                Log.d("LoginViewModel", "🎯 === LOGIN ACHIEVEMENT CHECK COMPLETED ===")
+            } catch (e: Exception) {
+                Log.e("LoginViewModel", "🎯 Error checking existing achievements on login", e)
+            }
         }
     }
 

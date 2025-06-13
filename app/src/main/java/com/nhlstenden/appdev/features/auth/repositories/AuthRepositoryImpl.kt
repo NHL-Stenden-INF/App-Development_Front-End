@@ -53,9 +53,9 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun login(email: String, password: String): Result<User> {
         return try {
             val accessToken = supabaseClient.login(email, password)
-            val profile = supabaseClient.fetchProfile(accessToken)
+            val profile = supabaseClient.fetchProfileOrCreate(accessToken, "", email)
             // Fetch user attributes for any future needs
-            supabaseClient.fetchUserAttributes(accessToken)
+            supabaseClient.fetchUserAttributesOrCreate(accessToken)
             
             val user = User(
                 id = profile.getString("id"),
@@ -80,9 +80,9 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun register(email: String, password: String, displayName: String): Result<User> {
         return try {
             val accessToken = supabaseClient.register(email, password, displayName)
-            val profile = supabaseClient.fetchProfile(accessToken)
+            val profile = supabaseClient.fetchProfileOrCreate(accessToken, displayName, email)
             // Fetch user attributes for any future needs
-            supabaseClient.fetchUserAttributes(accessToken)
+            supabaseClient.fetchUserAttributesOrCreate(accessToken)
             
             val user = User(
                 id = profile.getString("id"),
@@ -128,9 +128,9 @@ class AuthRepositoryImpl @Inject constructor(
         val currentUser = _currentUser.value ?: return Result.failure(Exception("No user logged in"))
         
         return try {
-            val profile = supabaseClient.fetchProfile(currentUser.authToken)
+            val profile = supabaseClient.fetchProfileOrCreate(currentUser.authToken, currentUser.username, currentUser.email)
             // Fetch user attributes for any future needs
-            supabaseClient.fetchUserAttributes(currentUser.authToken)
+            supabaseClient.fetchUserAttributesOrCreate(currentUser.authToken)
             
             val updatedUser = currentUser.copy(
                 username = profile.optString("display_name", currentUser.username),
