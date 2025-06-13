@@ -11,7 +11,7 @@ import com.bumptech.glide.Glide
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.FragmentProfileHeaderBinding
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel
-import com.nhlstenden.appdev.features.profile.screens.ProfileFragment
+import com.nhlstenden.appdev.features.profile.ProfileFragment
 import com.nhlstenden.appdev.features.task.BuyBellPepperDialogFragment
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository

@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.profile.screens
+package com.nhlstenden.appdev.features.profile
 
 import android.app.Activity
 import android.content.Intent
@@ -61,6 +61,10 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.content.Context
 import android.util.Log
+import android.widget.FrameLayout
+import androidx.viewpager2.widget.ViewPager2
+import com.nhlstenden.appdev.core.repositories.SettingsRepository
+import com.nhlstenden.appdev.features.profile.repositories.SettingsRepositoryImpl.SettingsConstants
 import com.nhlstenden.appdev.shared.components.CameraActivity
 import com.nhlstenden.appdev.utils.LevelCalculator
 import com.nhlstenden.appdev.utils.RewardChecker
@@ -68,6 +72,9 @@ import com.nhlstenden.appdev.core.repositories.AchievementRepository
 
 @AndroidEntryPoint
 class ProfileFragment : BaseFragment(), SensorEventListener {
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
+
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
     private val viewModel: ProfileViewModel by viewModels()
@@ -75,7 +82,6 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     private lateinit var musicLobbySwitch: SwitchMaterial
     private val MUSIC_LOBBY_REWARD_ID = 11
     private val PREFS_NAME = "reward_settings"
-    private val MUSIC_LOBBY_KEY = "music_lobby_enabled"
     
     @Inject
     lateinit var authRepository: AuthRepository
@@ -97,7 +103,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     private var sensorManager: SensorManager? = null
     private var gyroSensor: Sensor? = null
     private var profileCard: View? = null
-    
+
     private fun setupViews() {
         binding.editProfileButton.setOnClickListener {
             showEditProfileDialog()
@@ -120,13 +126,14 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         }
 
         musicLobbySwitch = binding.root.findViewById(R.id.musicLobbySwitch)
-        val sharedPrefs = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
-        val isMusicLobbyEnabled = sharedPrefs.getBoolean(MUSIC_LOBBY_KEY, true)
+        val sharedPrefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val isMusicLobbyEnabled = settingsRepository.hasValue(SettingsConstants.COURSE_LOBBY_MUSIC)
         musicLobbySwitch.isChecked = isMusicLobbyEnabled
         musicLobbySwitch.setOnCheckedChangeListener { _, isChecked ->
             // Use RewardChecker to properly validate and update music lobby preference
             lifecycleScope.launch {
                 val success = rewardChecker.setMusicLobbyEnabled(requireContext(), isChecked)
+                settingsRepository.addValue(SettingsConstants.COURSE_LOBBY_MUSIC)
                 if (!success && isChecked) {
                     // If trying to enable but not unlocked, revert the switch
                     musicLobbySwitch.isChecked = false
@@ -148,14 +155,14 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         if (authRepository.isLoggedIn()) {
             val currentUser = authRepository.getCurrentUserSync()
             if (currentUser != null) {
-                android.util.Log.d("ProfileFragment", "user.id=${currentUser.id}, authenticated")
+                Log.d("ProfileFragment", "user.id=${currentUser.id}, authenticated")
                 viewModel.loadProfile()
             } else {
-                android.util.Log.e("ProfileFragment", "User is logged in but current user is null")
+                Log.e("ProfileFragment", "User is logged in but current user is null")
                 viewModel.loadProfile() // Try loading anyway, repository will handle authentication
             }
         } else {
-            android.util.Log.e("ProfileFragment", "User is not logged in")
+            Log.e("ProfileFragment", "User is not logged in")
             // Redirect to login or show login prompt
             startActivity(Intent(requireContext(), LoginActivity::class.java))
             requireActivity().finish()
@@ -179,8 +186,8 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         super.onDestroyView()
         _binding = null
         // Ensure ViewPager is visible and fragment_container is hidden when leaving profile
-        activity?.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)?.visibility = View.VISIBLE
-        activity?.findViewById<android.widget.FrameLayout>(R.id.fragment_container)?.visibility = View.GONE
+        activity?.findViewById<ViewPager2>(R.id.viewPager)?.visibility = View.VISIBLE
+        activity?.findViewById<FrameLayout>(R.id.fragment_container)?.visibility = View.GONE
     }
     
     override fun onResume() {
@@ -222,7 +229,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                 bgView.rotationX = clampedPitch
                 bgView.rotationY = -clampedRoll
                 // Debug log
-                android.util.Log.d("HoloGyro", "shiftX=$shiftX shiftY=$shiftY rotX=$clampedPitch rotY=$clampedRoll maxX=$maxX maxY=$maxY")
+                Log.d("HoloGyro", "shiftX=$shiftX shiftY=$shiftY rotX=$clampedPitch rotY=$clampedRoll maxX=$maxX maxY=$maxY")
             }
         }
     }
@@ -255,7 +262,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                             } else {
                                 // Try to load as base64
                                 try {
-                                    val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
+                                    val imageBytes = Base64.decode(profilePic, Base64.DEFAULT)
                                     Glide.with(this@ProfileFragment)
                                         .load(imageBytes)
                                         .placeholder(R.drawable.zorotlpf)
@@ -502,7 +509,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                     // Convert image to base64
                     val inputStream = requireContext().contentResolver.openInputStream(uri)
                     val bytes = inputStream?.readBytes()
-                    val base64Image = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
+                    val base64Image = Base64.encodeToString(bytes, Base64.DEFAULT)
                     
                     // Update profile with base64 image
                     viewModel.updateProfile(
@@ -562,27 +569,26 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         val deleteAccountButton = dialogView.findViewById<MaterialButton>(R.id.deleteAccountButton)
 
         // Load saved settings
-        val settingsPrefs = requireContext().getSharedPreferences("app_settings", android.content.Context.MODE_PRIVATE)
-        biometricSwitch.isChecked = settingsPrefs.getBoolean("biometric_enabled", false)
-        achievementNotificationsSwitch.isChecked = settingsPrefs.getBoolean("achievement_notifications", true)
-        progressNotificationsSwitch.isChecked = settingsPrefs.getBoolean("progress_notifications", true)
-        friendActivitySwitch.isChecked = settingsPrefs.getBoolean("friend_activity", true)
+        biometricSwitch.isChecked = settingsRepository.hasValue("biometric_enabled")
+        achievementNotificationsSwitch.isChecked = settingsRepository.hasValue("achievement_notifications")
+        progressNotificationsSwitch.isChecked = settingsRepository.hasValue("progress_notifications")
+        friendActivitySwitch.isChecked = settingsRepository.hasValue("friend_activity")
 
         // Set up switch listeners
         biometricSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsPrefs.edit().putBoolean("biometric_enabled", isChecked).apply()
+            settingsRepository.toggleValue(SettingsConstants.BIOMETRICS)
         }
 
         achievementNotificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsPrefs.edit().putBoolean("achievement_notifications", isChecked).apply()
+            settingsRepository.toggleValue(SettingsConstants.ACHIEVEMENTS_NOTIFICATIONS)
         }
 
         progressNotificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsPrefs.edit().putBoolean("progress_notifications", isChecked).apply()
+            settingsRepository.toggleValue(SettingsConstants.PROGRESS_NOTIFICATIONS)
         }
 
         friendActivitySwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsPrefs.edit().putBoolean("friend_activity", isChecked).apply()
+            settingsRepository.toggleValue(SettingsConstants.FRIENDS_ACTIVITY)
         }
 
         // Set up button listeners
