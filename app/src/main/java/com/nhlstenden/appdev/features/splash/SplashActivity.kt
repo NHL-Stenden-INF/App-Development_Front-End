@@ -122,6 +122,14 @@ class SplashActivity : AppCompatActivity() {
     }
 
     private suspend fun biometricLogin(): Boolean = suspendCoroutine { continuation ->
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            Log.d("SplashActivity", "Biometric authentication not supported with this API version")
+            Toast.makeText(applicationContext, "Biometric authentication not supported", Toast.LENGTH_LONG).show()
+            continuation.resume(false)
+
+            return@suspendCoroutine
+        }
+
         val executor = ContextCompat.getMainExecutor(this)
         val biometricPrompt = BiometricPrompt(this, executor,
             object : BiometricPrompt.AuthenticationCallback() {
@@ -133,8 +141,8 @@ class SplashActivity : AppCompatActivity() {
                 }
 
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    Log.d("SplashActivity", "Successfully logged in with biometrics")
                     super.onAuthenticationSucceeded(result)
+                    Log.d("SplashActivity", "Successfully logged in with biometrics")
                     continuation.resume(true)
                 }
 
@@ -146,20 +154,12 @@ class SplashActivity : AppCompatActivity() {
                 }
             })
 
-        val promptInfo = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            // If on the wrong version, skip biometric auth because it's not available
-            continuation.resume(false)
-
-            return@suspendCoroutine
-        } else {
-            Log.d("SplashActivity", "Attempting biometric login")
-            BiometricPrompt.PromptInfo.Builder()
-                .setTitle("Login with fingerprint")
-                .setSubtitle("Log into GitGud using your fingerprint scanner")
-                .setNegativeButtonText("Cancel")
-                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-                .build()
-        }
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Login with fingerprint")
+            .setSubtitle("Log into GitGud using your fingerprint scanner")
+            .setNegativeButtonText("Cancel")
+            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+            .build()
 
         biometricPrompt.authenticate(promptInfo)
     }
