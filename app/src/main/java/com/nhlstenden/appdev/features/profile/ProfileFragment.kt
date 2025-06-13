@@ -63,7 +63,7 @@ import android.util.Log
 import android.widget.FrameLayout
 import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.core.repositories.SettingsRepository
-import com.nhlstenden.appdev.features.profile.repositories.SettingsRepositoryImpl
+import com.nhlstenden.appdev.features.profile.repositories.SettingsRepositoryImpl.SettingsConstants
 import com.nhlstenden.appdev.shared.components.CameraActivity
 import com.nhlstenden.appdev.utils.LevelCalculator
 import com.nhlstenden.appdev.utils.RewardChecker
@@ -122,7 +122,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
 
         musicLobbySwitch = binding.root.findViewById(R.id.musicLobbySwitch)
         val sharedPrefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val isMusicLobbyEnabled = settingsRepository.hasValue("lobby_music_enabled")
+        val isMusicLobbyEnabled = settingsRepository.hasValue(SettingsConstants.COURSE_LOBBY_MUSIC)
         musicLobbySwitch.isChecked = isMusicLobbyEnabled
         musicLobbySwitch.setOnCheckedChangeListener { _, isChecked ->
             // Use RewardChecker to properly validate and update music lobby preference
@@ -512,19 +512,19 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
 
         // Set up switch listeners
         biometricSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsRepository.toggleValue("biometric_enabled")
+            settingsRepository.toggleValue(SettingsConstants.BIOMETRICS)
         }
 
         achievementNotificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsRepository.toggleValue("achievement_notifications")
+            settingsRepository.toggleValue(SettingsConstants.ACHIEVEMENTS_NOTIFICATIONS)
         }
 
         progressNotificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsRepository.toggleValue("progress_notifications")
+            settingsRepository.toggleValue(SettingsConstants.PROGRESS_NOTIFICATIONS)
         }
 
         friendActivitySwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsRepository.toggleValue("friend_activity")
+            settingsRepository.toggleValue(SettingsConstants.FRIENDS_ACTIVITY)
         }
 
         // Set up button listeners

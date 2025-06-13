@@ -16,6 +16,13 @@ val Context.dataStore by preferencesDataStore("settings")
 class SettingsRepositoryImpl @Inject constructor(
     private val context: Context
 ) : SettingsRepository {
+    object SettingsConstants {
+        const val BIOMETRICS = "biometric_enabled"
+        const val ACHIEVEMENTS_NOTIFICATIONS = "achievement_notifications"
+        const val PROGRESS_NOTIFICATIONS = "progress_notifications"
+        const val FRIENDS_ACTIVITY = "friend_activity"
+        const val COURSE_LOBBY_MUSIC = "course_lobby_music"
+    }
 
     override fun hasValue(key: String): Boolean = runBlocking {
         val preferences = context.dataStore.data.first()

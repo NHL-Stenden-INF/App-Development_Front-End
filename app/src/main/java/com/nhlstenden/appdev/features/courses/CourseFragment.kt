@@ -40,6 +40,7 @@ import android.media.AudioFocusRequest
 import com.nhlstenden.appdev.utils.RewardChecker
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.SettingsRepository
+import com.nhlstenden.appdev.features.profile.repositories.SettingsRepositoryImpl.SettingsConstants
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -205,7 +206,7 @@ class CourseFragment : Fragment() {
         // Use RewardChecker to properly validate music lobby unlock and user preference
         lifecycleScope.launch {
             try {
-                if (settingsRepository.hasValue("lobby_music_enabled")) {
+                if (settingsRepository.hasValue(SettingsConstants.COURSE_LOBBY_MUSIC)) {
                     startMusicPlayback()
                 } else {
                     Log.d("CourseFragment", "Music lobby is not enabled or not unlocked")
