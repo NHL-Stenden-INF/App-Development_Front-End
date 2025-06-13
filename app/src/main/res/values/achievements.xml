@@ -4,56 +4,24 @@
         <item>HTML Hero</item>
         <item>CSS Sorcerer</item>
         <item>SQL Sleuth</item>
-        <item>Bug Squasher</item>
         <item>Streak Master</item>
-        <item>Quiz Whiz</item>
-        <item>Night Owl</item>
-        <item>Early Bird</item>
-        <item>Code Marathoner</item>
-        <item>Perfect Score</item>
-        <item>Achievement Hunter</item>
-        <item>Social Butterfly</item>
     </array>
     <array name="achievement_descriptions">
         <item>Complete all HTML challenges</item>
-        <item>Master 20 CSS properties</item>
-        <item>Write 10 complex SQL queries</item>
-        <item>Fix 50 bugs in tasks</item>
+        <item>Complete all CSS challenges</item>
+        <item>Complete all SQL challenges</item>
         <item>Maintain a 7-day learning streak</item>
-        <item>Score 100% on 5 quizzes</item>
-        <item>Complete a task after midnight</item>
-        <item>Complete a task before 7am</item>
-        <item>Finish 10 tasks in one day</item>
-        <item>Get all answers correct in a task</item>
-        <item>Unlock 10 achievements</item>
-        <item>Add 5 friends</item>
     </array>
     <array name="achievement_icons">
         <item>ic_achievement_html</item>
         <item>ic_achievement_css</item>
         <item>ic_achievement_sql</item>
-        <item>ic_achievement_bug</item>
         <item>ic_achievement_streak</item>
-        <item>ic_achievement_quiz</item>
-        <item>ic_achievement_nightowl</item>
-        <item>ic_achievement_earlybird</item>
-        <item>ic_achievement_marathon</item>
-        <item>ic_achievement_perfect</item>
-        <item>ic_achievement_hunter</item>
-        <item>ic_achievement_social</item>
     </array>
     <integer-array name="achievement_ids">
         <item>1</item>
         <item>2</item>
         <item>3</item>
-        <item>4</item>
         <item>5</item>
-        <item>6</item>
-        <item>7</item>
-        <item>8</item>
-        <item>9</item>
-        <item>10</item>
-        <item>11</item>
-        <item>12</item>
     </integer-array>
 </resources> 
