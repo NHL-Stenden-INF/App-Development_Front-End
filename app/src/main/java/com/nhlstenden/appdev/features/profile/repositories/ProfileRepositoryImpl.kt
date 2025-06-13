@@ -61,8 +61,8 @@ class ProfileRepositoryImpl @Inject constructor(
             val userAttributes: JSONObject
             
             try {
-                profileJson = supabaseClient.fetchProfile(currentUser.authToken)
-                userAttributes = supabaseClient.fetchUserAttributes(currentUser.authToken)
+                profileJson = supabaseClient.fetchProfileOrCreate(currentUser.authToken, "", currentUser.email)
+                userAttributes = supabaseClient.fetchUserAttributesOrCreate(currentUser.authToken)
             } catch (e: RuntimeException) {
                 // Check if this is a JWT expiration error
                 if (e.message?.contains("JWT expired") == true) {
@@ -100,9 +100,22 @@ class ProfileRepositoryImpl @Inject constructor(
             val level = LevelCalculator.calculateLevelFromXp(xp)
             val bellPeppers = userAttributes.optInt("bell_peppers", 0)
             
+            val displayName = profileJson.optString("display_name", "")
+            val email = profileJson.optString("email", "")
+            
+            // Use email as fallback if display name is empty (common after fresh login)
+            val finalDisplayName = if (displayName.isNotEmpty()) {
+                displayName
+            } else if (email.isNotEmpty()) {
+                // Extract the part before @ as a fallback
+                email.substringBefore("@").takeIf { it.isNotEmpty() } ?: "User"
+            } else {
+                "User"
+            }
+            
             val profile = Profile(
-                displayName = profileJson.optString("display_name", ""),
-                email = profileJson.optString("email", ""),
+                displayName = finalDisplayName,
+                email = email,
                 bio = profileJson.optString("bio", null),
                 profilePicture = profileJson.optString("profile_picture", null),
                 level = level,
