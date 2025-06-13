@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.biometric.BiometricManager
 import androidx.lifecycle.lifecycleScope
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.MainActivity
@@ -19,7 +20,10 @@ import com.nhlstenden.appdev.features.login.screens.LoginActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import javax.crypto.Cipher
 import javax.inject.Inject
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * SplashActivity handles the initial app launch by checking for active user sessions.
@@ -91,9 +95,7 @@ class SplashActivity : AppCompatActivity() {
         }
     }
 
-    private fun biometricLogin(): Boolean {
-        Log.d("SplashActivity", "Found a user")
-        var isSuccessful = false
+    private suspend fun biometricLogin(): Boolean = suspendCoroutine { continuation ->
         val executor = ContextCompat.getMainExecutor(this)
         val biometricPrompt = BiometricPrompt(this, executor,
             object : BiometricPrompt.AuthenticationCallback() {
@@ -101,40 +103,35 @@ class SplashActivity : AppCompatActivity() {
                     super.onAuthenticationError(errorCode, errString)
                     Log.d("SplashActivity", "Failed to login with biometrics: $errString with code: $errorCode")
                     Toast.makeText(applicationContext, "Unable to authenticate with biometrics: $errString", Toast.LENGTH_LONG).show()
-                    isSuccessful = false
+                    continuation.resume(false)
                 }
 
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     Log.d("SplashActivity", "Successfully logged in with biometrics")
                     super.onAuthenticationSucceeded(result)
-                    isSuccessful = true
-
+                    continuation.resume(true)
                 }
 
                 override fun onAuthenticationFailed() {
                     super.onAuthenticationFailed()
-                    Log.d("SplashActivity", "Failed to login with biometrics")
-                    Toast.makeText(applicationContext, "Unable to authenticate with biometrics", Toast.LENGTH_LONG).show()
-                    isSuccessful = false
+//                    continuation.resume(false)
                 }
             })
 
         val promptInfo = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             // If on the wrong version, skip biometric auth
-            return true
+            continuation.resume(true)
         } else {
             Log.d("SplashActivity", "Attempting biometric login")
             BiometricPrompt.PromptInfo.Builder()
                 .setTitle("Biometric login for my app")
                 .setSubtitle("Log in using your biometric credential")
                 .setNegativeButtonText("Cancel")
-                .setAllowedAuthenticators(BIOMETRIC_STRONG)
+                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
                 .build()
         }
 
-        biometricPrompt.authenticate(promptInfo)
-
-        return isSuccessful
+        biometricPrompt.authenticate(promptInfo as BiometricPrompt.PromptInfo)
     }
 
     private fun navigateToMainActivity() {
