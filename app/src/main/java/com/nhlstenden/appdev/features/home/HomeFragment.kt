@@ -17,7 +17,7 @@ import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
-import com.nhlstenden.appdev.features.profile.screens.ProfileFragment
+import com.nhlstenden.appdev.features.profile.ProfileFragment
 import com.nhlstenden.appdev.R
 import android.app.AlertDialog
 import android.app.Application

@@ -15,6 +15,7 @@ import com.nhlstenden.appdev.MainActivity
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.core.repositories.ProfileRepository
+import com.nhlstenden.appdev.core.repositories.SettingsRepository
 import com.nhlstenden.appdev.features.login.screens.LoginActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -31,6 +32,8 @@ import kotlin.coroutines.suspendCoroutine
  */
 @AndroidEntryPoint
 class SplashActivity : AppCompatActivity() {
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
     
     @Inject
     lateinit var authRepository: AuthRepository
@@ -62,10 +65,9 @@ class SplashActivity : AppCompatActivity() {
                 // Check if user is logged in
                 if (authRepository.isLoggedIn()) {
                     val currentUser = authRepository.getCurrentUserSync()
-                    // TODO: Add this to the settings
                     if (currentUser != null) {
                         val userHasBiometricsEnabled = true
-                        if (userHasBiometricsEnabled && !biometricLogin()) {
+                        if (settingsRepository.hasValue("biometric_enabled") && !biometricLogin()) {
                             Log.d("SplashActivity", "Biometrics required, but biometrics failed/ are unavailable. Going to login screen")
                             navigateToLoginActivity()
 
