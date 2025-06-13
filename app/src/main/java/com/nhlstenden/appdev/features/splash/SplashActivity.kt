@@ -1,8 +1,6 @@
 package com.nhlstenden.appdev.features.splash
 
-import android.content.Context
 import android.content.Intent
-import android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import android.os.Build
@@ -21,7 +19,6 @@ import com.nhlstenden.appdev.features.login.screens.LoginActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import javax.crypto.Cipher
 import javax.inject.Inject
 import org.json.JSONObject
 import kotlin.coroutines.resume
