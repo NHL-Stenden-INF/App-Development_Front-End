@@ -351,15 +351,46 @@ class MainActivity : AppCompatActivity() {
         
         val shouldShowHeader = !isInFragmentMode && tabPosition != 1
         
-        profileHeaderContainer.visibility = if (shouldShowHeader) View.VISIBLE else View.GONE
+        if (shouldShowHeader && profileHeaderContainer.visibility != View.VISIBLE) {
+            animateHeaderVisibility(profileHeaderContainer, true)
+        } else if (!shouldShowHeader && profileHeaderContainer.visibility != View.GONE) {
+            animateHeaderVisibility(profileHeaderContainer, false)
+        }
         
         Log.d(TAG, "Profile header visibility: ${if (shouldShowHeader) "VISIBLE" else "GONE"} for tab $tabPosition, fragmentMode: $isInFragmentMode")
+    }
+    
+    private fun animateHeaderVisibility(headerContainer: FrameLayout, show: Boolean) {
+        val duration = 300L // Animation duration in milliseconds
+        
+        if (show) {
+            headerContainer.visibility = View.VISIBLE
+            headerContainer.alpha = 0f
+            headerContainer.translationY = -headerContainer.height.toFloat()
+            
+            headerContainer.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(duration)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+        } else {
+            headerContainer.animate()
+                .alpha(0f)
+                .translationY(-headerContainer.height.toFloat())
+                .setDuration(duration)
+                .setInterpolator(android.view.animation.AccelerateInterpolator())
+                .withEndAction {
+                    headerContainer.visibility = View.GONE
+                }
+                .start()
+        }
     }
     
     // Call this method when navigating to course details or other sub-pages
     fun hideProfileHeader() {
         val profileHeaderContainer = findViewById<FrameLayout>(R.id.profileHeaderContainer)
-        profileHeaderContainer.visibility = View.GONE
+        animateHeaderVisibility(profileHeaderContainer, false)
     }
     
     // Call this method when returning to main tabs

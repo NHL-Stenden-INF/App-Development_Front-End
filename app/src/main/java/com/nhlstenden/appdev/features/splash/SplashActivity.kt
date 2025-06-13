@@ -16,12 +16,14 @@ import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.MainActivity
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
+import com.nhlstenden.appdev.core.repositories.ProfileRepository
 import com.nhlstenden.appdev.features.login.screens.LoginActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.crypto.Cipher
 import javax.inject.Inject
+import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -39,6 +41,9 @@ class SplashActivity : AppCompatActivity() {
     @Inject
     lateinit var userRepository: UserRepository
 
+    @Inject
+    lateinit var profileRepository: ProfileRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
@@ -50,7 +55,7 @@ class SplashActivity : AppCompatActivity() {
         
         checkSessionAndNavigate()
     }
-
+    
     private fun checkSessionAndNavigate() {
         lifecycleScope.launch {
             // Add a small delay for better user experience (splash screen effect)
@@ -72,8 +77,28 @@ class SplashActivity : AppCompatActivity() {
                         
                         val validationResult = userRepository.getUserAttributes(currentUser.id)
                         if (validationResult.isSuccess) {
-                            // JWT is valid, go to MainActivity
-                            android.util.Log.d("SplashActivity", "Valid session confirmed for user: ${currentUser.email}")
+                            // Fetch full profile for header
+                            val profileResult = profileRepository.getProfile()
+                            if (profileResult.isSuccess) {
+                                val profile = profileResult.getOrNull()!!
+                                // Convert Profile to JSONObject for caching
+                                val profileJson = JSONObject().apply {
+                                    put("display_name", profile.displayName)
+                                    put("email", profile.email)
+                                    put("bio", profile.bio)
+                                    put("profile_picture", profile.profilePicture)
+                                    put("level", profile.level)
+                                    put("xp", profile.experience)
+                                    put("bell_peppers", profile.bellPeppers)
+                                }
+                                userRepository.cachedProfile = profileJson
+                                android.util.Log.d("SplashActivity", "Cached profile set: $profileJson")
+                                android.util.Log.d("SplashActivity", "Cached profile keys: ${profileJson.keys().asSequence().toList()}")
+                                android.util.Log.d("SplashActivity", "Cached profile display_name: ${profileJson.optString("display_name")}")
+                                android.util.Log.d("SplashActivity", "Cached profile profile_picture: ${profileJson.optString("profile_picture")}")
+                            } else {
+                                android.util.Log.w("SplashActivity", "Failed to fetch full profile: ${profileResult.exceptionOrNull()?.message}")
+                            }
                             navigateToMainActivity()
                         } else {
                             // JWT validation failed (likely expired), clear session and go to login
