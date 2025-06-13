@@ -61,8 +61,12 @@ class SplashActivity : AppCompatActivity() {
                 if (authRepository.isLoggedIn()) {
                     val currentUser = authRepository.getCurrentUserSync()
                     if (currentUser != null) {
-//                        TODO: Biometric popup
-                        Log.e("SplashText", biometricLogin().toString())
+                        if (!biometricLogin()) {
+                            Log.d("SplashActivity", "Biometrics required, but biometrics failed/ are unavailable. Going to login screen")
+                            navigateToLoginActivity()
+
+                            return@launch
+                        }
                         // Validate the JWT by making a test API call
                         android.util.Log.d("SplashActivity", "Validating session for user: ${currentUser.email}")
                         
@@ -114,13 +118,17 @@ class SplashActivity : AppCompatActivity() {
 
                 override fun onAuthenticationFailed() {
                     super.onAuthenticationFailed()
-//                    continuation.resume(false)
+//                    This triggers whenever the user fails, but the user should try again so we fail over on onAuthenticationError
+//                    So this remains unused
+                    Log.d("SplashActivity", "Biometric authentication failed")
                 }
             })
 
         val promptInfo = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            // If on the wrong version, skip biometric auth
-            continuation.resume(true)
+            // If on the wrong version, skip biometric auth because it's not available
+            continuation.resume(false)
+
+            return@suspendCoroutine
         } else {
             Log.d("SplashActivity", "Attempting biometric login")
             BiometricPrompt.PromptInfo.Builder()
@@ -131,7 +139,7 @@ class SplashActivity : AppCompatActivity() {
                 .build()
         }
 
-        biometricPrompt.authenticate(promptInfo as BiometricPrompt.PromptInfo)
+        biometricPrompt.authenticate(promptInfo)
     }
 
     private fun navigateToMainActivity() {
