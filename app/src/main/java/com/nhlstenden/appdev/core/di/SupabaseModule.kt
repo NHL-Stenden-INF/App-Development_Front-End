@@ -17,6 +17,8 @@ import com.nhlstenden.appdev.features.auth.repositories.AuthRepositoryImpl
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.features.user.repositories.UserRepositoryImpl
 import com.nhlstenden.appdev.core.repositories.RewardsRepository
+import com.nhlstenden.appdev.core.repositories.SettingsRepository
+import com.nhlstenden.appdev.features.profile.repositories.SettingsRepositoryImpl
 import com.nhlstenden.appdev.features.rewards.repositories.RewardsRepositoryImpl
 import dagger.Binds
 import dagger.Module
@@ -49,7 +51,22 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindFriendsRepository(impl: FriendsRepositoryImpl): FriendsRepository
+
+    @Binds
+    abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
 }
+
+@Module
+@InstallIn(SingletonComponent::class)
+object ContextModule {
+
+    @Provides
+    @Singleton
+    fun provideContext(@ApplicationContext appContext: Context): Context {
+        return appContext
+    }
+}
+
 
 @Module
 @InstallIn(SingletonComponent::class)
