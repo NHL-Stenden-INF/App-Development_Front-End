@@ -1,8 +1,10 @@
 package com.nhlstenden.appdev.core.repositories
 
+import androidx.datastore.preferences.core.Preferences
+
 interface SettingsRepository {
-    suspend fun hasValue(key: String): Boolean
-    suspend fun addValue(key: String)
-    suspend fun removeValue(key: String)
-    suspend fun toggleValue(key: String)
+    fun hasValue(key: String): Boolean
+    fun addValue(key: String): Preferences
+    fun removeValue(key: String): Preferences
+    fun toggleValue(key: String): Preferences
 }

@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import com.nhlstenden.appdev.core.repositories.SettingsRepository
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,24 +17,24 @@ class SettingsRepositoryImpl @Inject constructor(
     private val context: Context
 ) : SettingsRepository {
 
-    override suspend fun hasValue(key: String): Boolean {
+    override fun hasValue(key: String): Boolean = runBlocking {
         val preferences = context.dataStore.data.first()
-        return preferences[booleanPreferencesKey(key)] == true
+        preferences[booleanPreferencesKey(key)] == true
     }
 
-    override suspend fun addValue(key: String) {
+    override fun addValue(key: String) = runBlocking {
         context.dataStore.edit { preferences ->
             preferences[booleanPreferencesKey(key)] = true
         }
     }
 
-    override suspend fun removeValue(key: String) {
+    override fun removeValue(key: String) = runBlocking {
         context.dataStore.edit { preferences ->
             preferences[booleanPreferencesKey(key)] = false
         }
     }
 
-    override suspend fun toggleValue(key: String) {
+    override fun toggleValue(key: String) = runBlocking{
         context.dataStore.edit { preferences ->
             val currentValue = preferences[booleanPreferencesKey(key)] ?: false
             preferences[booleanPreferencesKey(key)] = !currentValue
