@@ -62,8 +62,10 @@ class SplashActivity : AppCompatActivity() {
                 // Check if user is logged in
                 if (authRepository.isLoggedIn()) {
                     val currentUser = authRepository.getCurrentUserSync()
+                    // TODO: Add this to the settings
                     if (currentUser != null) {
-                        if (!biometricLogin()) {
+                        val userHasBiometricsEnabled = true
+                        if (userHasBiometricsEnabled && !biometricLogin()) {
                             Log.d("SplashActivity", "Biometrics required, but biometrics failed/ are unavailable. Going to login screen")
                             navigateToLoginActivity()
 
