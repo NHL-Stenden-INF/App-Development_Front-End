@@ -31,9 +31,6 @@ class AchievementAdapter : ListAdapter<Achievement, AchievementAdapter.Achieveme
             binding.achievementTitle.text = achievement.title
             binding.achievementDescription.text = achievement.description
             binding.achievementIcon.setImageResource(achievement.iconResId)
-            
-            // Set alpha based on whether achievement is unlocked
-            binding.root.alpha = if (achievement.unlocked) 1.0f else 0.5f
         }
     }
 
