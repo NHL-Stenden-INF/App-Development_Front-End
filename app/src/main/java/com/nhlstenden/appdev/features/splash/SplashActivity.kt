@@ -154,8 +154,8 @@ class SplashActivity : AppCompatActivity() {
         } else {
             Log.d("SplashActivity", "Attempting biometric login")
             BiometricPrompt.PromptInfo.Builder()
-                .setTitle("Biometric login for my app")
-                .setSubtitle("Log in using your biometric credential")
+                .setTitle("Login with fingerprint")
+                .setSubtitle("Log into GitGud using your fingerprint scanner")
                 .setNegativeButtonText("Cancel")
                 .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
                 .build()
