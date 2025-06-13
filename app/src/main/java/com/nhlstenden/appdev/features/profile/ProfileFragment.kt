@@ -128,6 +128,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
             // Use RewardChecker to properly validate and update music lobby preference
             lifecycleScope.launch {
                 val success = rewardChecker.setMusicLobbyEnabled(requireContext(), isChecked)
+                settingsRepository.addValue(SettingsConstants.COURSE_LOBBY_MUSIC)
                 if (!success && isChecked) {
                     // If trying to enable but not unlocked, revert the switch
                     musicLobbySwitch.isChecked = false
