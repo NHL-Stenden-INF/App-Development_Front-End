@@ -70,6 +70,9 @@ dependencies {
     implementation 'androidx.activity:activity-ktx:1.7.2'
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
+    // Biometrics
+    implementation 'androidx.biometric:biometric:1.1.0'
     
     // Hilt
     implementation "com.google.dagger:hilt-android:$hilt_version"

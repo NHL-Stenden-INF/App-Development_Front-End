@@ -1,8 +1,14 @@
 package com.nhlstenden.appdev.features.splash
 
 import android.content.Intent
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.biometric.BiometricManager
 import androidx.lifecycle.lifecycleScope
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.MainActivity
@@ -15,6 +21,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import org.json.JSONObject
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * SplashActivity handles the initial app launch by checking for active user sessions.
@@ -29,10 +37,10 @@ class SplashActivity : AppCompatActivity() {
     
     @Inject
     lateinit var userRepository: UserRepository
-    
+
     @Inject
     lateinit var profileRepository: ProfileRepository
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
@@ -54,7 +62,15 @@ class SplashActivity : AppCompatActivity() {
                 // Check if user is logged in
                 if (authRepository.isLoggedIn()) {
                     val currentUser = authRepository.getCurrentUserSync()
+                    // TODO: Add this to the settings
                     if (currentUser != null) {
+                        val userHasBiometricsEnabled = true
+                        if (userHasBiometricsEnabled && !biometricLogin()) {
+                            Log.d("SplashActivity", "Biometrics required, but biometrics failed/ are unavailable. Going to login screen")
+                            navigateToLoginActivity()
+
+                            return@launch
+                        }
                         // Validate the JWT by making a test API call
                         android.util.Log.d("SplashActivity", "Validating session for user: ${currentUser.email}")
                         
@@ -106,7 +122,50 @@ class SplashActivity : AppCompatActivity() {
             }
         }
     }
-    
+
+    private suspend fun biometricLogin(): Boolean = suspendCoroutine { continuation ->
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            Log.d("SplashActivity", "Biometric authentication not supported with this API version")
+            Toast.makeText(applicationContext, "Biometric authentication not supported", Toast.LENGTH_LONG).show()
+            continuation.resume(false)
+
+            return@suspendCoroutine
+        }
+
+        val executor = ContextCompat.getMainExecutor(this)
+        val biometricPrompt = BiometricPrompt(this, executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+                    Log.d("SplashActivity", "Failed to login with biometrics: $errString with code: $errorCode")
+                    Toast.makeText(applicationContext, "Unable to authenticate with biometrics: $errString", Toast.LENGTH_LONG).show()
+                    continuation.resume(false)
+                }
+
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    Log.d("SplashActivity", "Successfully logged in with biometrics")
+                    continuation.resume(true)
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+//                    This triggers whenever the user fails, but the user should try again so we fail over on onAuthenticationError
+//                    So this remains unused
+                    Log.d("SplashActivity", "Biometric authentication failed")
+                }
+            })
+
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Login with fingerprint")
+            .setSubtitle("Log into GitGud using your fingerprint scanner")
+            .setNegativeButtonText("Cancel")
+            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+            .build()
+
+        biometricPrompt.authenticate(promptInfo)
+    }
+
     private fun navigateToMainActivity() {
         val intent = Intent(this, MainActivity::class.java)
         // Clear the back stack so user can't go back to splash
