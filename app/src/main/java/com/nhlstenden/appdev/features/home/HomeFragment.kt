@@ -16,11 +16,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager2.widget.ViewPager2
-import com.nhlstenden.appdev.features.profile.ProfileFragment
 import com.nhlstenden.appdev.R
 import android.app.AlertDialog
-import android.app.Application
+import android.content.Intent
 import android.os.Build
 import android.widget.EditText
 import androidx.annotation.RequiresApi
@@ -29,29 +27,20 @@ import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel.Profil
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
-import com.bumptech.glide.Glide
-import com.google.android.material.progressindicator.LinearProgressIndicator
-import com.nhlstenden.appdev.features.home.StreakManager
 import com.nhlstenden.appdev.features.rewards.AchievementManager
 import java.time.LocalDate
 import android.util.Log
+import android.widget.Button
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.time.temporal.ChronoUnit
-import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import com.daimajia.numberprogressbar.NumberProgressBar
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.core.utils.NavigationManager
-import java.io.File
-import kotlinx.coroutines.CoroutineScope
-import android.widget.Toast
-import com.nhlstenden.appdev.features.task.BuyBellPepperDialogFragment
-import com.nhlstenden.appdev.utils.LevelCalculator
 
 // Data class for course info
 data class HomeCourse(
@@ -137,7 +126,7 @@ class HomeFragment : Fragment() {
         }
         observeViewModel()
         dayCounter(view)
-        
+
         parentFragmentManager.setFragmentResultListener("profile_picture_updated", viewLifecycleOwner) { _, bundle ->
             if (bundle.getBoolean("updated", false)) {
                 profileViewModel.loadProfile()
@@ -168,6 +157,7 @@ class HomeFragment : Fragment() {
 
         profileViewModel.loadProfile()
         setupContinueLearning(userData)
+        setupDailyChallenge(view)
     }
 
     // Monitor profile state changes and handle invalid display names
@@ -378,4 +368,12 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private fun setupDailyChallenge(view: View) {
+        val dailyChallengeStart: Button = view.findViewById(R.id.dailyChallengeButton)
+        dailyChallengeStart.setOnClickListener {
+            Log.d("HomeFragment", "Clicked the button")
+            val intent = Intent(context, DailyChallengeActivity::class.java)
+            startActivity(intent)
+        }
+    }
 }
