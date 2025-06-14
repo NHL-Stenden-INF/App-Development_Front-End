@@ -20,7 +20,7 @@ class DailyChallengeActivity : Activity() {
         setContentView(R.layout.fragment_daily_challenge)
 
         var submitButton = findViewById<Button>(R.id.submitButton)
-        var bugreportTextField = findViewById<EditText>(R.id.bugreport)
+        var bugreportTextField = findViewById<EditText>(R.id.BugReport)
 
         val dailyChallenge = DailyChallenge(
             title = "Off-by-one",
