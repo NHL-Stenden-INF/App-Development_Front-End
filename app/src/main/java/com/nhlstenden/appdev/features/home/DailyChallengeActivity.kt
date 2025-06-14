@@ -7,6 +7,8 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import com.nhlstenden.appdev.R
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
 
 data class DailyChallenge(
     val title: String,
@@ -15,7 +17,7 @@ data class DailyChallenge(
     val correctedCode: String,
 )
 
-class DailyChallengeActivity : Activity() {
+class DailyChallengeActivity : AppCompatActivity() {
     private lateinit var submitButton: Button
     private lateinit var undoButton: Button
     private lateinit var bugreportTextField: EditText
@@ -54,7 +56,8 @@ class DailyChallengeActivity : Activity() {
         setText(dailyChallenge)
 
         submitButton.setOnClickListener {
-            Log.d("DailyChallengeActivity", "User input: ${checkAnswer(dailyChallenge.correctedCode, bugreportTextField.text.toString())}")
+            val isSuccessful = checkAnswer(dailyChallenge)
+            DailyChallengeCompletedDialog(isSuccessful).show(supportFragmentManager, "daily_challenge_completed")
         }
 
         undoButton.setOnClickListener {
@@ -68,7 +71,7 @@ class DailyChallengeActivity : Activity() {
         bugreportTextField.setText(dailyChallenge.buggedCode)
     }
 
-    private fun checkAnswer(correctedCode: String, answer: String): Boolean {
-        return correctedCode.replace("\\s".toRegex(), "") == answer.replace("\\s".toRegex(), "")
+    private fun checkAnswer(dailyChallenge: DailyChallenge): Boolean {
+        return bugreportTextField.text.replace("\\s".toRegex(), "") == dailyChallenge.correctedCode.replace("\\s".toRegex(), "")
     }
 }
