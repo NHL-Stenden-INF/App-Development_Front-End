@@ -17,6 +17,7 @@ data class DailyChallenge(
 
 class DailyChallengeActivity : Activity() {
     private lateinit var submitButton: Button
+    private lateinit var undoButton: Button
     private lateinit var bugreportTextField: EditText
     private lateinit var title: TextView
     private lateinit var subtitle: TextView
@@ -26,6 +27,7 @@ class DailyChallengeActivity : Activity() {
         setContentView(R.layout.fragment_daily_challenge)
 
         submitButton = findViewById<Button>(R.id.submitButton)
+        undoButton = findViewById<Button>(R.id.undoButton)
         bugreportTextField = findViewById<EditText>(R.id.BugReport)
         title = findViewById<TextView>(R.id.Title)
         subtitle = findViewById<TextView>(R.id.Subtitle)
@@ -52,9 +54,11 @@ class DailyChallengeActivity : Activity() {
         setText(dailyChallenge)
 
         submitButton.setOnClickListener {
-            Log.d("DailyChallengeActivity", "Wrong key: ${checkAnswer(dailyChallenge.correctedCode, dailyChallenge.buggedCode)}")
-            Log.d("DailyChallengeActivity", "Correct key: ${checkAnswer(dailyChallenge.correctedCode, dailyChallenge.correctedCode)}")
-            Log.d("DailyChallengeActivity", "User input key: ${checkAnswer(dailyChallenge.correctedCode, bugreportTextField.text.toString())}")
+            Log.d("DailyChallengeActivity", "User input: ${checkAnswer(dailyChallenge.correctedCode, bugreportTextField.text.toString())}")
+        }
+
+        undoButton.setOnClickListener {
+            setText(dailyChallenge)
         }
     }
 
