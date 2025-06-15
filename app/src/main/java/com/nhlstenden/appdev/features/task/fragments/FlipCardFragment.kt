@@ -7,10 +7,21 @@ import android.view.ViewGroup
 import com.nhlstenden.appdev.databinding.FragmentFlipCardBinding
 import com.nhlstenden.appdev.features.task.models.Question
 
-class FlipCardFragment : BaseQuestionFragment() {
+class FlipCardFragment : BaseTaskFragment() {
     private var _binding: FragmentFlipCardBinding? = null
     private val binding get() = _binding!!
+    private val flipCardQuestion: Question.FlipCardQuestion
+        get() = question as? Question.FlipCardQuestion
+            ?: throw IllegalStateException("Question must be of type FlipCardQuestion")
+
     private var isShowingFront = true
+    private var rotation = 0f
+
+    override fun onCreate(savedInstanceState: Bundle?){
+        super.onCreate(savedInstanceState)
+        if (question !is Question.FlipCardQuestion)
+            throw IllegalArgumentException("Question must be of type FlipCardQuestion")
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -23,39 +34,29 @@ class FlipCardFragment : BaseQuestionFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setupQuestion()
     }
 
-    override fun setupQuestion() {
-        question.front?.let { front ->
-            question.back?.let { back ->
-                binding.cardView.apply {
-                    setOnClickListener {
-                        flipCard(front, back)
-                    }
-                }
-                showFront(front)
-            }
-        }
+    override fun setupViews() {
+        binding.cardView.setOnClickListener { flipCard() }
     }
 
-    private fun flipCard(front: String, back: String) {
+    override fun bindQuestion() {
+        binding.cardText.text = flipCardQuestion.front
+    }
+
+    private fun flipCard() {
         isShowingFront = !isShowingFront
         if (isShowingFront) {
-            showFront(front)
+            showSide(flipCardQuestion.front)
         } else {
-            showBack(back)
+            showSide(flipCardQuestion.back)
         }
     }
 
-    private fun showFront(text: String) {
+    private fun showSide(text: String) {
         binding.cardText.text = text
-        binding.cardText.rotationY = 0f
-    }
-
-    private fun showBack(text: String) {
-        binding.cardText.text = text
-        binding.cardText.rotationY = 180f
+        rotation += 180f
+        binding.cardText.rotationY = rotation
     }
 
     override fun onDestroyView() {
@@ -64,11 +65,11 @@ class FlipCardFragment : BaseQuestionFragment() {
     }
 
     companion object {
-        private const val ARG_QUESTION = "question"
-
-        fun newInstance(question: Question) = FlipCardFragment().apply {
-            arguments = Bundle().apply {
-                putParcelable(ARG_QUESTION, question)
+        fun newInstance(question: Question): FlipCardFragment {
+            return FlipCardFragment().apply {
+                arguments = Bundle().apply {
+                    putParcelable(ARG_QUESTION, question)
+                }
             }
         }
     }
