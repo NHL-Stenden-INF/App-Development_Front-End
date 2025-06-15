@@ -118,7 +118,7 @@ public class NullExample {
             <correctedCode>
 public class NullExample {
     public static void main(String[] args) {
-        String str = "";
+        String str = "Hello, world!";
         System.out.println(str.length());
     }
 }
@@ -271,7 +271,7 @@ fn main() {
     </challenge>
     <challenge>
         <title>Arduino: Serial Communication</title>
-        <description>This Arduino code attempts to use serial communication.</description>
+        <description>This Arduino code attempts to use serial communication with 9600 Baud rate.</description>
         <buggedCode>
 void loop() {
     Serial.println("Hello, World!");
@@ -293,7 +293,7 @@ void loop() {
         <title>Rust: Incorrect Lifetime Specifier</title>
         <description>This Rust code attempts to return a reference, but the reference goes out of scope.</description>
         <buggedCode>
-fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;str) -> &amp;'a str {
+fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;'a str) -> &amp;'a str {
     if x.len() > y.len() {
         x
     } else {
@@ -441,8 +441,7 @@ public class Calculator {
     }
 
     public int add(int a, int b) {
-        int sum = a + b;
-        return sum;
+        return a + b;
     }
 
     public int multiply(int a, int b) {
@@ -453,7 +452,7 @@ public class Calculator {
         </challenge>
         <challenge>
             <title>Lua: Errors in Table Manipulations</title>
-            <description>This Lua code doesn't properly count the table, nor does it loop properly. Find and fix the two errors.</description>
+            <description>This Lua code doesn't properly count the table, nor does it loop properly. Find and fix the three errors.</description>
             <buggedCode>
 function printTable(table)
     for i = 0, #table do
