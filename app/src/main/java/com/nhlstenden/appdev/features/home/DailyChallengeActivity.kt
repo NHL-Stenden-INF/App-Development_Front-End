@@ -76,8 +76,7 @@ class DailyChallengeActivity : AppCompatActivity() {
             Toast.makeText(applicationContext, "Received $rewardedPoints points for challenge", Toast.LENGTH_LONG).show()
         }
         CoroutineScope(Dispatchers.IO).launch {
-//            TODO: Uncomment before commiting
-//            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
+            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
         }
     }
 
