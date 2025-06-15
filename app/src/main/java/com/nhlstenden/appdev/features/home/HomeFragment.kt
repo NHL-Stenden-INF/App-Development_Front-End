@@ -44,6 +44,7 @@ import com.nhlstenden.appdev.core.utils.NavigationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import android.widget.Toast
+import com.bumptech.glide.Glide
 import com.nhlstenden.appdev.features.task.BuyBellPepperDialogFragment
 import com.nhlstenden.appdev.utils.LevelCalculator
 import com.nhlstenden.appdev.core.repositories.FriendsRepository
@@ -135,6 +136,7 @@ class HomeFragment : Fragment() {
         observeViewModel()
         dayCounter(view)
         updateMotivationalMessage(view)
+        setupDailyChallenge(view)
 
         parentFragmentManager.setFragmentResultListener("profile_picture_updated", viewLifecycleOwner) { _, bundle ->
             if (bundle.getBoolean("updated", false)) {
@@ -148,6 +150,7 @@ class HomeFragment : Fragment() {
         setupUI(requireView())
         dayCounter(requireView())
         updateMotivationalMessage(requireView())
+        setupDailyChallenge(requireView())
 
         val userData = authRepository.getCurrentUserSync()
         if (userData != null) {
