@@ -26,6 +26,11 @@ class FlipCardFragment : BaseTaskFragment() {
         private val SWIPE_THRESHOLD = 100
         private val SWIPE_VELOCITY_THRESHOLD = 100
 
+        override fun onSingleTapUp(e: MotionEvent): Boolean {
+            flipCard()
+            return true
+        }
+
         override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
             if (e1 == null)
                 return false
@@ -49,7 +54,6 @@ class FlipCardFragment : BaseTaskFragment() {
             }
         }
     }
-
 
     override fun onCreate(savedInstanceState: Bundle?){
         super.onCreate(savedInstanceState)
@@ -83,26 +87,23 @@ class FlipCardFragment : BaseTaskFragment() {
         binding.cardText.text = flipCardQuestion.front
     }
 
-    private fun flipCard(movesRight: Boolean = true) {
+    private fun flipCard() {
         isShowingFront = !isShowingFront
         if (isShowingFront) {
-            showSide(flipCardQuestion.front, movesRight)
+            showSide(flipCardQuestion.front)
         } else {
-            showSide(flipCardQuestion.back, movesRight)
+            showSide(flipCardQuestion.back)
         }
     }
 
-    private fun showSide(text: String, movesRight: Boolean = true) {
-        val direction: Float = if (movesRight) 1f else -1f
-        val rotation = 90f * direction
+    private fun showSide(text: String) {
+        val rotation = 90f
 
         binding.cardView.animate()
             .rotationYBy(rotation)
             .setDuration(300)
             .withEndAction {
-                flipCard(movesRight)
                 binding.cardText.text = text
-
                 binding.cardView.rotationY = -rotation
                 binding.cardView.animate()
                     .rotationYBy(rotation)
@@ -113,11 +114,23 @@ class FlipCardFragment : BaseTaskFragment() {
     }
 
     private fun onSwipeRight() {
-        flipCard()
+        binding.cardView.animate()
+            .translationXBy(1000f)
+            .setDuration(150)
+            .withEndAction {
+                this.onTaskComplete(true)
+            }
+            .start()
     }
 
     private fun onSwipeLeft() {
-        flipCard(false)
+        binding.cardView.animate()
+            .translationXBy(-1000f)
+            .setDuration(150)
+            .withEndAction {
+                this.onTaskComplete(false)
+            }
+            .start()
     }
 
     override fun onDestroyView() {

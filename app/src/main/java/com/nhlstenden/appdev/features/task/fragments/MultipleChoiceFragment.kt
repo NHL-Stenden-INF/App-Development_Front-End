@@ -108,7 +108,7 @@ class MultipleChoiceFragment : BaseTaskFragment() {
             val selectedIndex = optionButtons.indexOfFirst { it.isChecked }
             if (selectedIndex != -1) {
                 val selectedOption = shuffledOptions[selectedIndex]
-                onTaskComplete(selectedOption.isCorrect)
+                this.onTaskComplete(selectedOption.isCorrect)
             }
         }
     }
