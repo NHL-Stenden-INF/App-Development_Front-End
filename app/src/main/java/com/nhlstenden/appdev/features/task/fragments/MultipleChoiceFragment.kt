@@ -1,110 +1,110 @@
 package com.nhlstenden.appdev.features.task.fragments
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
-import android.widget.RadioButton
-import android.widget.RadioGroup
-import android.widget.TextView
 import com.google.android.material.button.MaterialButton
-import com.nhlstenden.appdev.R
+import com.nhlstenden.appdev.databinding.FragmentMultipleChoiceBinding
+import com.nhlstenden.appdev.features.task.models.MultipleChoiceOption
 import com.nhlstenden.appdev.features.task.models.Question
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MultipleChoiceFragment : BaseTaskFragment() {
-    private lateinit var questionText: TextView
-    private lateinit var optionsGroup: LinearLayout
-    private lateinit var submitButton: MaterialButton
-    private lateinit var nextButton: MaterialButton
-    private lateinit var feedbackText: TextView
+
+    private var _binding: FragmentMultipleChoiceBinding? = null
+    private val binding get() = _binding!!
+    // Enforces the multipleChoiceQuestion type onto this variable based off of the question variable
+    private val multipleChoiceQuestion: Question.MultipleChoiceQuestion
+        get() = question as? Question.MultipleChoiceQuestion
+            ?: throw IllegalStateException("Question must be of type MultipleChoiceQuestion")
+
     private var optionButtons: List<MaterialButton> = emptyList()
-    private var shuffledOptions: List<Question.Option> = emptyList()
+    private var shuffledOptions: List<MultipleChoiceOption> = emptyList()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        if (question !is Question.MultipleChoiceQuestion)
+            throw IllegalArgumentException("Question of type MultipleChoiceQuestion is required")
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_multiple_choice, container, false)
+    ): View {
+        _binding = FragmentMultipleChoiceBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setupViews(view)
-        bindQuestion() // Ensure UI is always reset on fragment recreation
     }
 
-    override fun setupViews(view: View) {
-        questionText = view.findViewById(R.id.questionText)
-        optionsGroup = view.findViewById(R.id.optionsGroup)
-        submitButton = view.findViewById(R.id.submitButton)
-        nextButton = view.findViewById(R.id.nextButton)
-        feedbackText = view.findViewById(R.id.feedbackText)
+    override fun setupViews() {
+        binding.nextButton.visibility = View.GONE
+        binding.feedbackText.visibility = View.GONE
 
-        nextButton.visibility = View.GONE
-        feedbackText.visibility = View.GONE
+        binding.optionsGroup.removeAllViews()
 
-        // Remove all views from optionsGroup
-        optionsGroup.removeAllViews()
-        // Add four MaterialButtons for options
         optionButtons = List(4) { i ->
             MaterialButton(requireContext()).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
+                layoutParams = ViewGroup.MarginLayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
                 ).apply { setMargins(0, 8, 0, 8) }
+
                 isCheckable = true
                 isClickable = true
+
                 setOnClickListener {
                     if (optionButtons.any { it.isEnabled }) {
-                        optionButtons.forEachIndexed { j, btn ->
+                        optionButtons.forEach { btn ->
                             btn.isChecked = false
                             btn.setBackgroundColor(0xFFEEEEEE.toInt())
                         }
                         this.isChecked = true
-                        this.setBackgroundColor(0xFF2196F3.toInt()) // blue for selected
+                        this.setBackgroundColor(0xFF2196F3.toInt())
                     }
                 }
-            }.also { optionsGroup.addView(it) }
+            }.also { binding.optionsGroup.addView(it) }
         }
 
-        submitButton.setOnClickListener {
+        binding.submitButton.setOnClickListener {
             val selectedIndex = optionButtons.indexOfFirst { it.isChecked }
             if (selectedIndex != -1) {
                 val selectedOption = shuffledOptions[selectedIndex]
                 val isCorrect = selectedOption.isCorrect
-                
-                // Feedback coloring
+
                 optionButtons.forEachIndexed { i, btn ->
                     btn.isEnabled = false
                     if (i == selectedIndex) {
                         btn.setBackgroundColor(
                             if (isCorrect) 0xFF4CAF50.toInt() else 0xFFF44336.toInt()
                         )
-                        btn.setTextColor(0xFFFFFFFF.toInt()) // White text for selected button
+                        btn.setTextColor(0xFFFFFFFF.toInt())
                     } else if (shuffledOptions[i].isCorrect) {
                         btn.setBackgroundColor(0xFF4CAF50.toInt())
-                        btn.setTextColor(0xFFFFFFFF.toInt()) // White text for correct answer
+                        btn.setTextColor(0xFFFFFFFF.toInt())
                     } else {
-                        btn.setTextColor(0xFF757575.toInt()) // Gray text for unselected incorrect answers
+                        btn.setTextColor(0xFF757575.toInt())
                     }
                 }
 
-                // Show feedback
-                feedbackText.visibility = View.VISIBLE
-                feedbackText.text = if (isCorrect) "Correct!" else "Incorrect. The correct answer was: ${shuffledOptions.find { it.isCorrect }?.text}"
-                feedbackText.setTextColor(if (isCorrect) 0xFF4CAF50.toInt() else 0xFFF44336.toInt())
+                binding.feedbackText.visibility = View.VISIBLE
+                binding.feedbackText.text =
+                    if (isCorrect) "Correct!" else "Incorrect. The correct answer was: ${shuffledOptions.find { it.isCorrect }?.text}"
+                binding.feedbackText.setTextColor(
+                    if (isCorrect) 0xFF4CAF50.toInt() else 0xFFF44336.toInt()
+                )
 
-                submitButton.visibility = View.GONE
-                nextButton.visibility = View.VISIBLE
+                binding.submitButton.visibility = View.GONE
+                binding.nextButton.visibility = View.VISIBLE
             }
         }
 
-        nextButton.setOnClickListener {
+        binding.nextButton.setOnClickListener {
             val selectedIndex = optionButtons.indexOfFirst { it.isChecked }
             if (selectedIndex != -1) {
                 val selectedOption = shuffledOptions[selectedIndex]
@@ -114,25 +114,28 @@ class MultipleChoiceFragment : BaseTaskFragment() {
     }
 
     override fun bindQuestion() {
-        questionText.text = question.text
-        shuffledOptions = question.options.shuffled()
-        
-        // Reset UI state
+        binding.questionText.text = multipleChoiceQuestion.question
+        shuffledOptions = multipleChoiceQuestion.options.shuffled()
+
         optionButtons.forEach { btn ->
             btn.isEnabled = true
             btn.isChecked = false
             btn.setBackgroundColor(0xFFEEEEEE.toInt())
             btn.setTextColor(0xFF000000.toInt())
         }
-        
-        // Set option texts
+
         optionButtons.forEachIndexed { i, btn ->
             btn.text = shuffledOptions[i].text
         }
 
-        submitButton.visibility = View.VISIBLE
-        nextButton.visibility = View.GONE
-        feedbackText.visibility = View.GONE
+        binding.submitButton.visibility = View.VISIBLE
+        binding.nextButton.visibility = View.GONE
+        binding.feedbackText.visibility = View.GONE
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     companion object {
@@ -144,4 +147,4 @@ class MultipleChoiceFragment : BaseTaskFragment() {
             }
         }
     }
-} 
+}

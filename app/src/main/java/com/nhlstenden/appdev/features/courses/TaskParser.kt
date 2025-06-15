@@ -8,7 +8,7 @@ import java.io.InputStream
 import javax.xml.parsers.DocumentBuilderFactory
 
 class TaskParser(private val context: Context) {
-    fun loadAllCoursesOfTask(courseTitle: String): List<Task> {
+    fun loadAllTasksOfCourse(courseTitle: String): List<Task> {
         val courseIdentifier: String = courseTitle
             .lowercase()
             .trim()

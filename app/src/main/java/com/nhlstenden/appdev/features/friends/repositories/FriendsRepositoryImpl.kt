@@ -8,7 +8,6 @@ import com.nhlstenden.appdev.features.friends.models.CourseProgress
 import com.nhlstenden.appdev.supabase.SupabaseClient
 import com.nhlstenden.appdev.features.courses.CourseParser
 import com.nhlstenden.appdev.features.courses.TaskParser
-import org.json.JSONArray
 import javax.inject.Inject
 import javax.inject.Singleton
 import com.nhlstenden.appdev.core.repositories.AuthRepository
@@ -321,7 +320,7 @@ class FriendsRepositoryImpl @Inject constructor(
                     
                     allCourses.forEach { course ->
                         // Get total tasks for this course
-                        val allTasks = taskParser.loadAllCoursesOfTask(course.id)
+                        val allTasks = taskParser.loadAllTasksOfCourse(course.id)
                         val totalTasks = allTasks.size
                         
                         // Get completed tasks from progress map (default to 0 if no progress)
