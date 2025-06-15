@@ -1,13 +1,19 @@
 package com.nhlstenden.appdev.features.home
 
-import android.app.Activity
 import android.os.Bundle
-import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
 import com.nhlstenden.appdev.R
 import androidx.appcompat.app.AppCompatActivity
+import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.core.repositories.UserRepository
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class DailyChallenge(
     val title: String,
@@ -16,6 +22,7 @@ data class DailyChallenge(
     val correctedCode: String,
 )
 
+@AndroidEntryPoint
 class DailyChallengeActivity : AppCompatActivity() {
     private lateinit var submitButton: Button
     private lateinit var undoButton: Button
@@ -24,6 +31,12 @@ class DailyChallengeActivity : AppCompatActivity() {
     private lateinit var subtitle: TextView
 
     private lateinit var dailyChallenge: DailyChallenge
+
+    @Inject
+    lateinit var authRepository: AuthRepository
+
+    @Inject
+    lateinit var userRepository: UserRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,9 +82,14 @@ class DailyChallengeActivity : AppCompatActivity() {
 
     override fun finish() {
         super.finish()
-        Log.d("DailyChallengeActivity", "Closed daily challenge")
+        val rewardedPoints = 300
         if (checkAnswer()) {
-// TODO: Award points
+            CoroutineScope(Dispatchers.IO).launch {
+                val currentUser = authRepository.getCurrentUserSync()
+                val profile = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()
+                userRepository.updateUserPoints(currentUser?.id.toString(), profile?.optInt("points", 0)!! + rewardedPoints)
+            }
+            Toast.makeText(applicationContext, "Received $rewardedPoints points for challenge", Toast.LENGTH_LONG).show()
         }
     }
 
