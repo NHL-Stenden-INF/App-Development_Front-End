@@ -1,7 +1,9 @@
 package com.nhlstenden.appdev.supabase
 
+import android.os.Build
 import android.os.Parcelable
 import android.util.Log
+import androidx.annotation.RequiresApi
 import kotlinx.parcelize.Parcelize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,6 +17,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 import com.nhlstenden.appdev.core.utils.UserManager
+import java.time.LocalDate
 
 class SupabaseClient() {
     val client = OkHttpClient()
@@ -1016,6 +1019,25 @@ class SupabaseClient() {
                 Result.failure(fallbackError)
             }
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun updateUserDailyChallenge(userId: String, authToken: String): Response {
+        val url = "$supabaseUrl/rest/v1/user_attributes?id=eq.$userId"
+        val requestBody = JSONObject().apply {
+            put("finished_daily_challenge_at", LocalDate.now())
+        }.toString()
+
+        val request = Request.Builder()
+            .url(url)
+            .patch(requestBody.toRequestBody("application/json".toMediaType()))
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=representation")
+            .build()
+
+        return client.newCall(request).execute()
     }
 }
 

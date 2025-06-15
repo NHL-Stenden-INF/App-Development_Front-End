@@ -16,11 +16,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager2.widget.ViewPager2
-import com.nhlstenden.appdev.features.profile.ProfileFragment
 import com.nhlstenden.appdev.R
 import android.app.AlertDialog
-import android.app.Application
+import android.content.Intent
 import android.os.Build
 import android.widget.EditText
 import androidx.annotation.RequiresApi
@@ -29,27 +27,24 @@ import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel.Profil
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
-import com.bumptech.glide.Glide
-import com.google.android.material.progressindicator.LinearProgressIndicator
-import com.nhlstenden.appdev.features.home.StreakManager
 import com.nhlstenden.appdev.features.rewards.AchievementManager
 import java.time.LocalDate
 import android.util.Log
+import android.widget.Button
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.time.temporal.ChronoUnit
-import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import com.daimajia.numberprogressbar.NumberProgressBar
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.core.utils.NavigationManager
-import java.io.File
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.runBlocking
 import android.widget.Toast
+import com.bumptech.glide.Glide
 import com.nhlstenden.appdev.features.task.BuyBellPepperDialogFragment
 import com.nhlstenden.appdev.utils.LevelCalculator
 import com.nhlstenden.appdev.core.repositories.FriendsRepository
@@ -141,7 +136,8 @@ class HomeFragment : Fragment() {
         observeViewModel()
         dayCounter(view)
         updateMotivationalMessage(view)
-        
+        setupDailyChallenge(view)
+
         parentFragmentManager.setFragmentResultListener("profile_picture_updated", viewLifecycleOwner) { _, bundle ->
             if (bundle.getBoolean("updated", false)) {
                 profileViewModel.loadProfile()
@@ -154,7 +150,8 @@ class HomeFragment : Fragment() {
         setupUI(requireView())
         dayCounter(requireView())
         updateMotivationalMessage(requireView())
-        
+        setupDailyChallenge(requireView())
+
         val userData = authRepository.getCurrentUserSync()
         if (userData != null) {
             setupContinueLearning(userData)
@@ -513,4 +510,27 @@ class HomeFragment : Fragment() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun setupDailyChallenge(view: View) {
+        val dailyChallengeStart: Button = view.findViewById(R.id.dailyChallengeButton)
+        val dailyChallengeSubtitle: TextView = view.findViewById(R.id.dailyChallengeSubtitle)
+        CoroutineScope(Dispatchers.IO).launch {
+            val currentUser = authRepository.getCurrentUserSync()
+            val startDate = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()?.getString("finished_daily_challenge_at")
+            var lastCompletedDate = if (startDate == "null") LocalDate.now().minusDays(1) else LocalDate.parse(startDate.toString())
+
+            val isTodayTheDay = ChronoUnit.DAYS.between(lastCompletedDate, LocalDate.now()) != 0L
+            CoroutineScope(Dispatchers.Main).launch {
+                if (isTodayTheDay) {
+                    dailyChallengeStart.setOnClickListener {
+                        val intent = Intent(context, DailyChallengeActivity::class.java)
+                        startActivity(intent)
+                    }
+                } else {
+                    dailyChallengeSubtitle.text = "You've already done todays challenge, try again tomorrow"
+                    dailyChallengeStart.visibility = View.GONE
+                }
+            }
+        }
+    }
 }
