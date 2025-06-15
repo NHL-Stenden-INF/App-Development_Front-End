@@ -40,7 +40,7 @@ class DailyChallengeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.fragment_daily_challenge)
+        setContentView(R.layout.activity_daily_challenge)
 
         val challengeParser = ChallengeParser(applicationContext)
         dailyChallenge = challengeParser.loadAllChallenges().random()
