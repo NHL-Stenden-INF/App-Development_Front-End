@@ -83,13 +83,17 @@ class DailyChallengeActivity : AppCompatActivity() {
     override fun finish() {
         super.finish()
         val rewardedPoints = 300
+        val currentUser = authRepository.getCurrentUserSync()
+
         if (checkAnswer()) {
             CoroutineScope(Dispatchers.IO).launch {
-                val currentUser = authRepository.getCurrentUserSync()
                 val profile = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()
                 userRepository.updateUserPoints(currentUser?.id.toString(), profile?.optInt("points", 0)!! + rewardedPoints)
             }
             Toast.makeText(applicationContext, "Received $rewardedPoints points for challenge", Toast.LENGTH_LONG).show()
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
         }
     }
 

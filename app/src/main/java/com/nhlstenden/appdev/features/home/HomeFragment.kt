@@ -41,6 +41,8 @@ import com.daimajia.numberprogressbar.NumberProgressBar
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.core.utils.NavigationManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.runBlocking
 
 // Data class for course info
 data class HomeCourse(
@@ -368,12 +370,27 @@ class HomeFragment : Fragment() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun setupDailyChallenge(view: View) {
         val dailyChallengeStart: Button = view.findViewById(R.id.dailyChallengeButton)
-        dailyChallengeStart.setOnClickListener {
-            Log.d("HomeFragment", "Clicked the button")
-            val intent = Intent(context, DailyChallengeActivity::class.java)
-            startActivity(intent)
+        val dailyChallengeSubtitle: TextView = view.findViewById(R.id.dailyChallengeSubtitle)
+        CoroutineScope(Dispatchers.IO).launch {
+            val currentUser = authRepository.getCurrentUserSync()
+            val startDate = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()?.getString("finished_daily_challenge_at")
+            var lastCompletedDate = if (startDate == "null") LocalDate.now().minusDays(1) else LocalDate.parse(startDate.toString())
+
+            val isTodayTheDay = ChronoUnit.DAYS.between(lastCompletedDate, LocalDate.now()) != 0L
+            CoroutineScope(Dispatchers.Main).launch {
+                if (isTodayTheDay) {
+                    dailyChallengeStart.setOnClickListener {
+                        val intent = Intent(context, DailyChallengeActivity::class.java)
+                        startActivity(intent)
+                    }
+                } else {
+                    dailyChallengeSubtitle.text = "You've already done todays challenge, try again tomorrow"
+                    dailyChallengeStart.visibility = View.GONE
+                }
+            }
         }
     }
 }
