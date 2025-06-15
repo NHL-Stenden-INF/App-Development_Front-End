@@ -83,14 +83,14 @@ class CoursesFragment : BaseFragment() {
     }
 
     private fun showFilterDialog() {
-        val difficulties = arrayOf("Beginner", "Intermediate", "Advanced")
-        val currentDifficulty = viewModel.selectedDifficulty.value
-        val checkedItem = difficulties.indexOfFirst { it.equals(currentDifficulty, ignoreCase = true) }
+        val starOptions = arrayOf("★☆☆☆☆", "★★☆☆☆", "★★★☆☆", "★★★★☆", "★★★★★")
+        val currentStars = viewModel.selectedStars.value
+        val checkedItem = if (currentStars != null) currentStars - 1 else -1
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Filter by Difficulty")
-            .setSingleChoiceItems(difficulties, checkedItem) { dialog, which ->
-                viewModel.setDifficultyFilter(difficulties[which])
+            .setTitle("Filter by Difficulty (Stars)")
+            .setSingleChoiceItems(starOptions, checkedItem) { dialog, which ->
+                viewModel.setStarFilter(which + 1) // Stars are 1-indexed
                 dialog.dismiss()
             }
             .setNeutralButton("Clear") { dialog, _ ->

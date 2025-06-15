@@ -43,6 +43,11 @@ import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.core.utils.NavigationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
+import android.widget.Toast
+import com.nhlstenden.appdev.features.task.BuyBellPepperDialogFragment
+import com.nhlstenden.appdev.utils.LevelCalculator
+import com.nhlstenden.appdev.core.repositories.FriendsRepository
+import com.nhlstenden.appdev.supabase.SupabaseClient
 
 // Data class for course info
 data class HomeCourse(
@@ -97,6 +102,7 @@ class HomeFragment : Fragment() {
     @Inject lateinit var authRepository: AuthRepository
     @Inject lateinit var userRepository: UserRepository
     @Inject lateinit var courseRepositoryImpl: CourseRepositoryImpl
+    @Inject lateinit var friendsRepository: FriendsRepository
     private val profileViewModel: ProfileViewModel by viewModels()
     private var displayNameDialogShown = false
 
@@ -128,6 +134,7 @@ class HomeFragment : Fragment() {
         }
         observeViewModel()
         dayCounter(view)
+        updateMotivationalMessage(view)
 
         parentFragmentManager.setFragmentResultListener("profile_picture_updated", viewLifecycleOwner) { _, bundle ->
             if (bundle.getBoolean("updated", false)) {
@@ -140,7 +147,8 @@ class HomeFragment : Fragment() {
         super.onResume()
         setupUI(requireView())
         dayCounter(requireView())
-        
+        updateMotivationalMessage(requireView())
+
         val userData = authRepository.getCurrentUserSync()
         if (userData != null) {
             setupContinueLearning(userData)
@@ -159,7 +167,6 @@ class HomeFragment : Fragment() {
 
         profileViewModel.loadProfile()
         setupContinueLearning(userData)
-        setupDailyChallenge(view)
     }
 
     // Monitor profile state changes and handle invalid display names
@@ -367,6 +374,136 @@ class HomeFragment : Fragment() {
             } catch (e: Exception) {
                 Log.e("HomeFragment", "Error setting up continue learning: ${e.message}")
             }
+        }
+    }
+
+    // Generate a motivational message based on a random friend and show it under the streak counter.
+    private fun updateMotivationalMessage(root: View) {
+        val messageView = root.findViewById<TextView>(R.id.motivationalMessage) ?: return
+        val imageView = root.findViewById<ImageView>(R.id.motivationalFriendImage)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val currentUser = authRepository.getCurrentUserSync() ?: return@launch
+
+            // Get current user stats
+            val userStreak = withContext(Dispatchers.IO) {
+                try { streakRepository.getCurrentStreak(currentUser.id, currentUser.authToken) } catch (e: Exception) { 0 }
+            }
+
+            val userXp = userRepository.getUserAttributes(currentUser.id).getOrNull()?.optInt("xp", 0) ?: 0
+            val userLevel = LevelCalculator.calculateLevelFromXp(userXp.toLong())
+
+            // Get the percent completed of courseId
+            val userCourseProgress: Map<String, Int> = withContext(Dispatchers.IO) {
+                val list = courseRepositoryImpl.getCourses(currentUser) ?: emptyList()
+                list.associate { c -> c.id to if (c.totalTasks > 0) (c.progress.toFloat() / c.totalTasks * 100).toInt() else 0 }
+            }
+
+            // Get friends info
+            val friendsResult = withContext(Dispatchers.IO) { friendsRepository.getAllFriends() }
+            if (friendsResult.isFailure) return@launch
+
+            val friends = friendsResult.getOrNull()?.filter { it.username.isNotBlank() } ?: emptyList()
+
+            val candidateMessages = mutableListOf<Pair<String, String?>>()
+
+            for (friend in friends) {
+                val friendName = friend.username
+
+                // Get the friend details
+                val friendDetails = withContext(Dispatchers.IO) { friendsRepository.getFriendDetails(friend.id) }.getOrNull()
+                val friendPic = friend.profilePicture ?: friendDetails?.profilePicture
+
+                // Level comparison
+                if (friend.level > userLevel) {
+                    candidateMessages.add("$friendName hit level ${friend.level}, can you level up and pass them?" to friendPic)
+                }
+
+                // Streak comparison
+                val friendStreak = withContext(Dispatchers.IO) {
+                    try { streakRepository.getCurrentStreak(friend.id, currentUser.authToken) } catch (e: Exception) { 0 }
+                }
+                if (friendStreak > userStreak) {
+                    candidateMessages.add("$friendName is on a ${friendStreak}-day streak, think you can keep up?" to friendPic)
+                }
+
+                // Course comparison
+                val coursesOfInterest = listOf("sql", "css", "html")
+                if (coursesOfInterest.isNotEmpty()) {
+                    val friendCourseMap = friendDetails?.courseProgress?.associate { cp -> cp.courseId to cp.progress } ?: emptyMap()
+
+                    for (courseId in coursesOfInterest) {
+                        val friendProgress = friendCourseMap[courseId] ?: continue
+                        val userProgress = userCourseProgress[courseId] ?: 0
+                        if (friendProgress > userProgress) {
+                            val courseName = courseId.uppercase()
+                            candidateMessages.add("$friendName is ahead of you in $courseName, time to close the gap!" to friendPic)
+                        }
+                    }
+                }
+            }
+
+            // Pick final message or fallback
+            val selection: Pair<String, String?>? = if (candidateMessages.isNotEmpty()) {
+                candidateMessages.random()
+            } else {
+                // Fallbacks when user leads in everything or has no friends
+                val fallbackMessages = if (friends.isEmpty()) {
+                    listOf("Add some friends to start friendly competitions and boost your learning!")
+                } else {
+                    listOf(
+                        "You're leading the pack! Can you keep your top spot?",
+                        "You're the highest level among your friends—keep it up!",
+                        "Your streak beats all your friends right now—don't slow down!"
+                    )
+                }
+                fallbackMessages.random() to null
+            }
+
+            withContext(Dispatchers.Main) {
+                messageView.text = selection?.first
+                val pic = selection?.second
+                val invalidPics = listOf<String?>(null, "", "null")
+                if (pic !in invalidPics && imageView != null) {
+                    imageView.visibility = View.VISIBLE
+                    if (pic!!.startsWith("http")) {
+                        Glide.with(this@HomeFragment)
+                            .load(resolveProfilePictureUrl(pic))
+                            .placeholder(R.drawable.ic_profile_placeholder)
+                            .error(R.drawable.ic_profile_placeholder)
+                            .circleCrop()
+                            .into(imageView)
+                    } else {
+                        try {
+                            val bytes = android.util.Base64.decode(pic, android.util.Base64.DEFAULT)
+                            Glide.with(this@HomeFragment)
+                                .load(bytes)
+                                .placeholder(R.drawable.ic_profile_placeholder)
+                                .error(R.drawable.ic_profile_placeholder)
+                                .circleCrop()
+                                .into(imageView)
+                        } catch (e: Exception) {
+                            imageView.setImageResource(R.drawable.ic_profile_placeholder)
+                        }
+                    }
+                } else {
+                    imageView?.setImageResource(R.drawable.ic_profile_placeholder)
+                }
+            }
+        }
+    }
+
+    private fun resolveProfilePictureUrl(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+        if (url.startsWith("http")) return url
+
+        val trimmed = url.trimStart('/')
+        val base = SupabaseClient().supabaseUrl.trimEnd('/')
+
+        return if (trimmed.startsWith("storage/v1/object/public")) {
+            "$base/${trimmed}"
+        } else {
+            "$base/storage/v1/object/public/${trimmed}"
         }
     }
 

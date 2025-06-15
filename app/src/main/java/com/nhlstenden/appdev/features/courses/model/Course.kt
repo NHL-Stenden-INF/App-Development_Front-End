@@ -8,7 +8,7 @@ data class Course(
     val id: String,
     val title: String,
     val description: String,
-    val difficulty: String,
+    val difficulty: Int, // Amount of stars 1 (easy) 5 (very hard)
     val imageResId: Int,
     var progress: Int,
     var totalTasks: Int,

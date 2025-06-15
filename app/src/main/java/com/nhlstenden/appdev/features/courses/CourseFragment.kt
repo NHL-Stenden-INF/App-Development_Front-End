@@ -404,7 +404,8 @@ class CourseFragment : Fragment() {
             fun bind(task: Task) {
                 titleText.text = task.title
                 descriptionText.text = task.description
-                difficultyText.text = task.difficulty
+                val stars = "★".repeat(task.difficulty) + "☆".repeat(5 - task.difficulty)
+                difficultyText.text = stars
                 progressBar.visibility = View.GONE
 
                 // Handle task state based on course progress
