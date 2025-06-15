@@ -1,0 +1,517 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE challenges SYSTEM "daily_challenge.dtd">
+<challenges>
+    <challenges>
+        <!-- Easy difficult challenges !-->
+        <challenge>
+            <title>Java: Off-by-One Error in Loop</title>
+            <description>This Java code attempts to print the first 10 natural numbers but only counts to 9</description>
+            <buggedCode>
+public class LoopExample {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 10; i++) {
+            System.out.println(i);
+        }
+    }
+}
+            </buggedCode>
+            <correctedCode>
+public class LoopExample {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt; 10; i++) {
+            System.out.println(i);
+        }
+    }
+}
+            </correctedCode>
+        </challenge>
+        <challenge>
+            <title>SQL: Incorrect Counting</title>
+            <description>This SQL query attempts to count the number of records in each department.</description>
+            <buggedCode>
+SELECT department, COUNT(*)
+FROM employees;
+            </buggedCode>
+            <correctedCode>
+SELECT department, COUNT(*)
+FROM employees
+GROUP BY department;
+            </correctedCode>
+        </challenge>
+        <challenge>
+            <title>Rust: Ownership and Borrowing</title>
+            <description>This Rust code attempts to modify a vector within a function but violates ownership rules.</description>
+            <buggedCode>
+fn modify_vector(v: Vec&lt;i32&gt;) {
+    v.push(4);
+}
+
+fn main() {
+    let v = vec![1, 2, 3];
+    modify_vector(v);
+    println!("{:?}", v);
+}
+            </buggedCode>
+            <correctedCode>
+fn modify_vector(v: &amp;mut Vec&lt;i32&gt;) {
+    v.push(4);
+}
+
+fn main() {
+    let mut v = vec![1, 2, 3];
+    modify_vector(&amp;mut v);
+    println!("{:?}", v);
+}
+            </correctedCode>
+        </challenge>
+        <challenge>
+            <title>C: Uninitialized Pointer</title>
+            <description>This C code attempts to use a pointer, but misuses the pointer.</description>
+            <buggedCode>
+#include &lt;stdio.h&gt;
+
+int main() {
+    int value;
+    int *ptr;
+    *ptr = 5;
+    printf("%d", *ptr);
+    return 0;
+}
+            </buggedCode>
+            <correctedCode>
+#include &lt;stdio.h&gt;
+
+int main() {
+    int value;
+    int *ptr = &amp;value;
+    *ptr = 5;
+    printf("%d", *ptr);
+    return 0;
+}
+            </correctedCode>
+        </challenge>
+        <challenge>
+            <title>PHP: Incorrect JSON Handling</title>
+            <description>This PHP code attempts to read the username from a JSON file and store it as a class.</description>
+            <buggedCode>
+$json_content = file_get_contents("example.json");
+$json_class = json_decode($json_content, true);
+echo $json_class->username
+            </buggedCode>
+            <correctedCode>
+$json_content = file_get_contents("example.json");
+$json_class = json_decode($json_content, false);
+echo $json_class->username
+            </correctedCode>
+        </challenge>
+        <challenge>
+            <title>Java: Null Pointer Exception</title>
+            <description>This Java code attempts to calculate the length of the String "Hello, world!".</description>
+            <buggedCode>
+public class NullExample {
+    public static void main(String[] args) {
+        String str = null;
+        System.out.println(str.length());
+    }
+}
+            </buggedCode>
+            <correctedCode>
+public class NullExample {
+    public static void main(String[] args) {
+        String str = "";
+        System.out.println(str.length());
+    }
+}
+            </correctedCode>
+        </challenge>
+        <challenge>
+            <title>SQL: Incorrect JOIN Condition</title>
+            <description>This SQL query attempts to join two tables but has a typo in the JOIN.</description>
+            <buggedCode>
+SELECT orders.order_id, customers.customer_name
+FROM orders
+JOIN customers ON orders.customer_id = customers.customer_id;
+            </buggedCode>
+            <correctedCode>
+SELECT orders.order_id, customers.customer_name
+FROM orders
+JOIN customers ON orders.customer_id = orders.customer_id;
+            </correctedCode>
+        </challenge>
+        <challenge>
+            <title>Rust: Variable or Constant?</title>
+            <description>This Rust code attempts to modify a variable but fails and crashes.</description>
+            <buggedCode>
+fn main() {
+    let x = 5;
+    x = 6;
+    println!("{}", x);
+}
+            </buggedCode>
+            <correctedCode>
+fn main() {
+    let mut x = 5;
+    x = 6;
+    println!("{}", x);
+}
+            </correctedCode>
+        </challenge>
+        <challenge>
+            <title>C: Incorrect Array Initialization</title>
+            <description>This C code attempts to initialize an array.</description>
+            <buggedCode>
+#include &lt;stdio.h&gt;
+
+int main() {
+    int arr[3];
+    arr = {1, 2, 3};
+    printf("%d %d %d", arr[0], arr[1], arr[2]);
+    return 0;
+}
+            </buggedCode>
+            <correctedCode>
+#include &lt;stdio.h&gt;
+
+int main() {
+    int arr[3] = {1, 2, 3};
+    printf("%d %d %d", arr[0], arr[1], arr[2]);
+    return 0;
+}
+            </correctedCode>
+        </challenge>
+        <challenge>
+            <title>PHP: Undefined Index in Array</title>
+            <description>This PHP code attempts to access an undefined index in an array instead of the "apple" element</description>
+            <buggedCode>
+$array = array("a" => "apple", "b" => "banana");
+echo $array["c"];
+            </buggedCode>
+            <correctedCode>
+$array = array("a" => "apple", "b" => "banana");
+echo $array["a"];
+            </correctedCode>
+        </challenge>
+    </challenges>
+
+    <!-- Moderately difficult challenges !-->
+    <challenge>
+        <title>Arduino: Incorrect Pin</title>
+        <description>This Arduino code attempts to read from a digital pin.</description>
+        <buggedCode>
+void setup() {
+    Serial.begin(9600);
+}
+
+void loop() {
+    int sensorValue = digitalRead(A0);
+    Serial.println(sensorValue);
+    delay(1000);
+}
+        </buggedCode>
+        <correctedCode>
+void setup() {
+    Serial.begin(9600);
+    pinMode(A0, INPUT);
+}
+
+void loop() {
+    int sensorValue = digitalRead(A0);
+    Serial.println(sensorValue);
+    delay(1000);
+}
+        </correctedCode>
+    </challenge>
+    <challenge>
+        <title>Rust: Incorrect Use of Structs and Match</title>
+        <description>This Rust code attempts to match against an enum but uses an incorrect notation with the match.</description>
+        <buggedCode>
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+fn print_direction(direction: Direction) {
+    match direction {
+        Up => println!("Going Up"),
+        Down => println!("Going Down"),
+        Left => println!("Going Left"),
+        Right => println!("Going Right"),
+    }
+}
+
+fn main() {
+    let dir = Direction::Left;
+    print_direction(dir);
+}
+        </buggedCode>
+        <correctedCode>
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+fn print_direction(direction: Direction) {
+    match direction {
+        Direction::Up => println!("Going Up"),
+        Direction::Down => println!("Going Down"),
+        Direction::Left => println!("Going Left"),
+        Direction::Right => println!("Going Right"),
+    }
+}
+
+fn main() {
+    let dir = Direction::Left;
+    print_direction(dir);
+}
+        </correctedCode>
+    </challenge>
+    <challenge>
+        <title>Arduino: Serial Communication</title>
+        <description>This Arduino code attempts to use serial communication.</description>
+        <buggedCode>
+void loop() {
+    Serial.println("Hello, World!");
+    delay(1000);
+}
+        </buggedCode>
+        <correctedCode>
+void setup() {
+    Serial.begin(9600);
+}
+
+void loop() {
+    Serial.println("Hello, World!");
+    delay(1000);
+}
+        </correctedCode>
+    </challenge>
+    <challenge>
+        <title>Rust: Incorrect Lifetime Specifier</title>
+        <description>This Rust code attempts to return a reference, but the reference goes out of scope.</description>
+        <buggedCode>
+fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;str) -> &amp;'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+
+fn main() {
+    let string1 = String::from("long string is long");
+    let result;
+    {
+        let string2 = String::from("short string");
+        result = longest(string1.as_str(), string2.as_str());
+    }
+    println!("The longest string is {}", result);
+}
+        </buggedCode>
+        <correctedCode>
+fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;'a str) -> &amp;'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+
+fn main() {
+    let string1 = String::from("long string is long");
+    let result;
+    {
+        let string2 = String::from("short string");
+        result = longest(string1.as_str(), string2.as_str());
+        println!("The longest string is {}", result);
+    }
+}
+        </correctedCode>
+    </challenge>
+    <challenge>
+        <title>Arduino: Misuse of Delay in Blink Sketch</title>
+        <description>This Arduino code attempts to blink an LED in such a way that it turns on and off in one second.</description>
+        <buggedCode>
+void setup() {
+    pinMode(LED_BUILTIN, OUTPUT);
+}
+
+void loop() {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(1000);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(1000);
+}
+        </buggedCode>
+        <correctedCode>
+void setup() {
+    pinMode(LED_BUILTIN, OUTPUT);
+}
+
+void loop() {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(500);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(500);
+}
+        </correctedCode>
+    </challenge>
+    <challenge>
+        <title>Rust: Incorrect Use of Struct</title>
+        <description>This Rust code attempts to modify a field of a struct but cannot modify the field without throwing an error.</description>
+        <buggedCode>
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+fn main() {
+    let point = Point { x: 1, y: 2 };
+    point.x = 5;
+    println!("Point coordinates: ({}, {})", point.x, point.y);
+}
+        </buggedCode>
+        <correctedCode>
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+fn main() {
+    let mut point = Point { x: 1, y: 2 };
+    point.x = 5;
+    println!("Point coordinates: ({}, {})", point.x, point.y);
+}
+        </correctedCode>
+    </challenge>
+    <challenge>
+        <title>Arduino: Incorrect Use of pins</title>
+        <description>This Arduino code attempts to write to a pin but fails to turn on the LED connected to pin 9.</description>
+        <buggedCode>
+void setup() {
+    pinMode(13, OUTPUT);
+}
+
+void loop() {
+    analogWrite(13, 128);
+    delay(1000);
+}
+        </buggedCode>
+        <correctedCode>
+void setup() {
+    pinMode(9, OUTPUT);
+}
+
+void loop() {
+    digitalWrite(9, HIGH);
+    delay(1000);
+}
+        </correctedCode>
+    </challenge>
+
+    <!--  Very difficult challenges  -->
+    <challenges>
+        <challenge>
+            <title>Java: Multiple Errors in a Simple Class</title>
+            <description>This Java code doesn't compile properly, and even if it dit, it still cannot count. Find and fix the two errors.</description>
+            <buggedCode>
+public class Calculator {
+    public static void main(String[] args) {
+        int result = add(5, 3);
+        System.out.println("The result is: " + result);
+    }
+
+    public int add(int a, int b) {
+        int sum = a + b;
+    }
+
+    public multiply(int a, int b) {
+        return a * b;
+    }
+}
+            </buggedCode>
+            <correctedCode>
+public class Calculator {
+        public static void main(String[] args) {
+        int result = add(5, 3);
+        System.out.println("The result is: " + result);
+    }
+
+    public int add(int a, int b) {
+        int sum = a + b;
+        return sum;
+    }
+
+    public int multiply(int a, int b) {
+        return a * b;
+    }
+}
+            </correctedCode>
+        </challenge>
+        <challenge>
+            <title>Lua: Errors in Table Manipulations</title>
+            <description>This Lua code doesn't properly count the table, nor does it loop properly. Find and fix the two errors.</description>
+            <buggedCode>
+function printTable(table)
+    for i = 0, #table do
+        print(table[i])
+    end
+end
+
+myTable = {10, 20, 30, 40, 50}
+printTable(myTable)
+
+sum = 0
+for i = 1, #myTable do
+    sum =+ myTable[i]
+end
+print("Sum: " + sum)
+            </buggedCode>
+            <correctedCode>
+function printTable(table)
+    for i = 1, #table do
+        print(table[i])
+    end
+end
+
+myTable = {10, 20, 30, 40, 50}
+printTable(myTable)
+
+sum = 0
+for i = 1, #myTable do
+    sum = sum + myTable[i]
+end
+print("Sum: " .. sum)
+            </correctedCode>
+        </challenge>
+        <challenge>
+            <title>Lua: Errors with String Concatenation</title>
+            <description>This Lua code doesn't correctly concatenate the strings. Find and fix the two errors, but leave the print statement intact.</description>
+            <buggedCode>
+function concatenate(a, b)
+    local result = a .. b
+end
+
+firstString = "Hello, "
+secondString = "World!"
+concatenate(firstString, secondString)
+
+print("Concatenated String: " .. result)
+            </buggedCode>
+            <correctedCode>
+function concatenate(a, b)
+    return a .. b
+end
+
+firstString = "Hello, "
+secondString = "World!"
+result = concatenate(firstString, secondString)
+
+print("Concatenated String: " .. result)
+            </correctedCode>
+        </challenge>
+    </challenges>
+</challenges>

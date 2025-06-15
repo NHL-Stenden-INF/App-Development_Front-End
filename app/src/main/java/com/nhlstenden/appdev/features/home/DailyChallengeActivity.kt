@@ -17,7 +17,7 @@ import javax.inject.Inject
 
 data class DailyChallenge(
     val title: String,
-    val problemText: String,
+    val description: String,
     val buggedCode: String,
     val correctedCode: String,
 )
@@ -42,31 +42,14 @@ class DailyChallengeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.fragment_daily_challenge)
 
+        val challengeParser = ChallengeParser(applicationContext)
+        dailyChallenge = challengeParser.loadAllChallenges().random()
+
         submitButton = findViewById<Button>(R.id.submitButton)
         undoButton = findViewById<Button>(R.id.undoButton)
         bugreportTextField = findViewById<EditText>(R.id.BugReport)
         title = findViewById<TextView>(R.id.Title)
         subtitle = findViewById<TextView>(R.id.Subtitle)
-
-//        TODO: Pull from XML file
-        dailyChallenge = DailyChallenge(
-            title = "Off-by-one",
-            problemText = "This code should iterate through the array and print each element, but throws an ArrayIndexOutOfBounds exception",
-            buggedCode = """
-                int[] numbers = {1, 2, 3, 4, 5};
-    
-                for (int i = 0; i <= numbers.length; i++) {
-                    System.out.println(numbers[i]);
-                }
-            """.trimIndent(),
-            correctedCode = """
-                int[] numbers = {1, 2, 3, 4, 5};
-    
-                for (int i = 0; i < numbers.length; i++) {
-                    System.out.println(numbers[i]);
-                }
-            """.trimIndent()
-        )
 
         setText()
 
@@ -99,7 +82,7 @@ class DailyChallengeActivity : AppCompatActivity() {
 
     private fun setText() {
         title.text = title.text.toString().format(dailyChallenge.title)
-        subtitle.text = subtitle.text.toString().format(dailyChallenge.problemText)
+        subtitle.text = subtitle.text.toString().format(dailyChallenge.description)
         bugreportTextField.setText(dailyChallenge.buggedCode)
     }
 

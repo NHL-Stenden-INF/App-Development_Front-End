@@ -1,0 +1,6 @@
+<!ELEMENT challenges (challenge)+>
+<!ELEMENT challenge (title, description, buggedCcode, correctedCode)>
+<!ELEMENT title (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT buggedCcode (#PCDATA)>
+<!ELEMENT correctedCode (#PCDATA)>
