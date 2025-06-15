@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.DialogFragment
@@ -31,6 +32,9 @@ class DailyChallengeCompletedDialog(val isSuccessful: Boolean = true) : DialogFr
         val image = view.findViewById<ImageView>(R.id.imageWarning)
         val title = view.findViewById<TextView>(R.id.textTitle)
         val subtitle = view.findViewById<TextView>(R.id.textMessage)
+        view.findViewById<Button>(R.id.button).setOnClickListener {
+            activity?.finish()
+        }
 
         if (isSuccessful) {
             title.text = title.text.toString().format("Completed!")
@@ -42,5 +46,10 @@ class DailyChallengeCompletedDialog(val isSuccessful: Boolean = true) : DialogFr
         }
 
         return view
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        activity?.finish()
     }
 }

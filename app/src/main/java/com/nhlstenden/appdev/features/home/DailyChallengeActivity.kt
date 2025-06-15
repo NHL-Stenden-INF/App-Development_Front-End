@@ -8,7 +8,6 @@ import android.widget.EditText
 import android.widget.TextView
 import com.nhlstenden.appdev.R
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.FragmentActivity
 
 data class DailyChallenge(
     val title: String,
@@ -24,6 +23,8 @@ class DailyChallengeActivity : AppCompatActivity() {
     private lateinit var title: TextView
     private lateinit var subtitle: TextView
 
+    private lateinit var dailyChallenge: DailyChallenge
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.fragment_daily_challenge)
@@ -34,7 +35,8 @@ class DailyChallengeActivity : AppCompatActivity() {
         title = findViewById<TextView>(R.id.Title)
         subtitle = findViewById<TextView>(R.id.Subtitle)
 
-        val dailyChallenge = DailyChallenge(
+//        TODO: Pull from XML file
+        dailyChallenge = DailyChallenge(
             title = "Off-by-one",
             problemText = "This code should iterate through the array and print each element, but throws an ArrayIndexOutOfBounds exception",
             buggedCode = """
@@ -53,25 +55,33 @@ class DailyChallengeActivity : AppCompatActivity() {
             """.trimIndent()
         )
 
-        setText(dailyChallenge)
+        setText()
 
         submitButton.setOnClickListener {
-            val isSuccessful = checkAnswer(dailyChallenge)
+            val isSuccessful = checkAnswer()
             DailyChallengeCompletedDialog(isSuccessful).show(supportFragmentManager, "daily_challenge_completed")
         }
 
         undoButton.setOnClickListener {
-            setText(dailyChallenge)
+            setText()
         }
     }
 
-    private fun setText(dailyChallenge: DailyChallenge) {
+    override fun finish() {
+        super.finish()
+        Log.d("DailyChallengeActivity", "Closed daily challenge")
+        if (checkAnswer()) {
+// TODO: Award points
+        }
+    }
+
+    private fun setText() {
         title.text = title.text.toString().format(dailyChallenge.title)
         subtitle.text = subtitle.text.toString().format(dailyChallenge.problemText)
         bugreportTextField.setText(dailyChallenge.buggedCode)
     }
 
-    private fun checkAnswer(dailyChallenge: DailyChallenge): Boolean {
+    private fun checkAnswer(): Boolean {
         return bugreportTextField.text.replace("\\s".toRegex(), "") == dailyChallenge.correctedCode.replace("\\s".toRegex(), "")
     }
 }
