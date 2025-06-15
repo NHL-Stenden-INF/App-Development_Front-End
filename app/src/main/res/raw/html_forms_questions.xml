@@ -10,8 +10,8 @@
 
     <flipcard_question>
         <question_text>Hello</question_text>
-        <front>eh</front>
-        <back>he</back>
+        <front>This is the front!</front>
+        <back>This isnt the front but the back!</back>
     </flipcard_question>
 
     <multiple_choice_question>
