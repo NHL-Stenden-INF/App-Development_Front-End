@@ -527,7 +527,7 @@ class HomeFragment : Fragment() {
                         startActivity(intent)
                     }
                 } else {
-                    dailyChallengeSubtitle.text = "You've already done todays challenge, try again tomorrow"
+                    dailyChallengeSubtitle.setText(R.string.daily_challenge_home_subtitle_completed)
                     dailyChallengeStart.visibility = View.GONE
                 }
             }
