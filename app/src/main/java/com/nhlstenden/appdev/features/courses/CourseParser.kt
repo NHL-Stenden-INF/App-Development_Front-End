@@ -43,7 +43,17 @@ class CourseParser(private val context: Context) {
     private fun parseCourse(courseElement: Element): Course {
         val title = courseElement.getElementsByTagName("title").item(0).textContent
         val description = courseElement.getElementsByTagName("description").item(0).textContent
-        val difficulty = courseElement.getElementsByTagName("difficulty").item(0).textContent
+        val difficultyText = courseElement.getElementsByTagName("difficulty").item(0).textContent
+
+        // Map textual difficulty to star rating (1 easy .. 5 hard)
+        val difficulty = when (difficultyText.lowercase()) {
+            "beginner" -> 1
+            "intermediate" -> 2
+            "advanced" -> 3
+            "expert" -> 4
+            "master" -> 5
+            else -> 1
+        }
 
         val imageResName = courseElement.getElementsByTagName("image").item(0).textContent
         val imageResId = context.resources.getIdentifier(imageResName, "drawable", context.packageName)

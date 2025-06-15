@@ -42,11 +42,21 @@ class TaskParser(private val context: Context) {
     private fun parseTask(taskElement: Element, index: Int): Task {
         val title = taskElement.getElementsByTagName("title").item(0).textContent
         val description = taskElement.getElementsByTagName("description").item(0).textContent
-        val difficulty = taskElement.getElementsByTagName("difficulty").item(0).textContent
+        val difficultyText = taskElement.getElementsByTagName("difficulty").item(0).textContent
 
         val id = title
             .lowercase()
             .replace(' ', '_' )
+
+        // Map textual difficulty to star rating (1 easy .. 5 hard)
+        val difficulty = when (difficultyText.lowercase()) {
+            "beginner" -> 1
+            "intermediate" -> 2
+            "advanced" -> 3
+            "expert" -> 4
+            "master" -> 5
+            else -> 1
+        }
 
         return Task(
             id = id,
