@@ -36,7 +36,8 @@ class CourseAdapter(
         fun bind(course: Course) {
             courseTitle.text = course.title
             courseDescription.text = course.description
-            difficultyLevel.text = course.difficulty
+            val stars = "★".repeat(course.difficulty) + "☆".repeat(5 - course.difficulty)
+            difficultyLevel.text = stars
             courseImage.setImageResource(course.imageResId)
             progressBar.progress = if (course.totalTasks > 0) ((course.progress.toFloat() / course.totalTasks) * 100).toInt() else 0
             itemView.setOnClickListener { onClick(course) }

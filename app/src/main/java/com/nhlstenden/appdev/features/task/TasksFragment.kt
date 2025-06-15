@@ -88,12 +88,12 @@ class TasksFragment : Fragment() {
     }
 
     private fun showFilterDialog() {
-        val difficulties = arrayOf("Beginner", "Intermediate", "Advanced")
+        val starOptions = arrayOf("★☆☆☆☆", "★★☆☆☆", "★★★☆☆", "★★★★☆", "★★★★★")
         
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Filter by Difficulty")
-            .setSingleChoiceItems(difficulties, -1) { dialog, which ->
-                // Implement difficulty filtering if needed
+            .setTitle("Filter by Difficulty (Stars)")
+            .setSingleChoiceItems(starOptions, -1) { dialog, which ->
+                // Implement star filtering if needed in future
                 dialog.dismiss()
             }
             .setNeutralButton("Clear") { dialog, _ ->
