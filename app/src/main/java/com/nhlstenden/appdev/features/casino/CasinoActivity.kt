@@ -11,6 +11,8 @@ import com.nhlstenden.appdev.features.casino.games.PlinkoFragment
 import com.nhlstenden.appdev.features.casino.games.WheelOfFortuneFragment
 
 class CasinoActivity : AppCompatActivity() {
+    private var amountToGamble = 0
+
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,6 +25,7 @@ class CasinoActivity : AppCompatActivity() {
             CasinoTypes.WHEEL_OF_FORTUNE -> WheelOfFortuneFragment()
             else -> throw Exception("Casino type $game does not exist")
         }
+        amountToGamble = intent.getIntExtra("points", 100)
 
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)

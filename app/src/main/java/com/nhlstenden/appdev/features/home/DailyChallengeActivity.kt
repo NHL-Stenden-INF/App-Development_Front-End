@@ -79,6 +79,7 @@ class DailyChallengeActivity : AppCompatActivity() {
         if (checkAnswer()) {
             val intent = Intent(applicationContext, CasinoActivity::class.java)
             intent.putExtra("game", CasinoTypes.entries.random())
+            intent.putExtra("points", rewardedPoints)
             startActivity(intent)
 //            TODO: Move this to the games
             CoroutineScope(Dispatchers.IO).launch {
