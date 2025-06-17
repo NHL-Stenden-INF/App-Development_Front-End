@@ -1,5 +1,6 @@
 package com.nhlstenden.appdev.features.task.adapters
 
+import android.util.Log
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -28,8 +29,8 @@ class TaskPagerAdapter(
         val question = questions[position]
         val fragment = when (question) {
             is Question.MultipleChoiceQuestion -> MultipleChoiceFragment.newInstance(question)
+            is Question.PressMistakeQuestion -> PressMistakesFragment.newInstance(question)
             is Question.FlipCardQuestion -> FlipCardFragment.newInstance(question)
-            // is Question.PressMistakeQuestion -> PressMistakesFragment.newInstance(question)
             // is Question.EditTextQuestion -> EditTextFragment.newInstance(question)
             else -> throw IllegalArgumentException("Unsupported question type: ${question::class.simpleName}")
         }
