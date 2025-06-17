@@ -36,8 +36,6 @@ class CasinoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_casino)
 
-        Log.d("CasinoActivity", "ViewModel instance: $viewModel")
-
         val game = intent.extras?.getSerializable("game", CasinoTypes::class.java)
         Log.d("CasinoActivity", "Started the casino for game: ${game.toString()}")
 
