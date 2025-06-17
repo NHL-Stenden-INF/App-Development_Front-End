@@ -109,7 +109,7 @@ class DailyChallengeActivity : AppCompatActivity() {
 
         if (checkAnswer()) {
             val intent = Intent(applicationContext, CasinoActivity::class.java)
-            intent.putExtra("game", CasinoTypes.COINFLIP)
+            intent.putExtra("game", CasinoTypes.WHEEL_OF_FORTUNE)
             intent.putExtra("points", REWARDED_POINTS)
             startActivity(intent)
         }
