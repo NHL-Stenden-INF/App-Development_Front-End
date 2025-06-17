@@ -80,6 +80,12 @@
             android:theme="@style/Theme.AppdevNHL.NoActionBar" />
 
         <activity
+            android:name=".features.casino.CasinoActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppdevNHL.NoActionBar" />
+
+        <activity
             android:name=".features.home.DailyChallengeActivity"
             android:exported="false"
             android:screenOrientation="portrait"

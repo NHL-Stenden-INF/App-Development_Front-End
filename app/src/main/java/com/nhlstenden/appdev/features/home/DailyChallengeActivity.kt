@@ -1,5 +1,6 @@
 package com.nhlstenden.appdev.features.home
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -7,8 +8,11 @@ import android.widget.TextView
 import android.widget.Toast
 import com.nhlstenden.appdev.R
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContentProviderCompat.requireContext
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
+import com.nhlstenden.appdev.features.casino.CasinoActivity
+import com.nhlstenden.appdev.features.casino.CasinoTypes
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,15 +72,21 @@ class DailyChallengeActivity : AppCompatActivity() {
         val rewardedPoints = 300
         val currentUser = authRepository.getCurrentUserSync()
 
+        CoroutineScope(Dispatchers.IO).launch {
+            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
+        }
+
         if (checkAnswer()) {
+            val intent = Intent(applicationContext, CasinoActivity::class.java)
+            intent.putExtra("game", CasinoTypes.entries.random())
+            intent.putExtra("points", rewardedPoints)
+            startActivity(intent)
+//            TODO: Move this to the games
             CoroutineScope(Dispatchers.IO).launch {
                 val profile = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()
                 userRepository.updateUserPoints(currentUser?.id.toString(), profile?.optInt("points", 0)!! + rewardedPoints)
             }
             Toast.makeText(applicationContext, "Received $rewardedPoints points for challenge", Toast.LENGTH_LONG).show()
-        }
-        CoroutineScope(Dispatchers.IO).launch {
-            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
         }
     }
 
