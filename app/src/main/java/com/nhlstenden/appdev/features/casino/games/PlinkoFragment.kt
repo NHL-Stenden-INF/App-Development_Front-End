@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.nhlstenden.appdev.R
 
-class PlinkoFragment : Fragment() {
+class PlinkoFragment : BaseGameFragment() {
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
