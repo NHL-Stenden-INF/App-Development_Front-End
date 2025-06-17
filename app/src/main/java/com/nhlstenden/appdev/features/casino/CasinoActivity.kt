@@ -23,6 +23,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class CasinoActivity : AppCompatActivity() {
     private val viewModel: CasinoViewmodel by viewModels()
+    private var isInitialized = false
 
     @Inject
     lateinit var userRepository: UserRepository
@@ -51,17 +52,26 @@ class CasinoActivity : AppCompatActivity() {
         viewModel.setGamePoints(points)
         Log.d("CasinoActivity", viewModel.gamePoint.value.toString())
 
+        viewModel.gamePoint.observe(this) {
+            if (!isInitialized) {
+                isInitialized = true
+
+                return@observe
+            }
+            awardPoints((viewModel.gamePoint.value ?: 0))
+            Log.d("CasinoActivity", "Collected points: ${viewModel.gamePoint.value}")
+        }
+
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .commit()
     }
 
-//    TODO: Implement this properly
-    private fun awardPoints() {
+    private fun awardPoints(points: Int) {
         CoroutineScope(Dispatchers.IO).launch {
             val currentUser = authRepository.getCurrentUserSync()
             val profile = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()
-            userRepository.updateUserPoints(currentUser?.id.toString(), profile?.optInt("points", 0)!! + (viewModel.gamePoint.value ?: 0))
+            userRepository.updateUserPoints(currentUser?.id.toString(), profile?.optInt("points", 0)!! + points)
         }
     }
 }

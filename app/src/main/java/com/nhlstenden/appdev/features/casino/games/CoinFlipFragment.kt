@@ -19,7 +19,7 @@ import kotlin.random.Random
 
 @AndroidEntryPoint
 class CoinFlipFragment : Fragment() {
-    private val viewModel: CasinoViewmodel by viewModels()
+    private val viewModel: CasinoViewmodel by viewModels({ requireActivity() })
 
     private lateinit var coinflipCoin: ImageButton
     private val frames = listOf(
@@ -67,6 +67,8 @@ class CoinFlipFragment : Fragment() {
                     } else {
                         viewModel.gamePoint.value!! / 2
                     }
+
+                    Log.d("CoinFlipFragment", "Points won: $rewardedPoints")
                     viewModel.setGamePoints(rewardedPoints)
 
                     return
