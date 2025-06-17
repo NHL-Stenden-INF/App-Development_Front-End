@@ -1,5 +1,6 @@
 package com.nhlstenden.appdev.features.home
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -7,8 +8,10 @@ import android.widget.TextView
 import android.widget.Toast
 import com.nhlstenden.appdev.R
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContentProviderCompat.requireContext
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
+import com.nhlstenden.appdev.features.casino.CasinoActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -76,8 +79,11 @@ class DailyChallengeActivity : AppCompatActivity() {
             Toast.makeText(applicationContext, "Received $rewardedPoints points for challenge", Toast.LENGTH_LONG).show()
         }
         CoroutineScope(Dispatchers.IO).launch {
-            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
+//            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
         }
+        val intent = Intent(applicationContext, CasinoActivity::class.java)
+        intent.putExtra("game", "coinflip")
+        startActivity(intent)
     }
 
     private fun setText() {
