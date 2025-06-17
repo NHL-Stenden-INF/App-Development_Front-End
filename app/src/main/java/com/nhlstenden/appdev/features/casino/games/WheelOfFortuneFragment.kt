@@ -18,7 +18,6 @@ class WheelOfFortuneFragment : BaseGameFragment() {
     private val handler = Handler(Looper.getMainLooper())
     private var currentRotation: Double = 1.0
     private val maxRotations: Double = Random.nextDouble(360.0 * 2, 360.0 * 3)
-    private var isRotating = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -31,7 +30,6 @@ class WheelOfFortuneFragment : BaseGameFragment() {
         spinButton = view.findViewById<Button>(R.id.spinButton)
 
         spinButton.setOnClickListener {
-            isRotating = true
             startAnimation()
         }
 
@@ -40,9 +38,6 @@ class WheelOfFortuneFragment : BaseGameFragment() {
 
     private val frameRunnable = object : Runnable {
         override fun run() {
-            if (!isRotating) {
-                return
-            }
             var newRotation = maxRotations - currentRotation
             if (newRotation <= 1.0) {
                 Log.d("WheelOfFortuneFragment", "Wheel stopped: $maxRotations")
@@ -55,11 +50,6 @@ class WheelOfFortuneFragment : BaseGameFragment() {
             Log.d("WheelOfFortuneFragment", "$currentRotation")
             handler.postDelayed(this, 1)
         }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        isRotating = false
     }
 
     private fun startAnimation() {
