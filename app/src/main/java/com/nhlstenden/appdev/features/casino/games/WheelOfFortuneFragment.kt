@@ -17,7 +17,7 @@ class WheelOfFortuneFragment : BaseGameFragment() {
     private lateinit var spinButton: Button
     private val handler = Handler(Looper.getMainLooper())
     private var currentRotation: Double = 1.0
-    private val maxRotations: Double = Random.nextDouble(360.0 * 2, 360.0 * 3)
+    private val maxRotations: Double = Random.nextDouble(320.0 * 5, 360.0 * 8)
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -40,8 +40,6 @@ class WheelOfFortuneFragment : BaseGameFragment() {
         override fun run() {
             var newRotation = maxRotations - currentRotation
             if (newRotation <= 1.0) {
-                Log.d("WheelOfFortuneFragment", "Wheel stopped: $maxRotations")
-
                 return
             }
             wheelOfFortune.rotation = (currentRotation % 360).toFloat()
