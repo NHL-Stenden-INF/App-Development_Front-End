@@ -15,13 +15,14 @@
 <!--    </flipcard_question>-->
 
     <press_mistake_question>
-        <question_text>Hello</question_text>
+        <question_text>Select all the wrongs</question_text>
         <displayed_text>
             The wrong in this text is wrong so click on all wrongs please WRONG
         </displayed_text>
-        <mistake>wrong</mistake>
-        <mistake>wrongs</mistake>
-        <mistake>WRONG</mistake>
+        <mistake position="1"/>
+        <mistake position="6"/>
+        <mistake position="11"/>
+        <mistake position="13"/>
     </press_mistake_question>
 
 <!--    <multiple_choice_question>-->

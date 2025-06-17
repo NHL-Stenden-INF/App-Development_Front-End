@@ -35,7 +35,7 @@ sealed class Question : Parcelable {
         override val explanation: String? = null,
 
         val displayedText: String,
-        val mistakes: List<String>, // This will be the words or sentences that are wrong
+        val mistakes: List<Int>, // This will be the indexes of the words or sentences that are wrong
     ) : Question()
 
     @Parcelize

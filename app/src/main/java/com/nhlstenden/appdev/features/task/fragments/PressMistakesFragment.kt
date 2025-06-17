@@ -38,18 +38,15 @@ class PressMistakesFragment : BaseTaskFragment() {
     ): View {
         _binding = FragmentPressMistakesBinding.inflate(inflater, container, false)
 
-        val recyclerView: RecyclerView = binding.recyclerView
         val words = pressMistakeQuestion.displayedText.trim().split(" ")
-        val adapter = WordAdapter(words, selectedPositions, getMistakeCount()) { clickedWord, position ->
-            // Either save th
-        }
+        val adapter = WordAdapter(words, selectedPositions, getMistakeCount())
 
-        recyclerView.adapter = adapter
+        binding.recyclerView.adapter = adapter
         val layoutManager = FlexboxLayoutManager(requireContext()).apply {
             flexWrap = FlexWrap.WRAP
             justifyContent = JustifyContent.FLEX_START
         }
-        recyclerView.layoutManager = layoutManager
+        binding.recyclerView.layoutManager = layoutManager
 
         return binding.root
     }
@@ -76,7 +73,6 @@ class PressMistakesFragment : BaseTaskFragment() {
         private val words: List<String>,
         private val selectedPositions: MutableSet<Int>,
         private val maxSelectedWords: Int,
-        private val onWordClick: (String, Number) -> Unit
     ) : RecyclerView.Adapter<WordAdapter.WordViewHolder>() {
         inner class WordViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             val textView: TextView = itemView.findViewById(R.id.wordTextView)
@@ -101,19 +97,13 @@ class PressMistakesFragment : BaseTaskFragment() {
             }
 
             holder.textView.setOnClickListener {
-                if (selectedPositions.contains(position)){
-                    Log.d("PressMistakesFragment", "Removed $position")
+                if (selectedPositions.contains(position)) {
                     selectedPositions.remove(position)
-                } else {
-                    if (selectedPositions.size < maxSelectedWords){
-                        Log.d("PressMistakesFragment", "Added $position")
-                        selectedPositions.add(position)
-                    }
+                } else if (selectedPositions.size < maxSelectedWords) {
+                    selectedPositions.add(position)
                 }
 
                 notifyItemChanged(position)
-
-                onWordClick(word, position)
             }
         }
 

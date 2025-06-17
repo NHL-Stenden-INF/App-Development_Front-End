@@ -115,7 +115,7 @@ class QuestionParser(private val context: Context) {
                                 var explanation: String? = null
 
                                 var displayedText = ""
-                                val mistakes = mutableListOf<String>()
+                                val mistakes = mutableListOf<Int>()
 
 
                                 while (!(parser.eventType == XmlPullParser.END_TAG && parser.name == "press_mistake_question")) {
@@ -124,9 +124,9 @@ class QuestionParser(private val context: Context) {
                                         displayedText = parser.text
                                     }
                                     if (parser.eventType == XmlPullParser.START_TAG && parser.name == "mistake") {
-                                        parser.next()
-                                        if (parser.text != null)
-                                            mistakes.add(parser.text)
+                                        val mistakePosition = parser.getAttributeValue(null, "position")
+                                        if (mistakePosition != null)
+                                            mistakes.add(mistakePosition.toInt())
                                     }
 
                                     parseCommonFields(parser, {questionText = it}, {explanation = it})
