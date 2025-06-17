@@ -4,14 +4,23 @@ import com.nhlstenden.appdev.R
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import com.nhlstenden.appdev.features.casino.viewmodels.CasinoViewmodel
+import dagger.hilt.android.AndroidEntryPoint
+import kotlin.getValue
 import kotlin.random.Random
 
+@AndroidEntryPoint
 class CoinFlipFragment : Fragment() {
+    private val viewModel: CasinoViewmodel by viewModels()
+
     private lateinit var coinflipCoin: ImageButton
     private val frames = listOf(
         R.drawable.coin_head,
@@ -35,7 +44,7 @@ class CoinFlipFragment : Fragment() {
         coinflipCoin.setOnClickListener {
             startAnimation()
         }
-
+        Log.d("CoinFlipFragment", "ViewModel instance: $viewModel")
         return view
     }
 
@@ -46,7 +55,20 @@ class CoinFlipFragment : Fragment() {
                     frameDuration = Random.nextLong(2500, 5000)
                 } else {
                     coinflipCoin.setImageResource(frames[currentFrame])
-//TODO: award points
+                    val hasWonTheGame = frames[currentFrame] == R.drawable.coin_head
+
+                    Toast.makeText(context, "You've ${if (hasWonTheGame) "won" else "lost"} the game!", Toast.LENGTH_LONG).show()
+
+                    val gamePointValue = viewModel.gamePoint.value
+                    Log.d("CoinFlipFragment", "gamePoint value: $gamePointValue")
+
+                    val rewardedPoints: Int = if (hasWonTheGame) {
+                        viewModel.gamePoint.value!! * 2
+                    } else {
+                        viewModel.gamePoint.value!! / 2
+                    }
+                    viewModel.setGamePoints(rewardedPoints)
+
                     return
                 }
             }
