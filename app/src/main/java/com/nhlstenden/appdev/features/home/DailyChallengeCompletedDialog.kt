@@ -11,7 +11,9 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.os.bundleOf
 import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.setFragmentResult
 import com.nhlstenden.appdev.R
 
 class DailyChallengeCompletedDialog(val isSuccessful: Boolean = true) : DialogFragment() {
@@ -32,8 +34,13 @@ class DailyChallengeCompletedDialog(val isSuccessful: Boolean = true) : DialogFr
         val image = view.findViewById<ImageView>(R.id.imageWarning)
         val title = view.findViewById<TextView>(R.id.textTitle)
         val subtitle = view.findViewById<TextView>(R.id.textMessage)
-        view.findViewById<Button>(R.id.button).setOnClickListener {
-            activity?.finish()
+        view.findViewById<Button>(R.id.homeButton).setOnClickListener {
+            setFragmentResult("dialog_action", bundleOf("action" to "home"))
+            dismiss()
+        }
+        view.findViewById<Button>(R.id.playGameButton).setOnClickListener {
+            setFragmentResult("dialog_action", bundleOf("action" to "casino"))
+            dismiss()
         }
 
         if (isSuccessful) {

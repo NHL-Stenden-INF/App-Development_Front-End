@@ -64,11 +64,18 @@
             <!-- Buttons will be added programmatically -->
 
             <Button
-                android:id="@+id/button"
+                android:id="@+id/homeButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Go back to home" />
+                android:text="Home" />
+
+            <Button
+                android:id="@+id/playGameButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Play a game" />
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>

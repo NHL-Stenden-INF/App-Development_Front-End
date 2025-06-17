@@ -2,13 +2,13 @@ package com.nhlstenden.appdev.features.home
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import com.nhlstenden.appdev.R
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContentProviderCompat.requireContext
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.features.casino.CasinoActivity
@@ -42,6 +42,8 @@ class DailyChallengeActivity : AppCompatActivity() {
     @Inject
     lateinit var userRepository: UserRepository
 
+    val REWARDED_POINTS = 300
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_daily_challenge)
@@ -65,12 +67,41 @@ class DailyChallengeActivity : AppCompatActivity() {
         undoButton.setOnClickListener {
             setText()
         }
+
+        supportFragmentManager.setFragmentResultListener("dialog_action", this) { requestKey, bundle ->
+            val action = bundle.getString("action")
+            when (action) {
+                "home" -> finish()
+                "casino" -> goToCasino()
+            }
+        }
     }
 
     override fun finish() {
         super.finish()
-        val rewardedPoints = 300
         val currentUser = authRepository.getCurrentUserSync()
+
+        Log.d("DailyChallengeActivity", "Awarded $REWARDED_POINTS points without games")
+
+        CoroutineScope(Dispatchers.IO).launch {
+            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
+        }
+
+        if (checkAnswer()) {
+            Toast.makeText(applicationContext!!, "You've been given $REWARDED_POINTS points", Toast.LENGTH_LONG).show()
+            CoroutineScope(Dispatchers.IO).launch {
+                val currentUser = authRepository.getCurrentUserSync()
+                val profile = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()
+                userRepository.updateUserPoints(currentUser?.id.toString(), profile?.optInt("points", 0)!! + REWARDED_POINTS)
+            }
+        }
+    }
+
+    fun goToCasino() {
+        super.finish()
+        val currentUser = authRepository.getCurrentUserSync()
+
+        Log.d("DailyChallengeActivity", "Started game with $REWARDED_POINTS points")
 
         CoroutineScope(Dispatchers.IO).launch {
             userRepository.updateUserDailyChallenge(currentUser?.id.toString())
@@ -78,15 +109,9 @@ class DailyChallengeActivity : AppCompatActivity() {
 
         if (checkAnswer()) {
             val intent = Intent(applicationContext, CasinoActivity::class.java)
-            intent.putExtra("game", CasinoTypes.entries.random())
-            intent.putExtra("points", rewardedPoints)
+            intent.putExtra("game", CasinoTypes.COINFLIP)
+            intent.putExtra("points", REWARDED_POINTS)
             startActivity(intent)
-//            TODO: Move this to the games
-            CoroutineScope(Dispatchers.IO).launch {
-                val profile = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()
-                userRepository.updateUserPoints(currentUser?.id.toString(), profile?.optInt("points", 0)!! + rewardedPoints)
-            }
-            Toast.makeText(applicationContext, "Received $rewardedPoints points for challenge", Toast.LENGTH_LONG).show()
         }
     }
 
