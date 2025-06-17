@@ -39,7 +39,9 @@ class WheelOfFortuneFragment : BaseGameFragment() {
     private val frameRunnable = object : Runnable {
         override fun run() {
             var newRotation = maxRotations - currentRotation
-            if (newRotation <= 1.0) {
+            if (newRotation <= 5.0) {
+                Log.d("WheelOfFortuneFragment", "${currentRotation % 360}, ${calculateMultiplier(currentRotation)}")
+
                 return
             }
             wheelOfFortune.rotation = (currentRotation % 360).toFloat()
@@ -47,6 +49,20 @@ class WheelOfFortuneFragment : BaseGameFragment() {
             currentRotation += newRotation * 0.01
             Log.d("WheelOfFortuneFragment", "$currentRotation")
             handler.postDelayed(this, 1)
+        }
+    }
+
+    private fun calculateMultiplier(rotation: Double): Double {
+        return when (rotation % 360) {
+            in 0.0..45.0 -> 5.0
+            in 45.1..90.0 -> 1.0
+            in 90.1..135.0 -> 2.0
+            in 135.1..180.0 -> 0.5
+            in 180.1..225.0 -> 0.0
+            in 225.1..270.0 -> 1.0
+            in 270.1..315.0 -> 2.0
+            in 315.1..360.0 -> 0.5
+            else -> 1.0
         }
     }
 
