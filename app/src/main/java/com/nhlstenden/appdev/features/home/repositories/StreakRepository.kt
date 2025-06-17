@@ -2,7 +2,7 @@ package com.nhlstenden.appdev.features.home.repositories
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.supabase.*
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton

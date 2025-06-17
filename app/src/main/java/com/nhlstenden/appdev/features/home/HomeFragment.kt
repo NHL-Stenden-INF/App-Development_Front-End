@@ -48,7 +48,7 @@ import com.bumptech.glide.Glide
 import com.nhlstenden.appdev.features.task.BuyBellPepperDialogFragment
 import com.nhlstenden.appdev.utils.LevelCalculator
 import com.nhlstenden.appdev.core.repositories.FriendsRepository
-import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.supabase.*
 
 // Data class for course info
 data class HomeCourse(

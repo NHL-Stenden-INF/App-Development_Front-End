@@ -4,7 +4,7 @@ import android.util.Log
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.models.Profile
 import com.nhlstenden.appdev.core.repositories.ProfileRepository
-import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.supabase.*
 import com.nhlstenden.appdev.utils.LevelCalculator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

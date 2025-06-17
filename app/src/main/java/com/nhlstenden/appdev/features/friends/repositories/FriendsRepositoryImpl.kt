@@ -5,7 +5,7 @@ import com.nhlstenden.appdev.core.repositories.FriendsRepository
 import com.nhlstenden.appdev.features.friends.models.Friend
 import com.nhlstenden.appdev.features.friends.models.FriendDetails
 import com.nhlstenden.appdev.features.friends.models.CourseProgress
-import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.supabase.*
 import com.nhlstenden.appdev.features.courses.CourseParser
 import com.nhlstenden.appdev.features.courses.TaskParser
 import org.json.JSONArray

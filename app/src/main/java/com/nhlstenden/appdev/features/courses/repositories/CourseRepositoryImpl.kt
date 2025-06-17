@@ -9,11 +9,11 @@ import com.nhlstenden.appdev.features.courses.TaskParser
 import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.features.courses.QuestionParser
 import com.nhlstenden.appdev.features.task.models.Question
-import com.nhlstenden.appdev.supabase.SupabaseClient
 import javax.inject.Inject
 import javax.inject.Singleton
 import android.util.Log
 import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.supabase.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
