@@ -73,20 +73,13 @@ class DailyChallengeActivity : AppCompatActivity() {
         val currentUser = authRepository.getCurrentUserSync()
 
         CoroutineScope(Dispatchers.IO).launch {
-            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
+//            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
         }
-
         if (checkAnswer()) {
             val intent = Intent(applicationContext, CasinoActivity::class.java)
-            intent.putExtra("game", CasinoTypes.entries.random())
+            intent.putExtra("game", CasinoTypes.COINFLIP)
             intent.putExtra("points", rewardedPoints)
             startActivity(intent)
-//            TODO: Move this to the games
-            CoroutineScope(Dispatchers.IO).launch {
-                val profile = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()
-                userRepository.updateUserPoints(currentUser?.id.toString(), profile?.optInt("points", 0)!! + rewardedPoints)
-            }
-            Toast.makeText(applicationContext, "Received $rewardedPoints points for challenge", Toast.LENGTH_LONG).show()
         }
     }
 
