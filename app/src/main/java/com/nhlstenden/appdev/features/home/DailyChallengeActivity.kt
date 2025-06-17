@@ -12,6 +12,7 @@ import androidx.core.content.ContentProviderCompat.requireContext
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.features.casino.CasinoActivity
+import com.nhlstenden.appdev.features.casino.CasinoTypes
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -81,8 +82,9 @@ class DailyChallengeActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
 //            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
         }
+//        TODO: Temporary testing
         val intent = Intent(applicationContext, CasinoActivity::class.java)
-        intent.putExtra("game", "coinflip")
+        intent.putExtra("game", CasinoTypes.COINFLIP)
         startActivity(intent)
     }
 
