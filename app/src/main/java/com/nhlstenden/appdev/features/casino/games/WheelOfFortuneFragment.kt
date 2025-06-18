@@ -30,6 +30,8 @@ class WheelOfFortuneFragment : BaseGameFragment() {
         spinButton = view.findViewById<Button>(R.id.spinButton)
 
         spinButton.setOnClickListener {
+            spinButton.setOnClickListener(null)
+            spinButton.visibility = View.GONE
             startAnimation()
         }
 
