@@ -3,6 +3,7 @@ package com.nhlstenden.appdev.features.casino
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
@@ -36,13 +37,29 @@ class CasinoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_casino)
 
+        val title = findViewById<TextView>(R.id.Title)
+        val subtitle = findViewById<TextView>(R.id.Subtitle)
+
         val game = intent.extras?.getSerializable("game", CasinoTypes::class.java)
+        lateinit var fragment: Fragment
         Log.d("CasinoActivity", "Started the casino for game: ${game.toString()}")
 
-        val fragment: Fragment = when (game) {
-            CasinoTypes.COINFLIP -> CoinFlipFragment()
-            CasinoTypes.HORSE_RACES -> HorseRaceFragment()
-            CasinoTypes.WHEEL_OF_FORTUNE -> WheelOfFortuneFragment()
+         when (game) {
+            CasinoTypes.COINFLIP -> {
+                title.text = String.format(title.text.toString(), "Coinflip")
+                subtitle.text = String.format(subtitle.text.toString(), "Click the coin to flip a coin! if it lands on the happy guinea pig, you get double your points. If it lands on the angry guinea pig, you lose half your points.")
+                 fragment = CoinFlipFragment()
+            }
+            CasinoTypes.HORSE_RACES -> {
+                title.text = String.format(title.text.toString(), "Horse Races")
+                subtitle.text = String.format(subtitle.text.toString(), "Click on the Guinea-Horse you think is going to win! If your horse wins, you get 3x the amount of points you put in. But if you pick wrong, you lose 2/3 points.")
+                fragment = HorseRaceFragment()
+            }
+            CasinoTypes.WHEEL_OF_FORTUNE -> {
+                title.text = String.format(title.text.toString(), "Wheel of Fortune")
+                subtitle.text = String.format(subtitle.text.toString(), "Spin the wheel to get your points! The bigger the pile, the bigger the win. But watch out for the Evil Guinea Pig, he'll leave you with none left for yourself!")
+                fragment = WheelOfFortuneFragment()
+            }
             else -> throw Exception("Casino type $game does not exist")
         }
 
