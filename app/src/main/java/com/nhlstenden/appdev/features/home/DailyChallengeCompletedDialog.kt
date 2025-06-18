@@ -34,11 +34,13 @@ class DailyChallengeCompletedDialog(val isSuccessful: Boolean = true) : DialogFr
         val image = view.findViewById<ImageView>(R.id.imageWarning)
         val title = view.findViewById<TextView>(R.id.textTitle)
         val subtitle = view.findViewById<TextView>(R.id.textMessage)
+        val playGameButton = view.findViewById<Button>(R.id.playGameButton)
+        
         view.findViewById<Button>(R.id.homeButton).setOnClickListener {
             setFragmentResult("dialog_action", bundleOf("action" to "home"))
             dismiss()
         }
-        view.findViewById<Button>(R.id.playGameButton).setOnClickListener {
+        playGameButton.setOnClickListener {
             setFragmentResult("dialog_action", bundleOf("action" to "casino"))
             dismiss()
         }
@@ -46,6 +48,7 @@ class DailyChallengeCompletedDialog(val isSuccessful: Boolean = true) : DialogFr
         if (isSuccessful) {
             title.text = title.text.toString().format("Completed!")
             subtitle.text = subtitle.text.toString().format("completed")
+            playGameButton.visibility = View.GONE
         } else {
             title.text = title.text.toString().format("Failed!")
             subtitle.text = subtitle.text.toString().format("failed")

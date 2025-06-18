@@ -51,6 +51,11 @@ class DailyChallengeActivity : AppCompatActivity() {
         val challengeParser = ChallengeParser(applicationContext)
         dailyChallenge = challengeParser.loadAllChallenges().random()
 
+        val currentUser = authRepository.getCurrentUserSync()
+        CoroutineScope(Dispatchers.IO).launch {
+            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
+        }
+
         submitButton = findViewById<Button>(R.id.submitButton)
         undoButton = findViewById<Button>(R.id.undoButton)
         bugreportTextField = findViewById<EditText>(R.id.BugReport)
@@ -78,41 +83,35 @@ class DailyChallengeActivity : AppCompatActivity() {
     }
 
     fun goToHome() {
-        finish()
         val currentUser = authRepository.getCurrentUserSync()
 
         Log.d("DailyChallengeActivity", "Awarded $REWARDED_POINTS points without games")
 
-        CoroutineScope(Dispatchers.IO).launch {
-            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
-        }
-
         if (checkAnswer()) {
-            Toast.makeText(applicationContext!!, "You've been given $REWARDED_POINTS points", Toast.LENGTH_LONG).show()
             CoroutineScope(Dispatchers.IO).launch {
-                val currentUser = authRepository.getCurrentUserSync()
                 val profile = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()
                 userRepository.updateUserPoints(currentUser?.id.toString(), profile?.optInt("points", 0)!! + REWARDED_POINTS)
+                
+                CoroutineScope(Dispatchers.Main).launch {
+                    Toast.makeText(applicationContext!!, "You've been given $REWARDED_POINTS points", Toast.LENGTH_LONG).show()
+                    finish()
+                }
             }
+        } else {
+            finish()
         }
     }
 
     fun goToCasino() {
-        finish()
         val currentUser = authRepository.getCurrentUserSync()
 
         Log.d("DailyChallengeActivity", "Started game with $REWARDED_POINTS points")
 
-        CoroutineScope(Dispatchers.IO).launch {
-            userRepository.updateUserDailyChallenge(currentUser?.id.toString())
-        }
-
-        if (checkAnswer()) {
-            val intent = Intent(applicationContext, CasinoActivity::class.java)
-            intent.putExtra("game", CasinoTypes.WHEEL_OF_FORTUNE)
-            intent.putExtra("points", REWARDED_POINTS)
-            startActivity(intent)
-        }
+        val intent = Intent(applicationContext, CasinoActivity::class.java)
+        intent.putExtra("game", CasinoTypes.WHEEL_OF_FORTUNE)
+        intent.putExtra("points", REWARDED_POINTS)
+        startActivity(intent)
+        finish()
     }
 
     private fun setText() {
