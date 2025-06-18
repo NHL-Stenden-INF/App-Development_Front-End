@@ -103,12 +103,10 @@ class DailyChallengeActivity : AppCompatActivity() {
     }
 
     fun goToCasino() {
-        val currentUser = authRepository.getCurrentUserSync()
-
         Log.d("DailyChallengeActivity", "Started game with $REWARDED_POINTS points")
 
         val intent = Intent(applicationContext, CasinoActivity::class.java)
-        intent.putExtra("game", CasinoTypes.WHEEL_OF_FORTUNE)
+        intent.putExtra("game", CasinoTypes.entries.random())
         intent.putExtra("points", REWARDED_POINTS)
         startActivity(intent)
         finish()
