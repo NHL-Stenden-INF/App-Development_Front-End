@@ -3,6 +3,7 @@ package com.nhlstenden.appdev.features.casino
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -23,7 +24,6 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class CasinoActivity : AppCompatActivity() {
     private val viewModel: CasinoViewmodel by viewModels()
-    private var isInitialized = false
 
     @Inject
     lateinit var userRepository: UserRepository
@@ -51,9 +51,7 @@ class CasinoActivity : AppCompatActivity() {
         Log.d("CasinoActivity", viewModel.gamePoint.value.toString())
 
         viewModel.gamePoint.observe(this) {
-            if (!isInitialized) {
-                isInitialized = true
-
+            if (!viewModel.isGameDone.value!!) {
                 return@observe
             }
             awardPoints((viewModel.gamePoint.value ?: 0))
@@ -66,6 +64,7 @@ class CasinoActivity : AppCompatActivity() {
     }
 
     private fun awardPoints(points: Int) {
+        Toast.makeText(applicationContext!!, "You've been given $points points", Toast.LENGTH_LONG).show()
         CoroutineScope(Dispatchers.IO).launch {
             val currentUser = authRepository.getCurrentUserSync()
             val profile = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()

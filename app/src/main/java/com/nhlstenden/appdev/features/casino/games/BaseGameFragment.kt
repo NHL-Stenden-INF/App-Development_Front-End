@@ -13,6 +13,7 @@ abstract class BaseGameFragment : Fragment() {
 
     protected fun finishGame(points: Int) {
         Log.d("BaseGame", "Points won: $points")
+        viewModel.setIsGameDone(true)
         viewModel.setGamePoints(points)
 
         runBlocking {
