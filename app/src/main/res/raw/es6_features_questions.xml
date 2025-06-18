@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which ES6 feature allows you to extract values from arrays or objects?</question_text>
+        <option correct="true">Destructuring</option>
+        <option correct="false">Template literals</option>
+        <option correct="false">Arrow functions</option>
+        <option correct="false">Promises</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is the correct syntax for a template literal?</question_text>
+        <option correct="true">`Hello ${name}`</option>
+        <option correct="false">"Hello ${name}"</option>
+        <option correct="false">'Hello ${name}'</option>
+        <option correct="false">Hello ${name}</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which keyword is used to handle asynchronous operations in modern JavaScript?</question_text>
+        <option correct="true">async/await</option>
+        <option correct="false">sync/wait</option>
+        <option correct="false">asynchronous/wait</option>
+        <option correct="false">promise/then</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What does the spread operator (...) do?</question_text>
+        <option correct="true">Expands elements of an iterable</option>
+        <option correct="false">Creates a new array</option>
+        <option correct="false">Deletes array elements</option>
+        <option correct="false">Sorts array elements</option>
+    </multiple_choice_question>
+</questions> 

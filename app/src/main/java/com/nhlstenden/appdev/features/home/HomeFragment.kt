@@ -367,6 +367,8 @@ class HomeFragment : Fragment() {
                             accentColor = ContextCompat.getColor(requireContext(), R.color.colorAccent)
                         )
                     }
+                    .sortedByDescending { it.progressPercent } // Sort by progress percentage (highest to lowest)
+                    .take(3) // Take only the top 3 courses
                     
                     val adapter = HomeCourseAdapter(homeCourses, this@HomeFragment)
                     continueLearningRecyclerView.adapter = adapter

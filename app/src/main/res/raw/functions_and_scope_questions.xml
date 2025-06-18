@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>What is a closure in JavaScript?</question_text>
+        <option correct="true">A function that has access to variables in its outer scope</option>
+        <option correct="false">A function that is automatically executed</option>
+        <option correct="false">A function that returns another function</option>
+        <option correct="false">A function that has no parameters</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which keyword is used to define a function that doesn't have its own 'this' context?</question_text>
+        <option correct="true">Arrow function (=>)</option>
+        <option correct="false">function</option>
+        <option correct="false">var</option>
+        <option correct="false">let</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is the difference between 'var' and 'let'?</question_text>
+        <option correct="true">'let' has block scope, 'var' has function scope</option>
+        <option correct="false">'var' has block scope, 'let' has function scope</option>
+        <option correct="false">They are exactly the same</option>
+        <option correct="false">'let' is older than 'var'</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>How do you call a function immediately after defining it?</question_text>
+        <option correct="true">(function() { })();</option>
+        <option correct="false">function() { }.call();</option>
+        <option correct="false">function() { }.immediate();</option>
+        <option correct="false">function() { }.execute();</option>
+    </multiple_choice_question>
+</questions> 
