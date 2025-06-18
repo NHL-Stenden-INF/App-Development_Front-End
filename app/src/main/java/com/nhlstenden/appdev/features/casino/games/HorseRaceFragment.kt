@@ -3,18 +3,18 @@ package com.nhlstenden.appdev.features.casino.games
 import android.content.res.Resources
 import android.graphics.drawable.AnimationDrawable
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import com.nhlstenden.appdev.R
-import kotlin.random.Random
 
-class HorseRaceFragment : BaseGameFragment() {
+class HorseRaceFragment : BaseGameFragment(), RaceCompletionListener {
     var guineaHorseMap = HashMap<String, ImageView>(4)
+    var guineaHorseHandlerList = ArrayList<GuineaHorseHandler>(4)
+
+    lateinit var betterGuineaHorse: String
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -37,10 +37,15 @@ class HorseRaceFragment : BaseGameFragment() {
         guineaHorseMap.forEach { string, guineaHorse ->
             val drawable = guineaHorse.drawable as AnimationDrawable
             drawable.start()
-            guineaHorseHandlerList.add(GuineaHorseHandler(guineaHorse, string))
-        }
 
-        startRace()
+            guineaHorse.setOnClickListener {
+                betterGuineaHorse = string
+                startRace()
+                guineaHorse.setOnClickListener(null)
+            }
+
+            guineaHorseHandlerList.add(GuineaHorseHandler(guineaHorse, string, this as RaceCompletionListener))
+        }
     }
 
     fun startRace() {
@@ -49,15 +54,15 @@ class HorseRaceFragment : BaseGameFragment() {
         }
     }
 
-    companion object {
-        var guineaHorseHandlerList = ArrayList<GuineaHorseHandler>(4)
-        val finishLine = Resources.getSystem().displayMetrics.heightPixels - 600
-
-        fun announceWinner(guineaHorseName: String) {
-            guineaHorseHandlerList.forEach { guineaHorseHandler ->
-                guineaHorseHandler.stop()
-                Log.d("HorseRaceFragment", "Guinea Horse $guineaHorseName Is the winner!")
-            }
+    override fun onRaceCompleted(guineaHorseName: String) {
+        guineaHorseHandlerList.forEach { guineaHorseHandler ->
+            guineaHorseHandler.stop()
         }
+        Log.d("HorseRaceFragment", "The winner is: $guineaHorseName")
+        Log.d("HorseRaceFragment", "${guineaHorseName == betterGuineaHorse}")
+    }
+
+    companion object {
+        val finishLine = Resources.getSystem().displayMetrics.heightPixels - 600
     }
 }
