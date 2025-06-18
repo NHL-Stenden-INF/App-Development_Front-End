@@ -50,6 +50,7 @@ class DailyChallengeCompletedDialog(val isSuccessful: Boolean = true) : DialogFr
             title.text = title.text.toString().format("Failed!")
             subtitle.text = subtitle.text.toString().format("failed")
             image.setImageResource(R.drawable.mascot_angry_animation)
+            view.findViewById<Button>(R.id.playGameButton).visibility = View.GONE
         }
 
         return view
