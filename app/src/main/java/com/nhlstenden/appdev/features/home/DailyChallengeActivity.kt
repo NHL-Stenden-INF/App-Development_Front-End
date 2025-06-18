@@ -71,14 +71,14 @@ class DailyChallengeActivity : AppCompatActivity() {
         supportFragmentManager.setFragmentResultListener("dialog_action", this) { requestKey, bundle ->
             val action = bundle.getString("action")
             when (action) {
-                "home" -> finish()
+                "home" -> goToHome()
                 "casino" -> goToCasino()
             }
         }
     }
 
-    override fun finish() {
-        super.finish()
+    fun goToHome() {
+        finish()
         val currentUser = authRepository.getCurrentUserSync()
 
         Log.d("DailyChallengeActivity", "Awarded $REWARDED_POINTS points without games")
@@ -98,7 +98,7 @@ class DailyChallengeActivity : AppCompatActivity() {
     }
 
     fun goToCasino() {
-        super.finish()
+        finish()
         val currentUser = authRepository.getCurrentUserSync()
 
         Log.d("DailyChallengeActivity", "Started game with $REWARDED_POINTS points")
@@ -109,7 +109,7 @@ class DailyChallengeActivity : AppCompatActivity() {
 
         if (checkAnswer()) {
             val intent = Intent(applicationContext, CasinoActivity::class.java)
-            intent.putExtra("game", CasinoTypes.COINFLIP)
+            intent.putExtra("game", CasinoTypes.WHEEL_OF_FORTUNE)
             intent.putExtra("points", REWARDED_POINTS)
             startActivity(intent)
         }

@@ -519,7 +519,8 @@ class HomeFragment : Fragment() {
             val startDate = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()?.getString("finished_daily_challenge_at")
             var lastCompletedDate = if (startDate == "null") LocalDate.now().minusDays(1) else LocalDate.parse(startDate.toString())
 
-            val isTodayTheDay = ChronoUnit.DAYS.between(lastCompletedDate, LocalDate.now()) != 0L
+//            val isTodayTheDay = ChronoUnit.DAYS.between(lastCompletedDate, LocalDate.now()) != 0L
+            val isTodayTheDay = true
             CoroutineScope(Dispatchers.Main).launch {
                 if (isTodayTheDay) {
                     dailyChallengeStart.setOnClickListener {

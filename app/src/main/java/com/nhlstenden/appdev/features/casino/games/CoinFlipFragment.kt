@@ -50,7 +50,7 @@ class CoinFlipFragment : BaseGameFragment() {
                     coinflipCoin.setImageResource(frames[currentFrame])
                     val hasWonTheGame = frames[currentFrame] == R.drawable.coin_head
 
-                    Toast.makeText(context, "You've ${if (hasWonTheGame) "won" else "lost"} the game!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "You've ${if (hasWonTheGame) "won" else "lost"} the game!", Toast.LENGTH_SHORT).show()
 
                     val rewardedPoints: Int = if (hasWonTheGame) {
                         viewModel.gamePoint.value!! * 2
