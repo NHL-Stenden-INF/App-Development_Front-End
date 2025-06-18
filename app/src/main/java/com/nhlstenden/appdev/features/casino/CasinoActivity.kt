@@ -12,7 +12,7 @@ import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.features.casino.games.CoinFlipFragment
-import com.nhlstenden.appdev.features.casino.games.PlinkoFragment
+import com.nhlstenden.appdev.features.casino.games.HorseRaceFragment
 import com.nhlstenden.appdev.features.casino.games.WheelOfFortuneFragment
 import com.nhlstenden.appdev.features.casino.viewmodels.CasinoViewmodel
 import dagger.hilt.android.AndroidEntryPoint
@@ -41,7 +41,7 @@ class CasinoActivity : AppCompatActivity() {
 
         val fragment: Fragment = when (game) {
             CasinoTypes.COINFLIP -> CoinFlipFragment()
-            CasinoTypes.PLINKO -> PlinkoFragment()
+            CasinoTypes.HORSE_RACES -> HorseRaceFragment()
             CasinoTypes.WHEEL_OF_FORTUNE -> WheelOfFortuneFragment()
             else -> throw Exception("Casino type $game does not exist")
         }
