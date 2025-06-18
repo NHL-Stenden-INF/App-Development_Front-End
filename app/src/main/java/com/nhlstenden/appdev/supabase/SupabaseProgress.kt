@@ -15,11 +15,12 @@ import org.json.JSONObject
 import com.nhlstenden.appdev.core.utils.UserManager
 import java.time.LocalDate
 
-suspend fun SupabaseClient.getUserProgressResponse(userId: String, authToken: String): Response {
+private val TAG = "SupabaseProgress"
+
+suspend fun SupabaseClient.getUserProgressResponse(userId: String, authToken: String): Result<Response> {
     val url = "$supabaseUrl/rest/v1/user_progress?user_id=eq.$userId"
     Log.d("SupabaseClient", "getUserProgress URL: $url")
     Log.d("SupabaseClient", "getUserProgress for userId: $userId")
-
     val request = Request.Builder()
         .url(url)
         .get()
@@ -29,60 +30,84 @@ suspend fun SupabaseClient.getUserProgressResponse(userId: String, authToken: St
         .addHeader("Prefer", "return=minimal")
         .build()
 
-    return withContext(Dispatchers.IO) { client.newCall(request).execute() }
-}
+    return try {
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
 
-suspend fun SupabaseClient.getUserProgress(userId: String, authToken: String): JSONArray {
-    val response = getUserProgressResponse(userId, authToken)
-    val bodyString = response.body?.string()
-    Log.d("SupabaseClient", "getUserProgress for userId=$userId: code=${response.code}, body=$bodyString")
-
-    if (!response.isSuccessful) {
-        Log.e("SupabaseClient", "Progress fetching failed with response: $bodyString")
-        throw RuntimeException(bodyString ?: "Progress fetching failed with code ${response.code}")
-    }
-
-    val arr = JSONArray(bodyString)
-    Log.d("SupabaseClient", "Parsed progress array length: ${arr.length()}")
-    for (i in 0 until arr.length()) {
-        val obj = arr.getJSONObject(i)
-        Log.d("SupabaseClient", "Progress entry $i: $obj")
-    }
-
-    if (arr.length() == 0) {
-        Log.d("SupabaseClient", "No progress found with exact query, trying broader search...")
-        val broadRequest = Request.Builder()
-            .url("$supabaseUrl/rest/v1/user_progress?select=*")
-            .get()
-            .addHeader("apikey", supabaseKey)
-            .addHeader("Authorization", "Bearer $authToken")
-            .addHeader("Content-Type", "application/json")
-            .build()
-        val broadResponse = withContext(Dispatchers.IO) { client.newCall(broadRequest).execute() }
-        val broadBody = broadResponse.body?.string()
-        if (broadResponse.isSuccessful) {
-            val broadArr = JSONArray(broadBody)
-            Log.d("SupabaseClient", "Broad search found ${broadArr.length()} total progress records")
-            for (i in 0 until minOf(broadArr.length(), 5)) {
-                val obj = broadArr.getJSONObject(i)
-                Log.d("SupabaseClient", "Sample progress record $i: $obj")
-            }
-            var foundMatches = 0
-            for (i in 0 until broadArr.length()) {
-                val obj = broadArr.getJSONObject(i)
-                val recordUserId = obj.optString("user_id", "")
-                if (recordUserId == userId) {
-                    foundMatches++
-                    Log.d("SupabaseClient", "Found matching record for user $userId: $obj")
-                }
-            }
-            Log.d("SupabaseClient", "Found $foundMatches matching records for user $userId")
+        if (response.isSuccessful) {
+            Result.success(response)
+        } else  {
+            Result.failure(Exception("Failed to fetch user progress response: ${response.message}"))
         }
+    } catch (e: Exception) {
+        Log.e(TAG, "Error with getting user progress response")
+        Result.failure(e)
     }
-    return arr
 }
 
-fun SupabaseClient.updateUserProgress(userId: String, taskId: String, newProgress: Int, authToken: String): Response {
+suspend fun SupabaseClient.getUserProgress(userId: String, authToken: String): Result<JSONArray> {
+    return try {
+        val responseResult = getUserProgressResponse(userId, authToken)
+        val response = responseResult.getOrNull()
+
+        if (response == null || !response.isSuccessful) {
+            val errorBody = response?.body?.string() ?: "Unknown error"
+            Log.e(TAG, "Error fetching user progress: $errorBody")
+            return Result.failure(RuntimeException("Progress fetching failed: $errorBody"))
+        }
+
+        val bodyString = response.body?.string()
+        Log.d(
+            "SupabaseClient",
+            "getUserProgress for userId=$userId: code=${response.code}, body=$bodyString"
+        )
+
+        val arr = JSONArray(bodyString)
+        Log.d(TAG, "Parsed progress array length: ${arr.length()}")
+
+        if (arr.length() == 0) {
+            Log.d(TAG, "No progress found with exact query, trying broader search...")
+
+            val broadRequest = Request.Builder()
+                .url("$supabaseUrl/rest/v1/user_progress?select=*")
+                .get()
+                .addHeader("apikey", supabaseKey)
+                .addHeader("Authorization", "Bearer $authToken")
+                .addHeader("Content-Type", "application/json")
+                .build()
+
+            val broadResponse =
+                withContext(Dispatchers.IO) { client.newCall(broadRequest).execute() }
+            val broadBody = broadResponse.body?.string()
+
+            if (broadResponse.isSuccessful) {
+                val broadArr = JSONArray(broadBody)
+                Log.d(TAG, "Broad search found ${broadArr.length()} total progress records")
+                for (i in 0 until minOf(broadArr.length(), 5)) {
+                    val obj = broadArr.getJSONObject(i)
+                    Log.d(TAG, "Sample progress record $i: $obj")
+                }
+
+                var foundMatches = 0
+                for (i in 0 until broadArr.length()) {
+                    val obj = broadArr.getJSONObject(i)
+                    val recordUserId = obj.optString("user_id", "")
+                    if (recordUserId == userId) {
+                        foundMatches++
+                        Log.d(TAG, "Found matching record for user $userId: $obj")
+                    }
+                }
+                Log.d(TAG, "Found $foundMatches matching records for user $userId")
+                return Result.success(broadArr)
+            }
+        }
+        Result.success(arr)
+    } catch (e: Exception) {
+        Log.e(TAG, "Error fetching user progress", e)
+        Result.failure(e)
+    }
+}
+
+fun SupabaseClient.updateUserProgress(userId: String, taskId: String, newProgress: Int, authToken: String): Result<Response> {
     val courseId = taskId.substringBefore("_")
     val json = """{"progress": $newProgress}"""
     val requestBody = json.toRequestBody("application/json".toMediaType())
@@ -94,10 +119,22 @@ fun SupabaseClient.updateUserProgress(userId: String, taskId: String, newProgres
         .addHeader("Content-Type", "application/json")
         .addHeader("Prefer", "return=minimal")
         .build()
-    return client.newCall(request).execute()
+
+    return try {
+        val response = client.newCall(request).execute()
+
+        if (response.isSuccessful) {
+            Result.success(response)
+        } else {
+            Result.failure(Exception("Failed to update user progress: ${response.message}"))
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Error with updating progress from user", e)
+        Result.failure(e)
+    }
 }
 
-fun SupabaseClient.insertUserProgress(userId: String, courseId: String, progress: Int, authToken: String): Response {
+fun SupabaseClient.insertUserProgress(userId: String, courseId: String, progress: Int, authToken: String): Result<Response> {
     val json = """{"user_id": "$userId", "course_id": "$courseId", "progress": $progress}"""
     val requestBody = json.toRequestBody("application/json".toMediaType())
     val request = Request.Builder()
@@ -108,10 +145,22 @@ fun SupabaseClient.insertUserProgress(userId: String, courseId: String, progress
         .addHeader("Content-Type", "application/json")
         .addHeader("Prefer", "return=minimal")
         .build()
-    return client.newCall(request).execute()
+
+    return try {
+        val response = client.newCall(request).execute()
+
+        if (response.isSuccessful) {
+            Result.success(response)
+        } else {
+            Result.failure(Exception("Failed to insert user progress: ${response.message}"))
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Error inserting user progress", e)
+        Result.failure(e)
+    }
 }
 
-fun SupabaseClient.insertUserProgressRPC(userId: String, courseId: String, progress: Int, authToken: String): Response {
+suspend fun SupabaseClient.insertUserProgressRPC(userId: String, courseId: String, progress: Int, authToken: String): Result<Response> {
     val json = """{"_user_id": "$userId", "_course_id": "$courseId", "_progress": $progress}"""
     Log.d("SupabaseClient", "insertUserProgressRPC payload: $json")
     val requestBody = json.toRequestBody("application/json".toMediaType())
@@ -123,20 +172,32 @@ fun SupabaseClient.insertUserProgressRPC(userId: String, courseId: String, progr
         .addHeader("Content-Type", "application/json")
         .addHeader("Prefer", "return=minimal")
         .build()
-    val response = client.newCall(request).execute()
-    val responseBodyString = response.body?.string()
-    Log.d("SupabaseClient", "insertUserProgressRPC response: code=${response.code}, body=$responseBodyString")
-    return response
+
+    return try {
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
+        val responseBodyString = response.body?.string()
+        Log.d("SupabaseClient", "insertUserProgressRPC response: code=${response.code}, body=$responseBodyString")
+
+        if (response.isSuccessful) {
+            Result.success(response)
+        } else {
+            Result.failure(Exception("Failed to insert user progress RPC: ${response.message}"))
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Error inserting user progress RPC", e)
+        Result.failure(e)
+    }
 }
 
-suspend fun SupabaseClient.createUserProgress(userId: String, courseId: String, progress: Int, authToken: String): Response {
-    return withContext(Dispatchers.IO) {
+suspend fun SupabaseClient.createUserProgress(userId: String, courseId: String, progress: Int, authToken: String): Result<Response> {
+    return try {
         val url = "$supabaseUrl/rest/v1/rpc/insert_user_progress"
         val jsonObject = JSONObject().apply {
             put("_user_id", userId)
             put("_course_id", courseId)
             put("_progress", progress)
         }
+
         val client = OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
@@ -148,11 +209,22 @@ suspend fun SupabaseClient.createUserProgress(userId: String, courseId: String, 
                 chain.proceed(request)
             }
             .build()
+
         val request = Request.Builder()
             .url(url)
             .post(jsonObject.toString().toRequestBody("application/json".toMediaType()))
             .build()
-        client.newCall(request).execute()
+
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
+
+        if (response.isSuccessful) {
+            Result.success(response)
+        } else {
+            Result.failure(Exception("Failed to create user progress: ${response.message}"))
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Error with creating user progress")
+        Result.failure(e)
     }
 }
 
@@ -165,22 +237,24 @@ suspend fun SupabaseClient.getFriendProgressViaRPC(friendId: String, authToken: 
             .addHeader("Authorization", "Bearer $authToken")
             .addHeader("Content-Type", "application/json")
             .build()
+
         val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
         val responseBody = response.body?.string()
-        Log.d("SupabaseClient", "getFriendProgressViaRPC: code=${response.code}, body=$responseBody")
+        Log.d(TAG, "getFriendProgressViaRPC: code=${response.code}, body=$responseBody")
+
         if (response.isSuccessful && !responseBody.isNullOrEmpty()) {
             val progressArray = JSONArray(responseBody)
             Result.success(progressArray)
         } else {
-            Log.w("SupabaseClient", "RPC failed, falling back to direct query")
+            Log.w(TAG, "RPC failed, falling back to direct query: ${response.message}")
             val directProgress = getUserProgress(friendId, authToken)
-            Result.success(directProgress)
+            directProgress
         }
     } catch (e: Exception) {
-        Log.e("SupabaseClient", "Error in getFriendProgressViaRPC", e)
+        Log.e(TAG, "Error in getFriendProgressViaRPC", e)
         try {
             val directProgress = getUserProgress(friendId, authToken)
-            Result.success(directProgress)
+            directProgress
         } catch (fallbackError: Exception) {
             Result.failure(fallbackError)
         }
@@ -192,29 +266,38 @@ suspend fun SupabaseClient.getFriendProgressForCurrentUser(friendId: String): Re
         val currentUserId = getCurrentUserId() ?: return Result.failure(Exception("User not logged in"))
         val authToken = UserManager.getCurrentUser()?.authToken ?: return Result.failure(Exception("No auth token available"))
         val progressArray = getUserProgress(friendId, authToken)
-        Result.success(progressArray)
+
+        progressArray
     } catch (e: Exception) {
-        Log.e("SupabaseClient", "Error getting friend progress", e)
+        Log.e(TAG, "Error getting friend progress", e)
         Result.failure(e)
     }
 }
 
-fun SupabaseClient.calculateLevelFromXp(xp: Long): Int {
-    var level = 1
-    var requiredXp = 100L
-    var totalXp = 0L
-    while (xp >= totalXp + requiredXp) {
-        totalXp += requiredXp
-        level++
-        requiredXp = (requiredXp * 1.1).toLong()
+fun SupabaseClient.calculateLevelFromXp(xp: Long): Result<Int> {
+    return try {
+        var level = 1
+        var requiredXp = 100L
+        var totalXp = 0L
+
+        while (xp >= totalXp + requiredXp) {
+            totalXp += requiredXp
+            level++
+            requiredXp = (requiredXp * 1.1).toLong()
+        }
+
+        Result.success(level)
+    } catch (e: Exception) {
+        Log.e(TAG, "Error calculating level from XP", e)
+        Result.failure(e)
     }
-    return level
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-suspend fun SupabaseClient.updateUserDailyChallenge(userId: String, authToken: String): Response {
+suspend fun SupabaseClient.updateUserDailyChallenge(userId: String, authToken: String): Result<Response> {
     val url = "$supabaseUrl/rest/v1/user_attributes?id=eq.$userId"
-    val requestBody = JSONObject().apply { put("finished_daily_challenge_at", LocalDate.now()) }.toString()
+    val requestBody =
+        JSONObject().apply { put("finished_daily_challenge_at", LocalDate.now()) }.toString()
     val request = Request.Builder()
         .url(url)
         .patch(requestBody.toRequestBody("application/json".toMediaType()))
@@ -223,5 +306,17 @@ suspend fun SupabaseClient.updateUserDailyChallenge(userId: String, authToken: S
         .addHeader("Content-Type", "application/json")
         .addHeader("Prefer", "return=representation")
         .build()
-    return client.newCall(request).execute()
-} 
+
+    return try {
+        val response = client.newCall(request).execute()
+
+        if (response.isSuccessful) {
+            Result.success(response)
+        } else {
+            Result.failure(Exception("Failed to update user daily challenge: ${response.message}"))
+        }
+    } catch (e: Exception) {
+        Log.d(TAG, "Error updating daily challenge", e)
+        Result.failure(e)
+    }
+}

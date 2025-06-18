@@ -44,9 +44,15 @@ class CourseRepositoryImpl @Inject constructor(
 
     private suspend fun getUserProgressSafely(userId: String, authToken: String): JSONArray? {
         return try {
-            val response = withContext(Dispatchers.IO) {
+            val result = withContext(Dispatchers.IO) {
                 supabaseClient.getUserProgressResponse(userId, authToken)
             }
+
+            if (result.isFailure) {
+                Log.e(TAG, "Error getting user progress", result.exceptionOrNull())
+            }
+
+            val response = result.getOrNull() ?: return null
             
             if (response.isSuccessful) {
                 val body = response.body?.string()
@@ -149,8 +155,10 @@ class CourseRepositoryImpl @Inject constructor(
                 
                 // If no progress exists, create it
                 if (!hasProgress) {
-                    val response = supabaseClient.createUserProgress(currentUser.id, courseId, 0, currentUser.authToken)
-                    if (!response.isSuccessful && response.code == 401) {
+                    val result = supabaseClient.createUserProgress(currentUser.id, courseId, 0, currentUser.authToken)
+                    val response = result.getOrNull()
+
+                    if (response != null && !response.isSuccessful && response.code == 401) {
                         val body = response.body?.string()
                         if (body?.contains("JWT expired") == true) {
                             Log.w(TAG, "JWT expired during createUserProgress")
@@ -182,11 +190,14 @@ class CourseRepositoryImpl @Inject constructor(
     override suspend fun updateTaskProgress(userId: String, taskId: String, progress: Int): Boolean {
         try {
             val currentUser = authRepository.getCurrentUserSync()
+
             if (currentUser == null) {
                 Log.e(TAG, "No current user found")
                 return false
             }
-            val response = supabaseClient.updateUserProgress(userId, taskId, progress, currentUser.authToken)
+
+            val result = supabaseClient.updateUserProgress(userId, taskId, progress, currentUser.authToken)
+            val response = result.getOrNull() ?: return false
             
             if (!response.isSuccessful && response.code == 401) {
                 val body = response.body?.string()

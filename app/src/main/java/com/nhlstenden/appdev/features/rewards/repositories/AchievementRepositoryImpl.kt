@@ -311,7 +311,14 @@ class AchievementRepositoryImpl @Inject constructor(
             }
             
             Log.d(TAG, "Getting user progress for course completion check...")
-            val progressArray = supabaseClient.getUserProgress(userId, currentUser.authToken)
+            val progressResult = supabaseClient.getUserProgress(userId, currentUser.authToken)
+
+            if (progressResult.isFailure) {
+                Log.e(TAG, "Failed to fetch user progress", progressResult.exceptionOrNull())
+                return false
+            }
+
+            val progressArray = progressResult.getOrNull() ?: return false
             Log.d(TAG, "Progress array length: ${progressArray.length()}")
             
             // Log all progress entries for debugging

@@ -198,14 +198,15 @@ class UserRepositoryImpl @Inject constructor(
 
             Log.d(TAG, "Updating daily challenge")
 
-            val response = supabaseClient.updateUserDailyChallenge(userId, currentUser.authToken)
+            val result = supabaseClient.updateUserDailyChallenge(userId, currentUser.authToken)
+            val response = result.getOrNull()
 
-            if (response.isSuccessful) {
+            if (response != null && response.isSuccessful) {
                 Log.d(TAG, "User daily challenge updated successfully")
                 Result.success(Unit)
             } else {
-                Log.d(TAG, "Failed to update daily chalenge: ${response.body?.toString()}")
-                Result.failure(Exception("Failed to update daily challenge: ${response.code}"))
+                Log.d(TAG, "Failed to update daily challenge: ${response?.body?.toString()}")
+                Result.failure(Exception("Failed to update daily challenge: ${response?.code ?: "unknown"}"))
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error updating daily challenge", e)
