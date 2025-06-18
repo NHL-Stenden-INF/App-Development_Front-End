@@ -19,4 +19,22 @@
         <difficulty>Advanced</difficulty>
         <image>sql_course</image>
     </course>
+    <course>
+        <title>JavaScript</title>
+        <description>Master JavaScript programming, DOM manipulation, and modern ES6+ features</description>
+        <difficulty>Intermediate</difficulty>
+        <image>javascript_course</image>
+    </course>
+    <course>
+        <title>Python</title>
+        <description>Learn Python programming fundamentals, data structures, and object-oriented programming</description>
+        <difficulty>Beginner</difficulty>
+        <image>python_course</image>
+    </course>
+    <course>
+        <title>Java</title>
+        <description>Master Java programming, object-oriented principles, and enterprise development</description>
+        <difficulty>Intermediate</difficulty>
+        <image>java_course</image>
+    </course>
 </courses> 

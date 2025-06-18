@@ -367,6 +367,8 @@ class HomeFragment : Fragment() {
                             accentColor = ContextCompat.getColor(requireContext(), R.color.colorAccent)
                         )
                     }
+                    .sortedByDescending { it.progressPercent } // Sort by progress percentage (highest to lowest)
+                    .take(3) // Take only the top 3 courses
                     
                     val adapter = HomeCourseAdapter(homeCourses, this@HomeFragment)
                     continueLearningRecyclerView.adapter = adapter
@@ -519,8 +521,7 @@ class HomeFragment : Fragment() {
             val startDate = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()?.getString("finished_daily_challenge_at")
             var lastCompletedDate = if (startDate == "null") LocalDate.now().minusDays(1) else LocalDate.parse(startDate.toString())
 
-//            val isTodayTheDay = ChronoUnit.DAYS.between(lastCompletedDate, LocalDate.now()) != 0L
-            val isTodayTheDay = true
+            val isTodayTheDay = ChronoUnit.DAYS.between(lastCompletedDate, LocalDate.now()) != 0L
             CoroutineScope(Dispatchers.Main).launch {
                 if (isTodayTheDay) {
                     dailyChallengeStart.setOnClickListener {

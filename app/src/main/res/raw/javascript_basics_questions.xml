@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which of the following is the correct way to declare a variable in JavaScript?</question_text>
+        <option correct="true">let name = "John";</option>
+        <option correct="false">variable name = "John";</option>
+        <option correct="false">declare name = "John";</option>
+        <option correct="false">string name = "John";</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is the output of typeof null in JavaScript?</question_text>
+        <option correct="true">"object"</option>
+        <option correct="false">"null"</option>
+        <option correct="false">"undefined"</option>
+        <option correct="false">"boolean"</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which operator is used to compare both value and type in JavaScript?</question_text>
+        <option correct="true">===</option>
+        <option correct="false">==</option>
+        <option correct="false">=</option>
+        <option correct="false">!=</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is the correct syntax for a JavaScript function?</question_text>
+        <option correct="true">function myFunction() { }</option>
+        <option correct="false">def myFunction() { }</option>
+        <option correct="false">create myFunction() { }</option>
+        <option correct="false">func myFunction() { }</option>
+    </multiple_choice_question>
+</questions> 

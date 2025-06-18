@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which data structure is ordered and mutable in Python?</question_text>
+        <option correct="true">List</option>
+        <option correct="false">Tuple</option>
+        <option correct="false">Set</option>
+        <option correct="false">Dictionary key</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>How do you create an empty dictionary in Python?</question_text>
+        <option correct="true">{} or dict()</option>
+        <option correct="false">[] or list()</option>
+        <option correct="false">() or tuple()</option>
+        <option correct="false">set() or {}</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is the difference between a list and a tuple?</question_text>
+        <option correct="true">Lists are mutable, tuples are immutable</option>
+        <option correct="false">Tuples are mutable, lists are immutable</option>
+        <option correct="false">They are exactly the same</option>
+        <option correct="false">Lists are faster than tuples</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>How do you access the last element of a list in Python?</question_text>
+        <option correct="true">my_list[-1]</option>
+        <option correct="false">my_list[last]</option>
+        <option correct="false">my_list.last()</option>
+        <option correct="false">my_list[end]</option>
+    </multiple_choice_question>
+</questions> 
