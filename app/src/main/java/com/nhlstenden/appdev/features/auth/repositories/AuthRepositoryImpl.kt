@@ -51,8 +51,15 @@ class AuthRepositoryImpl @Inject constructor(
     override fun getCurrentUserSync(): User? = _currentUser.value
     
     override suspend fun login(email: String, password: String): Result<User> {
+        val tokenResult = supabaseClient.login(email, password)
+        if (tokenResult.isFailure) {
+            val error = tokenResult.exceptionOrNull() ?: Exception("Unknown login error")
+            Log.e(TAG, "Login failed", error)
+            return Result.failure(error)
+        }
+        val accessToken = tokenResult.getOrThrow()
+
         return try {
-            val accessToken = supabaseClient.login(email, password)
             val profile = supabaseClient.fetchProfileOrCreate(accessToken, "", email)
             // Fetch user attributes for any future needs
             supabaseClient.fetchUserAttributesOrCreate(accessToken)
@@ -78,8 +85,14 @@ class AuthRepositoryImpl @Inject constructor(
     }
     
     override suspend fun register(email: String, password: String, displayName: String): Result<User> {
+        val tokenResult = supabaseClient.register(email, password, displayName)
+        if (tokenResult.isFailure) {
+            val error = tokenResult.exceptionOrNull() ?: Exception("Unknown register error")
+            Log.e(TAG, "Registration failed", error)
+        }
+        val accessToken = tokenResult.getOrThrow()
+
         return try {
-            val accessToken = supabaseClient.register(email, password, displayName)
             val profile = supabaseClient.fetchProfileOrCreate(accessToken, displayName, email)
             // Fetch user attributes for any future needs
             supabaseClient.fetchUserAttributesOrCreate(accessToken)

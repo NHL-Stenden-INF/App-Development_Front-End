@@ -120,7 +120,7 @@ suspend fun SupabaseClient.getAllFriends(authToken: String): Response {
 }
 
 suspend fun SupabaseClient.queryFriendships(authToken: String): Response {
-    val userIdFromToken = getUserIdFromToken(authToken)
+    val userIdFromToken = getUserIdFromToken(authToken).getOrThrow()
     val timestamp = System.currentTimeMillis()
     val request = Request.Builder()
         .url("$supabaseUrl/rest/v1/friendships?select=friend_id&user_id=eq.$userIdFromToken&order=created_at.desc&_=$timestamp")

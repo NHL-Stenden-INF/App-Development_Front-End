@@ -131,7 +131,7 @@ fun SupabaseClient.getUserUnlockedRewards(userId: String, authToken: String): Re
 }
 
 suspend fun SupabaseClient.createProfile(authToken: String, displayName: String = "", email: String = ""): JSONObject {
-    val userId = getUserIdFromToken(authToken)
+    val userId = getUserIdFromToken(authToken).getOrThrow()
 
     val profileJson = JSONObject()
     profileJson.put("id", userId)
@@ -164,8 +164,9 @@ suspend fun SupabaseClient.createProfile(authToken: String, displayName: String 
 }
 
 suspend fun SupabaseClient.fetchProfile(authToken: String): JSONObject {
+    val userId = getUserIdFromToken(authToken).getOrThrow()
     val request = Request.Builder()
-        .url("$supabaseUrl/rest/v1/profile?select=*&id=eq.${getUserIdFromToken(authToken)}")
+        .url("$supabaseUrl/rest/v1/profile?select=*&id=eq.$userId")
         .get()
         .addHeader("apikey", supabaseKey)
         .addHeader("Authorization", "Bearer $authToken")
@@ -192,7 +193,7 @@ suspend fun SupabaseClient.fetchProfileOrCreate(authToken: String, displayName: 
 }
 
 suspend fun SupabaseClient.createUserAttributes(authToken: String): JSONObject {
-    val userId = getUserIdFromToken(authToken)
+    val userId = getUserIdFromToken(authToken).getOrThrow()
 
     val attributesJson = JSONObject()
     attributesJson.put("id", userId)
@@ -226,8 +227,9 @@ suspend fun SupabaseClient.createUserAttributes(authToken: String): JSONObject {
 }
 
 suspend fun SupabaseClient.fetchUserAttributes(authToken: String): JSONObject {
+    val userId = getUserIdFromToken(authToken).getOrThrow()
     val request = Request.Builder()
-        .url("$supabaseUrl/rest/v1/user_attributes?select=*&id=eq.${getUserIdFromToken(authToken)}")
+        .url("$supabaseUrl/rest/v1/user_attributes?select=*&id=eq.$userId")
         .get()
         .addHeader("apikey", supabaseKey)
         .addHeader("Authorization", "Bearer $authToken")
@@ -288,7 +290,7 @@ suspend fun SupabaseClient.updateProfile(
     bio: String? = null,
     profilePicture: String? = null
 ): JSONObject {
-    val userId = getUserIdFromToken(authToken)
+    val userId = getUserIdFromToken(authToken).getOrThrow()
 
     val updateJson = JSONObject()
     displayName?.let { updateJson.put("display_name", it) }
