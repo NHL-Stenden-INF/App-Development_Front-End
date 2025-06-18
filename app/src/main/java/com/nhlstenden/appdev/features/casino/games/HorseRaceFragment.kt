@@ -59,7 +59,14 @@ class HorseRaceFragment : BaseGameFragment(), RaceCompletionListener {
             guineaHorseHandler.stop()
         }
         Log.d("HorseRaceFragment", "The winner is: $guineaHorseName")
-        Log.d("HorseRaceFragment", "${guineaHorseName == betterGuineaHorse}")
+
+        val rewardedPoints = if (guineaHorseName == betterGuineaHorse) {
+            viewModel.gamePoint.value!! * 3
+        } else {
+            viewModel.gamePoint.value!! / 3
+        }
+
+        return finishGame(rewardedPoints)
     }
 
     companion object {
