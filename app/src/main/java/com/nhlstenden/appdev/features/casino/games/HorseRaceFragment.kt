@@ -1,6 +1,5 @@
 package com.nhlstenden.appdev.features.casino.games
 
-import android.content.res.Resources
 import android.graphics.drawable.AnimationDrawable
 import android.os.Bundle
 import android.util.Log
@@ -10,9 +9,11 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import com.nhlstenden.appdev.R
 
-class HorseRaceFragment : BaseGameFragment(), RaceCompletionListener {
+
+class HorseRaceFragment : BaseGameFragment(), RaceManager {
     var guineaHorseMap = HashMap<String, ImageView>(4)
     var guineaHorseHandlerList = ArrayList<GuineaHorseHandler>(4)
+    private lateinit var finishLine: ImageView
 
     lateinit var betterGuineaHorse: String
 
@@ -27,6 +28,8 @@ class HorseRaceFragment : BaseGameFragment(), RaceCompletionListener {
         guineaHorseMap.put("red", view.findViewById<ImageView>(R.id.guineaHorseRed))
         guineaHorseMap.put("green", view.findViewById<ImageView>(R.id.guineaHorseGreen))
         guineaHorseMap.put("yellow", view.findViewById<ImageView>(R.id.guineaHorseYellow))
+
+        finishLine = view.findViewById<ImageView>(R.id.finishLine)
 
         return view
     }
@@ -44,7 +47,7 @@ class HorseRaceFragment : BaseGameFragment(), RaceCompletionListener {
                 guineaHorse.setOnClickListener(null)
             }
 
-            guineaHorseHandlerList.add(GuineaHorseHandler(guineaHorse, string, this as RaceCompletionListener))
+            guineaHorseHandlerList.add(GuineaHorseHandler(guineaHorse, string, this as RaceManager))
         }
     }
 
@@ -69,7 +72,7 @@ class HorseRaceFragment : BaseGameFragment(), RaceCompletionListener {
         return finishGame(rewardedPoints)
     }
 
-    companion object {
-        val finishLine = Resources.getSystem().displayMetrics.heightPixels - 600
+    override fun getFinishline(): Float {
+        return finishLine.y - guineaHorseMap.get("default")!!.measuredHeight + 60 // To compensate for the massive forehead that the horses have
     }
 }

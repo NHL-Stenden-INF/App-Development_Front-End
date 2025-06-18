@@ -3,13 +3,12 @@ package com.nhlstenden.appdev.features.casino.games
 import android.os.Handler
 import android.os.Looper
 import android.widget.ImageView
-import com.nhlstenden.appdev.features.casino.games.HorseRaceFragment.Companion.finishLine
 import kotlin.random.Random
 
 class GuineaHorseHandler(
     private val guineaHorse: ImageView,
     private val guineaHorseName: String,
-    private val raceCompletionListener: RaceCompletionListener
+    private val raceManager: RaceManager
 ): Runnable {
     val handler = Handler(Looper.getMainLooper())
 
@@ -22,8 +21,8 @@ class GuineaHorseHandler(
     }
 
     override fun run() {
-        if (guineaHorse.y >= finishLine) {
-            raceCompletionListener.onRaceCompleted(guineaHorseName)
+        if (guineaHorse.y >= raceManager.getFinishline()) {
+            raceManager.onRaceCompleted(guineaHorseName)
             stop()
 
             return

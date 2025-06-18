@@ -1,5 +1,6 @@
 package com.nhlstenden.appdev.features.casino.games
 
-interface RaceCompletionListener {
+interface RaceManager {
     fun onRaceCompleted(guineaHorseName: String)
+    fun getFinishline(): Float
 }
