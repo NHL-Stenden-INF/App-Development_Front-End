@@ -41,7 +41,7 @@ class CasinoActivity : AppCompatActivity() {
 
         val fragment: Fragment = when (game) {
             CasinoTypes.COINFLIP -> CoinFlipFragment()
-            CasinoTypes.PLINKO -> HorseRaceFragment()
+            CasinoTypes.HORSE_RACES -> HorseRaceFragment()
             CasinoTypes.WHEEL_OF_FORTUNE -> WheelOfFortuneFragment()
             else -> throw Exception("Casino type $game does not exist")
         }
