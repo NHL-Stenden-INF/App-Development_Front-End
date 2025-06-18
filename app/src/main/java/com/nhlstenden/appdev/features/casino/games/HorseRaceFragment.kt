@@ -1,9 +1,11 @@
 package com.nhlstenden.appdev.features.casino.games
 
+import android.content.res.Resources
 import android.graphics.drawable.AnimationDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,7 +14,7 @@ import com.nhlstenden.appdev.R
 import kotlin.random.Random
 
 class HorseRaceFragment : BaseGameFragment() {
-    private var guineaHorseMap = HashMap<String, ImageView>(4)
+    var guineaHorseMap = HashMap<String, ImageView>(4)
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -31,30 +33,56 @@ class HorseRaceFragment : BaseGameFragment() {
 
     override fun onStart() {
         super.onStart()
-        var guineaHorseHandlerList = ArrayList<GuineaHorseHandler>(4)
 
         guineaHorseMap.forEach { string, guineaHorse ->
             val drawable = guineaHorse.drawable as AnimationDrawable
             drawable.start()
-            guineaHorseHandlerList.add(GuineaHorseHandler(guineaHorse))
+            guineaHorseHandlerList.add(GuineaHorseHandler(guineaHorse, string))
         }
 
+        startRace()
+    }
+
+    fun startRace() {
         guineaHorseHandlerList.forEach { guineaHorseHandler ->
             guineaHorseHandler.start()
         }
     }
 
-    class GuineaHorseHandler(private val guineaHorse: ImageView): Runnable {
-        var currentPosition = 0
+    companion object {
+        var guineaHorseHandlerList = ArrayList<GuineaHorseHandler>(4)
+        val finishLine = Resources.getSystem().displayMetrics.heightPixels - 600
+
+        fun announceWinner(guineaHorseName: String) {
+            guineaHorseHandlerList.forEach { guineaHorseHandler ->
+                guineaHorseHandler.stop()
+                Log.d("HorseRaceFragment", "Guinea Horse $guineaHorseName Is the winner!")
+            }
+        }
+    }
+
+    class GuineaHorseHandler(
+        private val guineaHorse: ImageView,
+        private val guineaHorseName: String
+    ): Runnable {
         val handler = Handler(Looper.getMainLooper())
 
         fun start() {
             handler.post(this)
         }
 
+        fun stop() {
+            handler.removeCallbacksAndMessages(null)
+        }
+
         override fun run() {
+            if (guineaHorse.y >= finishLine) {
+                announceWinner(guineaHorseName)
+                stop()
+
+                return
+            }
             val nextPosition = Random.nextInt(0, 15)
-            currentPosition += nextPosition
             guineaHorse.y += nextPosition.toFloat()
             handler.postDelayed(this, nextPosition.toLong())
         }
