@@ -40,15 +40,17 @@ class WheelOfFortuneFragment : BaseGameFragment() {
         override fun run() {
             var newRotation = maxRotations - currentRotation
             if (newRotation <= 5.0) {
-                Log.d("WheelOfFortuneFragment", "${currentRotation % 360}, ${calculateMultiplier(currentRotation)}")
+                val rewardedPoints: Int = (viewModel.gamePoint.value!! * calculateMultiplier(currentRotation)).toInt()
 
-                return
+                Log.d("WheelOfFortuneFragment", "Awarded points: $rewardedPoints")
+
+                return finishGame(rewardedPoints)
             }
             wheelOfFortune.rotation = (currentRotation % 360).toFloat()
 
             currentRotation += newRotation * 0.01
             Log.d("WheelOfFortuneFragment", "$currentRotation")
-            handler.postDelayed(this, 1)
+            handler.post(this)
         }
     }
 
