@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which of the following is the correct way to declare a variable in Java?</question_text>
+        <option correct="true">int number = 10;</option>
+        <option correct="false">variable int number = 10;</option>
+        <option correct="false">declare number = 10;</option>
+        <option correct="false">number int = 10;</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is the entry point of a Java program?</question_text>
+        <option correct="true">main() method</option>
+        <option correct="false">start() method</option>
+        <option correct="false">init() method</option>
+        <option correct="false">run() method</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which keyword is used to create a constant in Java?</question_text>
+        <option correct="true">final</option>
+        <option correct="false">const</option>
+        <option correct="false">constant</option>
+        <option correct="false">static</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What does JVM stand for?</question_text>
+        <option correct="true">Java Virtual Machine</option>
+        <option correct="false">Java Variable Method</option>
+        <option correct="false">Java Visual Machine</option>
+        <option correct="false">Java Version Manager</option>
+    </multiple_choice_question>
+</questions> 

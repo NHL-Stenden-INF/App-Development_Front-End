@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which interface is the root of the Java Collections framework?</question_text>
+        <option correct="true">Collection</option>
+        <option correct="false">List</option>
+        <option correct="false">Set</option>
+        <option correct="false">Map</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which collection allows duplicate elements and maintains insertion order?</question_text>
+        <option correct="true">ArrayList</option>
+        <option correct="false">HashSet</option>
+        <option correct="false">TreeSet</option>
+        <option correct="false">HashMap</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is the purpose of generics in Java?</question_text>
+        <option correct="true">To provide type safety and eliminate casting</option>
+        <option correct="false">To create generic methods only</option>
+        <option correct="false">To improve performance</option>
+        <option correct="false">To handle exceptions</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which method is used to add an element to a List?</question_text>
+        <option correct="true">add()</option>
+        <option correct="false">insert()</option>
+        <option correct="false">put()</option>
+        <option correct="false">append()</option>
+    </multiple_choice_question>
+</questions> 
