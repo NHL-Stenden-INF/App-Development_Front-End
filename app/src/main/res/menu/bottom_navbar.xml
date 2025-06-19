@@ -11,7 +11,7 @@
 
     <item android:title="Rewards"
         android:id="@+id/nav_rewards"
-        android:icon="@drawable/reward_icon_24"/>
+        android:icon="@drawable/ic_medal_gold"/>
 
     <item android:title="Friends"
         android:id="@+id/nav_friends"
