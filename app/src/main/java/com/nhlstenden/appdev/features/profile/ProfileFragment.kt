@@ -104,6 +104,16 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     private var gyroSensor: Sensor? = null
     private var profileCard: View? = null
 
+    // Gyro smoothing and animation parameters
+    private val maxShift = 60f // px, tweak for more/less movement
+    private val maxTilt = 15f // degrees, tweak for more/less tilt
+    private val cardTiltFactor = 0.4f // how much the card tilts compared to bg
+    private val smoothing = 0.15f // 0..1, higher = snappier, lower = smoother
+    private var lastShiftX = 0f
+    private var lastShiftY = 0f
+    private var lastPitch = 0f
+    private var lastRoll = 0f
+
     private fun setupViews() {
         binding.editProfileButton.setOnClickListener {
             showEditProfileDialog()
@@ -212,24 +222,38 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
             SensorManager.getOrientation(rotationMatrix, orientation)
             val roll = Math.toDegrees(orientation[2].toDouble()).toFloat()   // sideways
             val pitch = Math.toDegrees(orientation[1].toDouble()).toFloat() // up/down
-            val maxShift = 60f // px, more movement for larger bg
-            val maxTilt = 15f
             val clampedRoll = roll.coerceIn(-maxTilt, maxTilt)
             val clampedPitch = pitch.coerceIn(-maxTilt, maxTilt)
             val shiftX = -clampedRoll / maxTilt * maxShift
             val shiftY = clampedPitch / maxTilt * maxShift
+
+            // Low-pass filter for smoothing
+            lastShiftX += (shiftX - lastShiftX) * smoothing
+            lastShiftY += (shiftY - lastShiftY) * smoothing
+            lastPitch += (clampedPitch - lastPitch) * smoothing
+            lastRoll += (clampedRoll - lastRoll) * smoothing
+
             val bgView = view?.findViewById<View>(R.id.holoCardBg)
             val cardView = profileCard
             if (bgView != null && cardView != null) {
                 val maxX = ((bgView.width - cardView.width) / 2).toFloat().coerceAtLeast(0f)
                 val maxY = ((bgView.height - cardView.height) / 2).toFloat().coerceAtLeast(0f)
-                bgView.translationX = shiftX.coerceIn(-maxX, maxX)
-                bgView.translationY = shiftY.coerceIn(-maxY, maxY)
-                // 3D tilt for extra holo effect
-                bgView.rotationX = clampedPitch
-                bgView.rotationY = -clampedRoll
+                // Animate background
+                bgView.animate()
+                    .translationX(lastShiftX.coerceIn(-maxX, maxX))
+                    .translationY(lastShiftY.coerceIn(-maxY, maxY))
+                    .rotationX(lastPitch)
+                    .rotationY(-lastRoll)
+                    .setDuration(80)
+                    .start()
+                // Animate card for subtle tilt
+                cardView.animate()
+                    .rotationX(lastPitch * cardTiltFactor)
+                    .rotationY(-lastRoll * cardTiltFactor)
+                    .setDuration(80)
+                    .start()
                 // Debug log
-                Log.d("HoloGyro", "shiftX=$shiftX shiftY=$shiftY rotX=$clampedPitch rotY=$clampedRoll maxX=$maxX maxY=$maxY")
+                Log.d("HoloGyro", "shiftX=$lastShiftX shiftY=$lastShiftY rotX=$lastPitch rotY=$lastRoll maxX=$maxX maxY=$maxY")
             }
         }
     }
