@@ -36,6 +36,7 @@ class CoinFlipFragment : BaseGameFragment() {
         coinflipCoin = view.findViewById<ImageButton>(R.id.coinButton)
         coinflipCoin.setOnClickListener {
             startAnimation()
+            coinflipCoin.setOnClickListener(null)
         }
 
         return view
