@@ -130,12 +130,12 @@ public class NullExample {
             <buggedCode>
 SELECT orders.order_id, customers.customer_name
 FROM orders
-JOIN customers ON orders.customer_id = customers.customer_id;
+JOIN customers ON orders.customer_id = orders.customer_id;
             </buggedCode>
             <correctedCode>
 SELECT orders.order_id, customers.customer_name
 FROM orders
-JOIN customers ON orders.customer_id = orders.customer_id;
+JOIN customers ON orders.customer_id = customers.customer_id;
             </correctedCode>
         </challenge>
         <challenge>

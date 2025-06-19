@@ -1,7 +1,7 @@
 package com.nhlstenden.appdev.features.casino
 
 enum class CasinoTypes {
-    PLINKO,
+    HORSE_RACES,
     COINFLIP,
     WHEEL_OF_FORTUNE
 }

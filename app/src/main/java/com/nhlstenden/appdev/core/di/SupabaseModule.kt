@@ -87,4 +87,8 @@ object SupabaseModule {
     @Provides
     @Singleton
     fun provideTaskParser(@ApplicationContext context: Context): TaskParser = TaskParser(context)
+
+    @Provides
+    @Singleton
+    fun provideStreakManager(): com.nhlstenden.appdev.features.home.StreakManager = com.nhlstenden.appdev.features.home.StreakManager()
 } 

@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.daimajia.numberprogressbar.NumberProgressBar
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.features.courses.model.Course
+import com.nhlstenden.appdev.core.utils.ProgressCalculator
 
 class CourseAdapter(
     private val onClick: (Course) -> Unit
@@ -39,7 +40,7 @@ class CourseAdapter(
             val stars = "★".repeat(course.difficulty) + "☆".repeat(5 - course.difficulty)
             difficultyLevel.text = stars
             courseImage.setImageResource(course.imageResId)
-            progressBar.progress = if (course.totalTasks > 0) ((course.progress.toFloat() / course.totalTasks) * 100).toInt() else 0
+            progressBar.progress = ProgressCalculator.calculatePercentage(course.progress, course.totalTasks)
             itemView.setOnClickListener { onClick(course) }
         }
     }

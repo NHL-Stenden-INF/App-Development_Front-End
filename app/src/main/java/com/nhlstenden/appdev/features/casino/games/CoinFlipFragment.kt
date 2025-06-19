@@ -2,17 +2,77 @@ package com.nhlstenden.appdev.features.casino.games
 
 import com.nhlstenden.appdev.R
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
+import android.widget.ImageButton
+import android.widget.Toast
+import dagger.hilt.android.AndroidEntryPoint
+import kotlin.random.Random
 
-class CoinFlipFragment : Fragment() {
+@AndroidEntryPoint
+class CoinFlipFragment : BaseGameFragment() {
+    private lateinit var coinflipCoin: ImageButton
+    private val frames = listOf(
+        R.drawable.coin_head,
+        R.drawable.coin_side,
+        R.drawable.coin_tail,
+        R.drawable.coin_side
+    )
+    private var currentFrame = 0
+    private var frameDuration = 5L
+    private val handler = Handler(Looper.getMainLooper())
+    private var iterations = 0
+    private val maxIterations = Random.nextInt(25, 35)
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(R.layout.fragment_casino_coin_flip, container, false)
+        val view = inflater.inflate(R.layout.fragment_casino_coin_flip, container, false)
+        coinflipCoin = view.findViewById<ImageButton>(R.id.coinButton)
+        coinflipCoin.setOnClickListener {
+            startAnimation()
+            coinflipCoin.setOnClickListener(null)
+        }
+
+        return view
+    }
+
+    private val frameRunnable = object : Runnable {
+        override fun run() {
+            if (iterations >= maxIterations) {
+                if (frames[currentFrame] == R.drawable.coin_side) {
+                    frameDuration = Random.nextLong(2500, 5000)
+                } else {
+                    coinflipCoin.setImageResource(frames[currentFrame])
+                    val hasWonTheGame = frames[currentFrame] == R.drawable.coin_head
+
+                    Toast.makeText(context, "You've ${if (hasWonTheGame) "won" else "lost"} the game!", Toast.LENGTH_SHORT).show()
+
+                    val rewardedPoints: Int = if (hasWonTheGame) {
+                        viewModel.gamePoint.value!! * 2
+                    } else {
+                        viewModel.gamePoint.value!! / 2
+                    }
+                    return finishGame(rewardedPoints)
+                }
+            }
+            coinflipCoin.setImageResource(frames[currentFrame])
+            currentFrame = (currentFrame + 1) % frames.size
+
+            if (frameDuration <= 300) {
+                frameDuration += Random.nextInt(5, 10)
+            }
+            iterations++
+            handler.postDelayed(this, frameDuration)
+        }
+    }
+
+    private fun startAnimation() {
+        handler.postDelayed(frameRunnable, frameDuration)
     }
 }

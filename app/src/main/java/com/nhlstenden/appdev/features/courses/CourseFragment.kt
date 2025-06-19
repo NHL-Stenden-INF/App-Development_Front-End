@@ -225,6 +225,9 @@ class CourseFragment : Fragment() {
                     "html" -> R.raw.html_themesong
                     "css" -> R.raw.css_themesong
                     "sql" -> R.raw.sql_themesong
+                    "java" -> R.raw.java_themesong
+                    "javascript" -> R.raw.javascript_themesong
+                    "python" -> R.raw.python_themesong
                     else -> R.raw.default_themesong
                 }
                 Log.d("CourseFragment", "Using music resource ID: $musicResId")
@@ -400,6 +403,12 @@ class CourseFragment : Fragment() {
             private val difficultyText: TextView = itemView.findViewById(R.id.difficultyLevel)
             private val progressBar: NumberProgressBar = itemView.findViewById(R.id.progressBar)
             private val lockIcon: ImageView = itemView.findViewById(R.id.lockIcon)
+            private val courseImage: ImageView = itemView.findViewById(R.id.courseImage)
+            
+            init {
+                // Hide the course image for task cards
+                courseImage.visibility = View.GONE
+            }
 
             fun bind(task: Task) {
                 titleText.text = task.title

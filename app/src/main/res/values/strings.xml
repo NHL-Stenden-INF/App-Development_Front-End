@@ -62,7 +62,7 @@
 
     <!-- Daily Challenge   -->
     <string name="daily_challenge_home_title">Fix the bug</string>
-    <string name="daily_challenge_home_subtitle">Complete today\'s challenge and win 300 points!</string>
+    <string name="daily_challenge_home_subtitle">Complete today\'s challenge and win points!</string>
     <string name="daily_challenge_start">Start Challenge</string>
     <string name="daily_challenge_home_subtitle_completed">You\'ve already done today\'s challenge, try again tomorrow</string>
     <string name="daily_challenge_activity_title" formatted="false">Fix The bug; %s</string>
