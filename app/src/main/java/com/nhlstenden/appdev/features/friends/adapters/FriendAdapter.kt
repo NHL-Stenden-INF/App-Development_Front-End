@@ -84,12 +84,12 @@ class FriendAdapter(
             binding.root.setOnClickListener { onFriendClick(friend) }
         }
 
-        fun getImageResource(maskId: Int): Int {
+        fun getImageResource(maskId: String): Int {
             return when(maskId) {
-                0 -> R.drawable.profile_mask_circle
-                1 -> R.drawable.profile_mask_square
-                2 -> R.drawable.profile_mask_cross
-                3 -> R.drawable.profile_mask_triangle
+                "circle" -> R.drawable.profile_mask_circle
+                "square" -> R.drawable.profile_mask_square
+                "cross" -> R.drawable.profile_mask_cross
+                "triangle" -> R.drawable.profile_mask_triangle
                 else -> R.drawable.profile_mask_circle
             }
         }

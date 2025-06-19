@@ -116,7 +116,7 @@ class FriendsRepositoryImpl @Inject constructor(
                     currentLevelProgress = currentLevelProgress,
                     currentLevelMax = currentLevelMax,
                     lastActive = System.currentTimeMillis(),
-                    profileMask = friendObj.optInt("friend_mask", 0),
+                    profileMask = friendObj.optString("friend_mask", "circle"),
                 )
                 friends.add(friend)
             }

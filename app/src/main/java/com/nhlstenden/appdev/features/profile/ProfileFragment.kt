@@ -2,8 +2,6 @@ package com.nhlstenden.appdev.features.profile
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
@@ -14,41 +12,32 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.GridLayoutManager
 import com.bumptech.glide.Glide
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.FragmentProfileBinding
 import com.nhlstenden.appdev.features.login.screens.LoginActivity
 import com.nhlstenden.appdev.features.profile.adapters.AchievementAdapter
-import com.nhlstenden.appdev.core.models.Profile
-import com.nhlstenden.appdev.features.profile.repositories.ProfileRepositoryImpl
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel.ProfileState
-import com.nhlstenden.appdev.shared.components.ImageCropActivity
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.shared.ui.base.BaseFragment
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.FileOutputStream
 import android.app.AlertDialog
 import android.widget.EditText
 import com.yalantis.ucrop.UCrop
 import android.Manifest
 import android.content.pm.PackageManager
-import androidx.core.app.ActivityCompat
 import javax.inject.Inject
 import com.google.android.material.switchmaterial.SwitchMaterial
 import android.widget.TextView
-import android.widget.ProgressBar
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.widget.RadioButton
 import android.widget.RadioGroup
@@ -61,6 +50,8 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.content.Context
 import android.util.Log
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.core.repositories.SettingsRepository
@@ -145,6 +136,27 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
 
         binding.root.findViewById<ImageView>(R.id.cameraOverlay).setOnClickListener {
             showImageSourceDialog()
+        }
+
+        val profileMaskSelector = binding.profileMaskSelector
+        ArrayAdapter.createFromResource(
+            requireContext(),
+            R.array.mask_types,
+            android.R.layout.simple_spinner_item
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            profileMaskSelector.adapter = adapter
+        }
+
+        profileMaskSelector.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val selectedItem = parent?.getItemAtPosition(position).toString()
+                Log.d("ProfileFragment", "Selected: $selectedItem")
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+
+            }
         }
     }
     
