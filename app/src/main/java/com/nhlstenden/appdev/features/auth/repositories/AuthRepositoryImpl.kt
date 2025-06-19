@@ -52,15 +52,23 @@ class AuthRepositoryImpl @Inject constructor(
     
     override suspend fun login(email: String, password: String): Result<User> {
         val tokenResult = supabaseClient.login(email, password)
+
         if (tokenResult.isFailure) {
             val error = tokenResult.exceptionOrNull() ?: Exception("Unknown login error")
             Log.e(TAG, "Login failed", error)
             return Result.failure(error)
         }
+
         val accessToken = tokenResult.getOrThrow()
+        val profileResult = supabaseClient.fetchProfileOrCreate(accessToken, "", email)
+
+        if (profileResult.isFailure) {
+            return Result.failure(profileResult.exceptionOrNull()!!)
+        }
+
+        val profile = profileResult.getOrThrow()
 
         return try {
-            val profile = supabaseClient.fetchProfileOrCreate(accessToken, "", email)
             // Fetch user attributes for any future needs
             supabaseClient.fetchUserAttributesOrCreate(accessToken)
             
@@ -86,17 +94,24 @@ class AuthRepositoryImpl @Inject constructor(
     
     override suspend fun register(email: String, password: String, displayName: String): Result<User> {
         val tokenResult = supabaseClient.register(email, password, displayName)
+
         if (tokenResult.isFailure) {
             val error = tokenResult.exceptionOrNull() ?: Exception("Unknown register error")
             Log.e(TAG, "Registration failed", error)
         }
+
         val accessToken = tokenResult.getOrThrow()
+        val profileResult = supabaseClient.fetchProfileOrCreate(accessToken, displayName, email)
+
+        if (profileResult.isFailure) {
+            return Result.failure(profileResult.exceptionOrNull()!!)
+        }
+
+        val profile = profileResult.getOrThrow()
 
         return try {
-            val profile = supabaseClient.fetchProfileOrCreate(accessToken, displayName, email)
             // Fetch user attributes for any future needs
             supabaseClient.fetchUserAttributesOrCreate(accessToken)
-            
             val user = User(
                 id = profile.getString("id"),
                 email = email, // Use the email from register parameters
@@ -141,7 +156,13 @@ class AuthRepositoryImpl @Inject constructor(
         val currentUser = _currentUser.value ?: return Result.failure(Exception("No user logged in"))
         
         return try {
-            val profile = supabaseClient.fetchProfileOrCreate(currentUser.authToken, currentUser.username, currentUser.email)
+            val profileResult = supabaseClient.fetchProfileOrCreate(currentUser.authToken, currentUser.username, currentUser.email)
+
+            if (profileResult.isFailure) {
+                return Result.failure(profileResult.exceptionOrNull() ?: Exception("Failed to fetch profile"))
+            }
+
+            val profile = profileResult.getOrThrow()
             // Fetch user attributes for any future needs
             supabaseClient.fetchUserAttributesOrCreate(currentUser.authToken)
             

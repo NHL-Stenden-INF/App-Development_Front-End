@@ -25,10 +25,14 @@ class RewardsRepositoryImpl @Inject constructor(
             val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not authenticated"))
                 
-            val response = withContext(Dispatchers.IO) {
-                supabaseClient.getUserUnlockedRewards(currentUser.id, currentUser.authToken)
+            val responseResult = withContext(Dispatchers.IO) { supabaseClient.getUserUnlockedRewards(currentUser.id, currentUser.authToken) }
+
+            if (responseResult.isFailure) {
+                Log.e(TAG, "Network error while fetching unlocked rewards", responseResult.exceptionOrNull())
             }
-            
+
+            val response = responseResult.getOrThrow()
+
             if (response.isSuccessful) {
                 val body = response.body?.string()
                 if (!body.isNullOrEmpty()) {

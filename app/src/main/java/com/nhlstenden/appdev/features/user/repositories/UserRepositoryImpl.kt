@@ -39,7 +39,14 @@ class UserRepositoryImpl @Inject constructor(
             val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not authenticated"))
                 
-            val response = supabaseClient.getUserAttributes(userId, currentUser.authToken)
+            val responseResult = supabaseClient.getUserAttributes(userId, currentUser.authToken)
+
+            if (responseResult.isFailure) {
+                val ex = responseResult.exceptionOrNull() ?: Exception("Failed to fetch user attributes")
+                return Result.failure(ex)
+            }
+            
+            val response = responseResult.getOrThrow()
             
             if (response.isSuccessful) {
                 val body = response.body?.string()
@@ -73,7 +80,11 @@ class UserRepositoryImpl @Inject constructor(
             val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not authenticated"))
                 
-            val response = supabaseClient.updateUserPoints(userId, points, currentUser.authToken)
+            val responseResult = supabaseClient.updateUserPoints(userId, points, currentUser.authToken)
+
+            if (responseResult.isFailure) return Result.failure(responseResult.exceptionOrNull()!!)
+
+            val response = responseResult.getOrThrow()
             
             if (response.isSuccessful) {
                 Log.d(TAG, "User points updated successfully")
@@ -96,7 +107,11 @@ class UserRepositoryImpl @Inject constructor(
             val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not authenticated"))
                 
-            val response = supabaseClient.updateUserXp(userId, xp.toInt(), currentUser.authToken)
+            val responseResult = supabaseClient.updateUserXp(userId, xp.toInt(), currentUser.authToken)
+
+            if (responseResult.isFailure) return Result.failure(responseResult.exceptionOrNull()!!)
+
+            val response = responseResult.getOrThrow()
             
             if (response.isSuccessful) {
                 Log.d(TAG, "User XP updated successfully")
@@ -115,7 +130,11 @@ class UserRepositoryImpl @Inject constructor(
             val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not authenticated"))
                 
-            val response = supabaseClient.updateUserBellPeppers(userId, bellPeppers, currentUser.authToken)
+            val responseResult = supabaseClient.updateUserBellPeppers(userId, bellPeppers, currentUser.authToken)
+
+            if (responseResult.isFailure) return Result.failure(responseResult.exceptionOrNull()!!)
+
+            val response = responseResult.getOrThrow()
             
             if (response.isSuccessful) {
                 Log.d(TAG, "User bell peppers updated successfully")
@@ -138,7 +157,11 @@ class UserRepositoryImpl @Inject constructor(
             val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not authenticated"))
                 
-            val response = supabaseClient.updateUserStreak(userId, streak, currentUser.authToken)
+            val responseResult = supabaseClient.updateUserStreak(userId, streak, currentUser.authToken)
+
+            if (responseResult.isFailure) return Result.failure(responseResult.exceptionOrNull()!!)
+
+            val response = responseResult.getOrThrow()
             
             if (response.isSuccessful) {
                 Log.d(TAG, "User streak updated successfully")
@@ -157,7 +180,11 @@ class UserRepositoryImpl @Inject constructor(
             val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not authenticated"))
                 
-            val response = supabaseClient.updateUserLastTaskDate(userId, date, currentUser.authToken)
+            val responseResult = supabaseClient.updateUserLastTaskDate(userId, date, currentUser.authToken)
+
+            if (responseResult.isFailure) return Result.failure(responseResult.exceptionOrNull()!!)
+
+            val response = responseResult.getOrThrow()
             
             if (response.isSuccessful) {
                 Log.d(TAG, "User last task date updated successfully")
@@ -176,7 +203,11 @@ class UserRepositoryImpl @Inject constructor(
             val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not authenticated"))
                 
-            val response = supabaseClient.updateUserOpenedDaily(userId, date, currentUser.authToken)
+            val responseResult = supabaseClient.updateUserOpenedDaily(userId, date, currentUser.authToken)
+
+            if (responseResult.isFailure) return Result.failure(responseResult.exceptionOrNull()!!)
+
+            val response = responseResult.getOrThrow()
             
             if (response.isSuccessful) {
                 Log.d(TAG, "User opened daily updated successfully")

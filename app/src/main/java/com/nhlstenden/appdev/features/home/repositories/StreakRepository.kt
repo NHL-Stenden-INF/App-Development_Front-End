@@ -13,7 +13,12 @@ class StreakRepository @Inject constructor(
 ) {
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun getLastTaskDate(userId: String, authToken: String): LocalDate? {
-        val response = supabaseClient.getUserAttributes(userId, authToken)
+        val responseResult = supabaseClient.getUserAttributes(userId, authToken)
+
+        if (responseResult.isFailure) return null
+
+        val response = responseResult.getOrThrow()
+
         if (response.code == 200) {
             val responseBody = response.body?.string()
             val userData = org.json.JSONArray(responseBody).getJSONObject(0)
@@ -27,26 +32,37 @@ class StreakRepository @Inject constructor(
                 }
             } else null
         }
+
         return null
     }
 
     suspend fun getCurrentStreak(userId: String, authToken: String): Int {
-        val response = supabaseClient.getUserAttributes(userId, authToken)
+        val responseResult = supabaseClient.getUserAttributes(userId, authToken)
+
+        if (responseResult.isFailure) return 0
+
+        val response = responseResult.getOrThrow()
+
         if (response.code == 200) {
             val responseBody = response.body?.string()
             val userData = org.json.JSONArray(responseBody).getJSONObject(0)
             return userData.optInt("streak", 0)
         }
+
         return 0
     }
 
     suspend fun updateLastTaskDate(userId: String, date: LocalDate, authToken: String): Boolean {
-        val response = supabaseClient.updateUserLastTaskDate(userId, date.toString(), authToken)
+        val responseResult = supabaseClient.updateUserLastTaskDate(userId, date.toString(), authToken)
+        if (responseResult.isFailure) return false
+        val response = responseResult.getOrThrow()
         return response.code == 200 || response.code == 204
     }
 
     suspend fun updateStreak(userId: String, streak: Int, authToken: String): Boolean {
-        val response = supabaseClient.updateUserStreak(userId, streak, authToken)
+        val responseResult = supabaseClient.updateUserStreak(userId, streak, authToken)
+        if (responseResult.isFailure) return false
+        val response = responseResult.getOrThrow()
         return response.code == 200 || response.code == 204
     }
 }

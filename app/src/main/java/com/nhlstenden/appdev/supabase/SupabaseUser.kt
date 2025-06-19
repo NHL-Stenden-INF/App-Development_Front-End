@@ -12,6 +12,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import org.json.JSONArray
 import org.json.JSONObject
 import com.nhlstenden.appdev.core.utils.UserManager
+import kotlin.contracts.Returns
 import kotlin.math.E
 
 private val TAG = "SupabaseUser"
@@ -379,8 +380,9 @@ suspend fun SupabaseClient.getProfileForCurrentUser(): Result<JSONObject> {
 suspend fun SupabaseClient.getUserAttributesForCurrentUser(): Result<JSONObject> {
     return try {
         val user = UserManager.getCurrentUser() ?: throw IllegalStateException("No user logged in")
+        val userAttributes = fetchUserAttributes(user.authToken)
 
-        return fetchUserAttributes(user.authToken)
+        return userAttributes
     } catch (e: Exception) {
         Log.e(TAG, "Error with getting user attributes", e)
         Result.failure(e)
@@ -392,86 +394,124 @@ suspend fun SupabaseClient.updateProfileForCurrentUser(displayName: String? = nu
         val user = UserManager.getCurrentUser() ?: throw IllegalStateException("No user logged in")
         val profile = updateProfile(user.authToken, displayName, bio, profilePicture)
 
-        Result.success(profile)
+        return profile
     } catch (e: Exception) {
         Log.e(TAG, "Error with updating user profile")
         Result.failure(e)
     }
 }
 
-suspend fun SupabaseClient.updateProfilePictureForCurrentUser(profilePicture: String): Response {
-    val user = UserManager.getCurrentUser() ?: throw IllegalStateException("No user logged in")
-    return updateProfilePicture(user.id.toString(), profilePicture, user.authToken)
-}
+suspend fun SupabaseClient.updateProfilePictureForCurrentUser(profilePicture: String): Result<Response> {
+    return try {
+        val user = UserManager.getCurrentUser() ?: throw IllegalStateException("No user logged in")
+        val profile = updateProfilePicture(user.id.toString(), profilePicture, user.authToken)
 
-suspend fun SupabaseClient.getUserUnlockedRewardsForCurrentUser(): Response {
-    val user = UserManager.getCurrentUser() ?: throw IllegalStateException("No user logged in")
-    return getUserUnlockedRewards(user.id.toString(), user.authToken)
-}
-
-suspend fun SupabaseClient.updateProfile(
-    authToken: String,
-    displayName: String? = null,
-    bio: String? = null,
-    profilePicture: String? = null
-): JSONObject {
-    val userId = getUserIdFromToken(authToken).getOrThrow()
-
-    val updateJson = JSONObject()
-    displayName?.let { updateJson.put("display_name", it) }
-    bio?.let { updateJson.put("bio", it) }
-    profilePicture?.let { updateJson.put("profile_picture", it) }
-    updateJson.put("updated_at", "now()")
-
-    val requestBody = updateJson.toString().toRequestBody("application/json".toMediaType())
-    val request = Request.Builder()
-        .url("$supabaseUrl/rest/v1/profile?id=eq.$userId")
-        .patch(requestBody)
-        .addHeader("apikey", supabaseKey)
-        .addHeader("Authorization", "Bearer $authToken")
-        .addHeader("Content-Type", "application/json")
-        .addHeader("Prefer", "return=representation")
-        .build()
-
-    val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
-    if (!response.isSuccessful) {
-        val errorBody = response.body?.string()
-        Log.e("SupabaseClient", "Profile update failed with response: $errorBody")
-        throw RuntimeException(errorBody ?: "Profile update failed with code ${response.code}")
+        return profile
+    } catch (e: Exception) {
+        Log.e(TAG, "Error with updating profile picture for user", e)
+        Result.failure(e)
     }
-
-    val body = response.body?.string() ?: throw RuntimeException("No response body")
-    val arr = JSONArray(body)
-    if (arr.length() == 0) throw RuntimeException("Profile update failed")
-    return arr.getJSONObject(0)
 }
 
-fun SupabaseClient.updateUserLastTaskDate(userID: String, lastTaskDate: String, authToken: String): Response {
-    val url = "$supabaseUrl/rest/v1/user_attributes?id=eq.$userID"
-    val requestBody = JSONObject().apply { put("last_task_date", lastTaskDate) }.toString()
-
-    val request = Request.Builder()
-        .url(url)
-        .patch(requestBody.toRequestBody("application/json".toMediaType()))
-        .addHeader("apikey", supabaseKey)
-        .addHeader("Authorization", "Bearer $authToken")
-        .addHeader("Content-Type", "application/json")
-        .addHeader("Prefer", "return=representation")
-        .build()
-
-    return client.newCall(request).execute()
+suspend fun SupabaseClient.getUserUnlockedRewardsForCurrentUser(): Result<Response> {
+    return try {
+        val user = UserManager.getCurrentUser() ?: throw IllegalStateException("No user logged in")
+        return getUserUnlockedRewards(user.id.toString(), user.authToken)
+    } catch (e: Exception) {
+        Log.e(TAG, "Error with getting user unlocked rewards", e)
+        Result.failure(e)
+    }
 }
 
-fun SupabaseClient.updateUserStreak(userId: String, streak: Int, authToken: String): Response {
-    val json = """{"streak": $streak}"""
-    val requestBody = json.toRequestBody("application/json".toMediaType())
-    val request = Request.Builder()
-        .url("$supabaseUrl/rest/v1/user_attributes?id=eq.$userId")
-        .patch(requestBody)
-        .addHeader("apikey", supabaseKey)
-        .addHeader("Authorization", "Bearer $authToken")
-        .addHeader("Content-Type", "application/json")
-        .addHeader("Prefer", "return=minimal")
-        .build()
-    return client.newCall(request).execute()
+suspend fun SupabaseClient.updateProfile(authToken: String, displayName: String? = null, bio: String? = null, profilePicture: String? = null): Result<JSONObject> {
+    return try {
+        val userId = getUserIdFromToken(authToken).getOrThrow()
+        val updateJson = JSONObject()
+        displayName?.let { updateJson.put("display_name", it) }
+        bio?.let { updateJson.put("bio", it) }
+        profilePicture?.let { updateJson.put("profile_picture", it) }
+        updateJson.put("updated_at", "now()")
+
+        val requestBody = updateJson.toString().toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/profile?id=eq.$userId")
+            .patch(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=representation")
+            .build()
+
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
+
+        if (!response.isSuccessful) {
+            val errorBody = response.body?.string()
+            Log.e("SupabaseClient", "Profile update failed with response: $errorBody")
+            throw RuntimeException(errorBody ?: "Profile update failed with code ${response.code}")
+        }
+
+        val body = response.body?.string() ?: throw RuntimeException("No response body")
+        val arr = JSONArray(body)
+
+        if (arr.length() == 0) throw RuntimeException("Failed to update profile")
+
+        val profile = arr.getJSONObject(0)
+
+        Result.success(profile)
+    } catch (e: Exception) {
+        Log.e(TAG, "Error updating profile", e)
+        Result.failure(e)
+    }
+}
+
+fun SupabaseClient.updateUserLastTaskDate(userID: String, lastTaskDate: String, authToken: String): Result<Response> {
+    return try {
+        val url = "$supabaseUrl/rest/v1/user_attributes?id=eq.$userID"
+        val requestBody = JSONObject().apply { put("last_task_date", lastTaskDate) }.toString()
+        val request = Request.Builder()
+            .url(url)
+            .patch(requestBody.toRequestBody("application/json".toMediaType()))
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=representation")
+            .build()
+
+        val response = client.newCall(request).execute()
+
+        if (response.isSuccessful) {
+            Result.success(response)
+        } else {
+            Result.failure(Exception("Failed to update last task date: ${response.message}"))
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Error with updating last task date", e)
+        Result.failure(e)
+    }
+}
+
+fun SupabaseClient.updateUserStreak(userId: String, streak: Int, authToken: String): Result<Response> {
+    return try {
+        val json = """{"streak": $streak}"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/rest/v1/user_attributes?id=eq.$userId")
+            .patch(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Authorization", "Bearer $authToken")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Prefer", "return=minimal")
+            .build()
+
+        val response = client.newCall(request).execute()
+
+        if (response.isSuccessful) {
+            Result.success(response)
+        } else {
+            Result.failure(Exception("Failed to update user streak: ${response.message}"))
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Error updating user streak", e)
+        Result.failure(e)
+    }
 }

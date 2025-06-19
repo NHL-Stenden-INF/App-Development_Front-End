@@ -59,25 +59,38 @@ class ProfileRepositoryImpl @Inject constructor(
             // Use the base SupabaseClient methods with auth token instead of UserManager-dependent methods
             val profileJson: JSONObject
             val userAttributes: JSONObject
-            
-            try {
-                profileJson = supabaseClient.fetchProfileOrCreate(currentUser.authToken, "", currentUser.email)
-                userAttributes = supabaseClient.fetchUserAttributesOrCreate(currentUser.authToken)
-            } catch (e: RuntimeException) {
-                // Check if this is a JWT expiration error
-                if (e.message?.contains("JWT expired") == true) {
+
+            val profileResult = supabaseClient.fetchProfileOrCreate(currentUser.authToken, "", currentUser.email)
+
+            if (profileResult.isFailure) {
+                val ex = profileResult.exceptionOrNull()
+
+                if (ex?.message?.contains("JWT expired") == true) {
                     Log.w(TAG, "JWT expired during profile fetch")
                     authRepository.handleJWTExpiration()
-                    return Result.failure(Exception("Session expired. Please login again."))
-                } else {
-                    throw e
+                    return Result.failure(Exception("Session expired. Login again please"))
                 }
+
+                return Result.failure(ex ?: Exception("Failed to fetch profile"))
+            }
+
+            profileJson = profileResult.getOrThrow()
+
+            val attributeResult = supabaseClient.fetchUserAttributesOrCreate(currentUser.authToken)
+
+            if (attributeResult.isFailure) {
+                return Result.failure(attributeResult.exceptionOrNull() ?: Exception("Failed to fetch user attributes"))
+            }
+
+            userAttributes = attributeResult.getOrThrow()
+            val unlockedRewardsResult = withContext(Dispatchers.IO) { supabaseClient.getUserUnlockedRewards(currentUser.id, currentUser.authToken) }
+
+            if (unlockedRewardsResult.isFailure) {
+                Log.e(TAG, "Error fetching unlocked rewards", unlockedRewardsResult.exceptionOrNull())
             }
             
             // Fetch unlocked rewards
-            val unlockedRewardsResponse = withContext(Dispatchers.IO) {
-                supabaseClient.getUserUnlockedRewards(currentUser.id, currentUser.authToken)
-            }
+            val unlockedRewardsResponse = unlockedRewardsResult.getOrThrow()
             
             val unlockedRewardIds = mutableListOf<Int>()
             if (unlockedRewardsResponse.isSuccessful) {
