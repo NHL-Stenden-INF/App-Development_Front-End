@@ -225,6 +225,9 @@ class CourseFragment : Fragment() {
                     "html" -> R.raw.html_themesong
                     "css" -> R.raw.css_themesong
                     "sql" -> R.raw.sql_themesong
+                    "java" -> R.raw.java_themesong
+                    "javascript" -> R.raw.javascript_themesong
+                    "python" -> R.raw.python_themesong
                     else -> R.raw.default_themesong
                 }
                 Log.d("CourseFragment", "Using music resource ID: $musicResId")
