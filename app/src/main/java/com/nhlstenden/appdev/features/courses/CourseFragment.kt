@@ -403,6 +403,12 @@ class CourseFragment : Fragment() {
             private val difficultyText: TextView = itemView.findViewById(R.id.difficultyLevel)
             private val progressBar: NumberProgressBar = itemView.findViewById(R.id.progressBar)
             private val lockIcon: ImageView = itemView.findViewById(R.id.lockIcon)
+            private val courseImage: ImageView = itemView.findViewById(R.id.courseImage)
+            
+            init {
+                // Hide the course image for task cards
+                courseImage.visibility = View.GONE
+            }
 
             fun bind(task: Task) {
                 titleText.text = task.title
