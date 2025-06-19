@@ -7,7 +7,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
@@ -23,8 +22,8 @@ class CourseViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _selectedDifficulty = MutableStateFlow<String?>(null)
-    val selectedDifficulty: StateFlow<String?> = _selectedDifficulty.asStateFlow()
+    private val _selectedStars = MutableStateFlow<Int?>(null)
+    val selectedStars: StateFlow<Int?> = _selectedStars.asStateFlow()
 
     private val _filteredCourses = MutableStateFlow<List<Course>>(emptyList())
     val filteredCourses: StateFlow<List<Course>> = _filteredCourses.asStateFlow()
@@ -41,18 +40,15 @@ class CourseViewModel @Inject constructor(
             kotlinx.coroutines.flow.combine(
                 _courses,
                 _searchQuery,
-                _selectedDifficulty
-            ) { courses, query, difficulty ->
+                _selectedStars
+            ) { courses, query, stars ->
                 courses.filter { course ->
                     val matchesSearch = query.isEmpty() || 
-                        course.title.contains(query, ignoreCase = true) ||
-                        course.description.contains(query, ignoreCase = true) ||
-                        course.difficulty.contains(query, ignoreCase = true)
+                        course.title.contains(query, ignoreCase = true)
                     
-                    val matchesDifficulty = difficulty == null || 
-                        course.difficulty.equals(difficulty, ignoreCase = true)
+                    val matchesStars = stars == null || course.difficulty == stars
                     
-                    matchesSearch && matchesDifficulty
+                    matchesSearch && matchesStars
                 }
             }.collect { filtered ->
                 _filteredCourses.value = filtered
@@ -76,13 +72,13 @@ class CourseViewModel @Inject constructor(
         _searchQuery.value = query
     }
 
-    fun setDifficultyFilter(difficulty: String?) {
-        _selectedDifficulty.value = difficulty
+    fun setStarFilter(stars: Int?) {
+        _selectedStars.value = stars
     }
 
     fun clearFilters() {
         _searchQuery.value = ""
-        _selectedDifficulty.value = null
+        _selectedStars.value = null
     }
 
     fun loadTasks(courseId: String, user: User) {

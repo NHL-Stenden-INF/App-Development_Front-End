@@ -32,7 +32,7 @@
                 android:id="@+id/searchEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Search courses or difficulty"
+                android:hint="Search courses"
                 android:inputType="text"
                 android:maxLines="1"
                 android:minHeight="48dp"

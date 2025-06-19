@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which keyword is used to create a new class in Java?</question_text>
+        <option correct="true">class</option>
+        <option correct="false">object</option>
+        <option correct="false">new</option>
+        <option correct="false">create</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is inheritance in Java?</question_text>
+        <option correct="true">A mechanism where one class acquires properties of another class</option>
+        <option correct="false">A way to create multiple objects</option>
+        <option correct="false">A method to handle exceptions</option>
+        <option correct="false">A type of loop structure</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which access modifier makes a member accessible only within the same class?</question_text>
+        <option correct="true">private</option>
+        <option correct="false">public</option>
+        <option correct="false">protected</option>
+        <option correct="false">default</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is polymorphism in Java?</question_text>
+        <option correct="true">The ability of an object to take many forms</option>
+        <option correct="false">Creating multiple classes</option>
+        <option correct="false">Using multiple inheritance</option>
+        <option correct="false">Declaring multiple variables</option>
+    </multiple_choice_question>
+</questions> 

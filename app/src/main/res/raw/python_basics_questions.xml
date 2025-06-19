@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which of the following is the correct way to create a comment in Python?</question_text>
+        <option correct="true"># This is a comment</option>
+        <option correct="false">// This is a comment</option>
+        <option correct="false">/* This is a comment */</option>
+        <option correct="false">&lt;!-- This is a comment --&gt;</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is the output of print(type(5))?</question_text>
+        <option correct="true">&lt;class 'int'&gt;</option>
+        <option correct="false">&lt;class 'number'&gt;</option>
+        <option correct="false">&lt;class 'integer'&gt;</option>
+        <option correct="false">&lt;class 'float'&gt;</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>How do you create a string in Python?</question_text>
+        <option correct="true">"Hello World" or 'Hello World'</option>
+        <option correct="false">string("Hello World")</option>
+        <option correct="false">String "Hello World"</option>
+        <option correct="false">text("Hello World")</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which operator is used for exponentiation in Python?</question_text>
+        <option correct="true">**</option>
+        <option correct="false">^</option>
+        <option correct="false">pow</option>
+        <option correct="false">exp</option>
+    </multiple_choice_question>
+</questions> 

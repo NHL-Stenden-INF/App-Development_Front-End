@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE tasks SYSTEM "tasks.dtd">
+<tasks>
+    <task>
+        <title>JavaScript Basics</title>
+        <difficulty>Beginner</difficulty>
+        <description>Learn JavaScript fundamentals, variables, and data types</description>
+    </task>
+    <task>
+        <title>DOM Manipulation</title>
+        <difficulty>Intermediate</difficulty>
+        <description>Learn to manipulate HTML elements with JavaScript</description>
+    </task>
+    <task>
+        <title>Functions and Scope</title>
+        <difficulty>Intermediate</difficulty>
+        <description>Master JavaScript functions, closures, and scope</description>
+    </task>
+    <task>
+        <title>ES6 Features</title>
+        <difficulty>Advanced</difficulty>
+        <description>Explore modern JavaScript features like arrow functions, promises, and async/await</description>
+    </task>
+</tasks> 

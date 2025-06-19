@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE tasks SYSTEM "tasks.dtd">
+<tasks>
+    <task>
+        <title>Java Fundamentals</title>
+        <difficulty>Beginner</difficulty>
+        <description>Learn Java syntax, variables, data types, and basic programming concepts</description>
+    </task>
+    <task>
+        <title>Object Oriented Programming</title>
+        <difficulty>Intermediate</difficulty>
+        <description>Master classes, objects, inheritance, polymorphism, and encapsulation</description>
+    </task>
+    <task>
+        <title>Collections and Generics</title>
+        <difficulty>Intermediate</difficulty>
+        <description>Explore Java collections framework, generics, and data structures</description>
+    </task>
+    <task>
+        <title>Exception Handling</title>
+        <difficulty>Advanced</difficulty>
+        <description>Learn try-catch blocks, custom exceptions, and error handling best practices</description>
+    </task>
+</tasks> 

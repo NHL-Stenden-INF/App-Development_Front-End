@@ -79,6 +79,18 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppdevNHL.NoActionBar" />
 
+        <activity
+            android:name=".features.casino.CasinoActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppdevNHL.NoActionBar" />
+
+        <activity
+            android:name=".features.home.DailyChallengeActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppdevNHL.NoActionBar"/>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.nhlstenden.appdev.provider"

@@ -123,88 +123,15 @@ A modern Android learning application built with Kotlin, featuring course manage
 ./gradlew dokkaHtml
 ```
 
-## 🏗 Recent Major Updates
-
-### Authentication & Security Enhancements (Latest)
-- **JWT Expiration Handling**: Automatic detection and graceful redirect to login
-- **SplashActivity Improvements**: Pre-validation of authentication status
-- **Enhanced Security**: Proper token validation across all repositories
-- **Session Management**: Automatic cleanup of expired sessions
-
-### UI/UX Improvements
-- **Course Navigation Fix**: Consistent progress display across all entry points
-- **Bell Pepper Visual Updates**: Real-time UI refresh after purchases
-- **Profile Updates**: Immediate visual feedback for all profile changes
-- **Loading States**: Improved loading indicators and error handling
-
-### Code Quality
-- **Comment Standardization**: Professional-level documentation for 2nd year students
-- **Architecture Refinement**: Enhanced SOLID and DRY principles implementation
-- **Error Handling**: Comprehensive error management across all layers
-
 ## 📚 Documentation
 
 ### Development Documentation
-- [📋 Architecture Overview](docs/ARCHITECTURE.md) - System design and patterns
-- [📦 Libraries & Dependencies](docs/LIBRARIES.md) - Complete dependency list
 - [🎨 Code Conventions](docs/CODE_CONVENTIONS.md) - Coding standards and naming
 - [🤝 Contributing Guide](docs/CONTRIBUTING.md) - Development workflow
-
-### Feature Documentation
-- **Authentication Flow**: JWT-based login with automatic session management
-- **Course System**: Hierarchical course structure with progress tracking
-- **Social Features**: Friend management and progress sharing
-- **Rewards System**: Gamification elements and achievement tracking
-
-## 🧪 Testing
-
-The application includes comprehensive testing coverage:
-
-### Test Types
-- **Unit Tests**: ViewModel logic, repositories, use cases
-- **Integration Tests**: Data flow and repository interactions
-- **UI Tests**: User interface and navigation flows
-- **Authentication Tests**: Login/logout and session management
-
-### Running Tests
-```bash
-# Run all tests
-./gradlew test
-
-# Run specific test suite
-./gradlew testDebugUnitTest
-
-# UI tests (requires connected device/emulator)
-./gradlew connectedAndroidTest
-```
-
-## 🚦 Current Status
-
-### ✅ Implemented Features
-- Complete authentication system with JWT handling
-- Full course management with progress tracking
-- Social features (friends, profiles, sharing)
-- Rewards and gamification system
-- Real-time UI updates for all user actions
-- Comprehensive error handling and validation
-
-### 🔄 Recent Fixes
-- Course navigation consistency across all screens
-- Bell pepper purchase visual feedback
-- JWT expiration graceful handling
-- Profile picture update synchronization
-- Comment cleanup and documentation standardization
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- **Android Jetpack**: Modern Android development components
-- **Material Design**: Google's design system for beautiful UIs
-- **Kotlin Community**: Excellent language support and ecosystem
-- **Open Source Libraries**: All the amazing libraries that make this possible
-- **NHL Stenden**: Educational institution supporting this project
 
 

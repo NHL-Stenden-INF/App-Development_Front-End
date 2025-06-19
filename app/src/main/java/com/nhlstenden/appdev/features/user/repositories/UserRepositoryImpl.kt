@@ -1,6 +1,8 @@
 package com.nhlstenden.appdev.features.user.repositories
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.supabase.SupabaseClient
@@ -184,6 +186,29 @@ class UserRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error updating user opened daily", e)
+            Result.failure(e)
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    override suspend fun updateUserDailyChallenge(userId: String): Result<Unit> {
+        return try {
+            val currentUser = authRepository.getCurrentUserSync()
+                ?: return Result.failure(Exception("User not authenticated"))
+
+            Log.d(TAG, "Updating daily challenge")
+
+            val response = supabaseClient.updateUserDailyChallenge(userId, currentUser.authToken)
+
+            if (response.isSuccessful) {
+                Log.d(TAG, "User daily challenge updated successfully")
+                Result.success(Unit)
+            } else {
+                Log.d(TAG, "Failed to update daily chalenge: ${response.body?.toString()}")
+                Result.failure(Exception("Failed to update daily challenge: ${response.code}"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating daily challenge", e)
             Result.failure(e)
         }
     }

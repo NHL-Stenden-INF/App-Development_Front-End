@@ -37,7 +37,7 @@
             android:id="@+id/dailyChallengeTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Fix the bug"
+            android:text="@string/daily_challenge_home_title"
             android:textColor="#FFFFFF"
             android:textStyle="bold"
             android:textSize="20sp"
@@ -51,20 +51,20 @@
             android:id="@+id/dailyChallengeSubtitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Complete today's challenge"
+            android:layout_marginTop="6dp"
+            android:text="@string/daily_challenge_home_subtitle"
             android:textColor="#E0E7FF"
             android:textSize="15sp"
-            app:layout_constraintTop_toBottomOf="@id/dailyChallengeTitle"
-            app:layout_constraintStart_toStartOf="@id/dailyChallengeTitle"
             app:layout_constraintEnd_toEndOf="@id/dailyChallengeTitle"
-            android:layout_marginTop="6dp" />
+            app:layout_constraintStart_toStartOf="@id/dailyChallengeTitle"
+            app:layout_constraintTop_toBottomOf="@id/dailyChallengeTitle" />
 
         <!-- Start Challenge Button -->
         <Button
             android:id="@+id/dailyChallengeButton"
             android:layout_width="0dp"
             android:layout_height="48dp"
-            android:text="Start Challenge"
+            android:text="@string/daily_challenge_start"
             android:textAllCaps="false"
             android:textColor="#3B82F6"
             android:backgroundTint="#FFFFFF"

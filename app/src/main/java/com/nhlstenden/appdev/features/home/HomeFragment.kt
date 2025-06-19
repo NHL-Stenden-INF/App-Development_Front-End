@@ -16,11 +16,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager2.widget.ViewPager2
-import com.nhlstenden.appdev.features.profile.ProfileFragment
 import com.nhlstenden.appdev.R
 import android.app.AlertDialog
-import android.app.Application
+import android.content.Intent
 import android.os.Build
 import android.widget.EditText
 import androidx.annotation.RequiresApi
@@ -29,29 +27,28 @@ import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel.Profil
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
-import com.bumptech.glide.Glide
-import com.google.android.material.progressindicator.LinearProgressIndicator
-import com.nhlstenden.appdev.features.home.StreakManager
 import com.nhlstenden.appdev.features.rewards.AchievementManager
 import java.time.LocalDate
 import android.util.Log
+import android.widget.Button
 import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.time.temporal.ChronoUnit
-import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import com.daimajia.numberprogressbar.NumberProgressBar
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.core.utils.NavigationManager
-import java.io.File
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.runBlocking
 import android.widget.Toast
+import com.bumptech.glide.Glide
 import com.nhlstenden.appdev.features.task.BuyBellPepperDialogFragment
 import com.nhlstenden.appdev.utils.LevelCalculator
+import com.nhlstenden.appdev.core.repositories.FriendsRepository
+import com.nhlstenden.appdev.supabase.SupabaseClient
 
 // Data class for course info
 data class HomeCourse(
@@ -106,6 +103,7 @@ class HomeFragment : Fragment() {
     @Inject lateinit var authRepository: AuthRepository
     @Inject lateinit var userRepository: UserRepository
     @Inject lateinit var courseRepositoryImpl: CourseRepositoryImpl
+    @Inject lateinit var friendsRepository: FriendsRepository
     private val profileViewModel: ProfileViewModel by viewModels()
     private var displayNameDialogShown = false
 
@@ -137,7 +135,9 @@ class HomeFragment : Fragment() {
         }
         observeViewModel()
         dayCounter(view)
-        
+        updateMotivationalMessage(view)
+        setupDailyChallenge(view)
+
         parentFragmentManager.setFragmentResultListener("profile_picture_updated", viewLifecycleOwner) { _, bundle ->
             if (bundle.getBoolean("updated", false)) {
                 profileViewModel.loadProfile()
@@ -149,7 +149,9 @@ class HomeFragment : Fragment() {
         super.onResume()
         setupUI(requireView())
         dayCounter(requireView())
-        
+        updateMotivationalMessage(requireView())
+        setupDailyChallenge(requireView())
+
         val userData = authRepository.getCurrentUserSync()
         if (userData != null) {
             setupContinueLearning(userData)
@@ -365,6 +367,8 @@ class HomeFragment : Fragment() {
                             accentColor = ContextCompat.getColor(requireContext(), R.color.colorAccent)
                         )
                     }
+                    .sortedByDescending { it.progressPercent } // Sort by progress percentage (highest to lowest)
+                    .take(3) // Take only the top 3 courses
                     
                     val adapter = HomeCourseAdapter(homeCourses, this@HomeFragment)
                     continueLearningRecyclerView.adapter = adapter
@@ -378,4 +382,157 @@ class HomeFragment : Fragment() {
         }
     }
 
+    // Generate a motivational message based on a random friend and show it under the streak counter.
+    private fun updateMotivationalMessage(root: View) {
+        val messageView = root.findViewById<TextView>(R.id.motivationalMessage) ?: return
+        val imageView = root.findViewById<ImageView>(R.id.motivationalFriendImage)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val currentUser = authRepository.getCurrentUserSync() ?: return@launch
+
+            // Get current user stats
+            val userStreak = withContext(Dispatchers.IO) {
+                try { streakRepository.getCurrentStreak(currentUser.id, currentUser.authToken) } catch (e: Exception) { 0 }
+            }
+
+            val userXp = userRepository.getUserAttributes(currentUser.id).getOrNull()?.optInt("xp", 0) ?: 0
+            val userLevel = LevelCalculator.calculateLevelFromXp(userXp.toLong())
+
+            // Get the percent completed of courseId
+            val userCourseProgress: Map<String, Int> = withContext(Dispatchers.IO) {
+                val list = courseRepositoryImpl.getCourses(currentUser) ?: emptyList()
+                list.associate { c -> c.id to if (c.totalTasks > 0) (c.progress.toFloat() / c.totalTasks * 100).toInt() else 0 }
+            }
+
+            // Get friends info
+            val friendsResult = withContext(Dispatchers.IO) { friendsRepository.getAllFriends() }
+            if (friendsResult.isFailure) return@launch
+
+            val friends = friendsResult.getOrNull()?.filter { it.username.isNotBlank() } ?: emptyList()
+
+            val candidateMessages = mutableListOf<Pair<String, String?>>()
+
+            for (friend in friends) {
+                val friendName = friend.username
+
+                // Get the friend details
+                val friendDetails = withContext(Dispatchers.IO) { friendsRepository.getFriendDetails(friend.id) }.getOrNull()
+                val friendPic = friend.profilePicture ?: friendDetails?.profilePicture
+
+                // Level comparison
+                if (friend.level > userLevel) {
+                    candidateMessages.add("$friendName hit level ${friend.level}, can you level up and pass them?" to friendPic)
+                }
+
+                // Streak comparison
+                val friendStreak = withContext(Dispatchers.IO) {
+                    try { streakRepository.getCurrentStreak(friend.id, currentUser.authToken) } catch (e: Exception) { 0 }
+                }
+                if (friendStreak > userStreak) {
+                    candidateMessages.add("$friendName is on a ${friendStreak}-day streak, think you can keep up?" to friendPic)
+                }
+
+                // Course comparison
+                val coursesOfInterest = listOf("sql", "css", "html")
+                if (coursesOfInterest.isNotEmpty()) {
+                    val friendCourseMap = friendDetails?.courseProgress?.associate { cp -> cp.courseId to cp.progress } ?: emptyMap()
+
+                    for (courseId in coursesOfInterest) {
+                        val friendProgress = friendCourseMap[courseId] ?: continue
+                        val userProgress = userCourseProgress[courseId] ?: 0
+                        if (friendProgress > userProgress) {
+                            val courseName = courseId.uppercase()
+                            candidateMessages.add("$friendName is ahead of you in $courseName, time to close the gap!" to friendPic)
+                        }
+                    }
+                }
+            }
+
+            // Pick final message or fallback
+            val selection: Pair<String, String?>? = if (candidateMessages.isNotEmpty()) {
+                candidateMessages.random()
+            } else {
+                // Fallbacks when user leads in everything or has no friends
+                val fallbackMessages = if (friends.isEmpty()) {
+                    listOf("Add some friends to start friendly competitions and boost your learning!")
+                } else {
+                    listOf(
+                        "You're leading the pack! Can you keep your top spot?",
+                        "You're the highest level among your friends—keep it up!",
+                        "Your streak beats all your friends right now—don't slow down!"
+                    )
+                }
+                fallbackMessages.random() to null
+            }
+
+            withContext(Dispatchers.Main) {
+                messageView.text = selection?.first
+                val pic = selection?.second
+                val invalidPics = listOf<String?>(null, "", "null")
+                if (pic !in invalidPics && imageView != null) {
+                    imageView.visibility = View.VISIBLE
+                    if (pic!!.startsWith("http")) {
+                        Glide.with(this@HomeFragment)
+                            .load(resolveProfilePictureUrl(pic))
+                            .placeholder(R.drawable.ic_profile_placeholder)
+                            .error(R.drawable.ic_profile_placeholder)
+                            .circleCrop()
+                            .into(imageView)
+                    } else {
+                        try {
+                            val bytes = android.util.Base64.decode(pic, android.util.Base64.DEFAULT)
+                            Glide.with(this@HomeFragment)
+                                .load(bytes)
+                                .placeholder(R.drawable.ic_profile_placeholder)
+                                .error(R.drawable.ic_profile_placeholder)
+                                .circleCrop()
+                                .into(imageView)
+                        } catch (e: Exception) {
+                            imageView.setImageResource(R.drawable.ic_profile_placeholder)
+                        }
+                    }
+                } else {
+                    imageView?.setImageResource(R.drawable.ic_profile_placeholder)
+                }
+            }
+        }
+    }
+
+    private fun resolveProfilePictureUrl(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+        if (url.startsWith("http")) return url
+
+        val trimmed = url.trimStart('/')
+        val base = SupabaseClient().supabaseUrl.trimEnd('/')
+
+        return if (trimmed.startsWith("storage/v1/object/public")) {
+            "$base/${trimmed}"
+        } else {
+            "$base/storage/v1/object/public/${trimmed}"
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun setupDailyChallenge(view: View) {
+        val dailyChallengeStart: Button = view.findViewById(R.id.dailyChallengeButton)
+        val dailyChallengeSubtitle: TextView = view.findViewById(R.id.dailyChallengeSubtitle)
+        CoroutineScope(Dispatchers.IO).launch {
+            val currentUser = authRepository.getCurrentUserSync()
+            val startDate = userRepository.getUserAttributes(currentUser?.id.toString()).getOrNull()?.getString("finished_daily_challenge_at")
+            var lastCompletedDate = if (startDate == "null") LocalDate.now().minusDays(1) else LocalDate.parse(startDate.toString())
+
+            val isTodayTheDay = ChronoUnit.DAYS.between(lastCompletedDate, LocalDate.now()) != 0L
+            CoroutineScope(Dispatchers.Main).launch {
+                if (isTodayTheDay) {
+                    dailyChallengeStart.setOnClickListener {
+                        val intent = Intent(context, DailyChallengeActivity::class.java)
+                        startActivity(intent)
+                    }
+                } else {
+                    dailyChallengeSubtitle.setText(R.string.daily_challenge_home_subtitle_completed)
+                    dailyChallengeStart.visibility = View.GONE
+                }
+            }
+        }
+    }
 }

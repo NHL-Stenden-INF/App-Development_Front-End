@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which keyword is used to handle exceptions in Java?</question_text>
+        <option correct="true">try-catch</option>
+        <option correct="false">if-else</option>
+        <option correct="false">switch-case</option>
+        <option correct="false">do-while</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which block is always executed regardless of exception occurrence?</question_text>
+        <option correct="true">finally</option>
+        <option correct="false">catch</option>
+        <option correct="false">try</option>
+        <option correct="false">throw</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which keyword is used to manually throw an exception?</question_text>
+        <option correct="true">throw</option>
+        <option correct="false">throws</option>
+        <option correct="false">catch</option>
+        <option correct="false">finally</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is the parent class of all exceptions in Java?</question_text>
+        <option correct="true">Throwable</option>
+        <option correct="false">Exception</option>
+        <option correct="false">Error</option>
+        <option correct="false">RuntimeException</option>
+    </multiple_choice_question>
+</questions> 

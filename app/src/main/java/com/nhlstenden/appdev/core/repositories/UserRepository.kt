@@ -12,4 +12,5 @@ interface UserRepository {
     suspend fun updateUserStreak(userId: String, streak: Int): Result<Unit>
     suspend fun updateUserLastTaskDate(userId: String, date: String): Result<Unit>
     suspend fun updateUserOpenedDaily(userId: String, date: String): Result<Unit>
+    suspend fun updateUserDailyChallenge(userId: String): Result<Unit>
 } 
