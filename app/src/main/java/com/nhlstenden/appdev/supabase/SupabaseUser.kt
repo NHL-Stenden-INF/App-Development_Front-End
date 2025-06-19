@@ -515,3 +515,31 @@ fun SupabaseClient.updateUserStreak(userId: String, streak: Int, authToken: Stri
         Result.failure(e)
     }
 }
+
+fun SupabaseClient.updateUserFriendMask(userId: String, friendMask: String, authToken: String): Result<Response> {
+    val json = """{"friend_mask": "$friendMask"}"""
+    val requestBody = json.toRequestBody("application/json".toMediaType())
+    Log.d("SupabaseUser", json)
+    val request = Request.Builder()
+        .url("$supabaseUrl/rest/v1/profile?id=eq.$userId")
+        .patch(requestBody)
+        .addHeader("apikey", supabaseKey)
+        .addHeader("Authorization", "Bearer $authToken")
+        .addHeader("Content-Type", "application/json")
+        .addHeader("Prefer", "return=minimal")
+        .build()
+
+    return try {
+        val response = client.newCall(request).execute()
+
+        if (response.isSuccessful) {
+            Result.success(response)
+        } else {
+            Log.d("SupabaseUser", response.body?.string().toString())
+            Result.failure(Exception("Failed to update user friend mask"))
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Error to update user friend mask", e)
+        Result.failure(e)
+    }
+}

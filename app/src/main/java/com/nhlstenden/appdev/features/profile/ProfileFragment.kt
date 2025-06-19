@@ -60,8 +60,13 @@ import com.nhlstenden.appdev.shared.components.CameraActivity
 import com.nhlstenden.appdev.utils.LevelCalculator
 import com.nhlstenden.appdev.utils.RewardChecker
 import com.nhlstenden.appdev.core.repositories.AchievementRepository
+import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.supabase.updateUserFriendMask
+import com.nhlstenden.appdev.supabase.updateUserOpenedDaily
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 
 @AndroidEntryPoint
@@ -85,7 +90,10 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     
     @Inject
     lateinit var achievementRepository: AchievementRepository
-    
+
+    @Inject
+    lateinit var supabaseClient: SupabaseClient
+
     private val PROFILE_IMAGE_SIZE = 120
     private val MAX_BIO_LENGTH = 128
     private val MAX_NAME_LENGTH = 32
@@ -142,9 +150,12 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         }
 
 //        3 is the ID of the profile frames
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch {
+            val canChangeProfileMask = withContext(Dispatchers.IO) {
+                rewardChecker.isRewardUnlocked(3)
+            }
             val profileMaskSelector = binding.profileMaskSelector
-            if (rewardChecker.isRewardUnlocked(3)) {
+            if (canChangeProfileMask) {
                 ArrayAdapter.createFromResource(
                     requireContext(),
                     R.array.mask_types,
@@ -155,15 +166,30 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                 }
 
                 profileMaskSelector.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                    var isSelected = false
+
                     override fun onItemSelected(
                         parent: AdapterView<*>?,
                         view: View?,
                         position: Int,
                         id: Long
                     ) {
+                        if (!isSelected) {
+                            isSelected = true
+
+                            return
+                        }
                         val selectedItem = parent?.getItemAtPosition(position).toString()
                         Log.d("ProfileFragment", "Selected: $selectedItem")
-//                TODO: Update this in Supabase once the rework is done
+                        val user = authRepository.getCurrentUserSync()!!
+                        lifecycleScope.launch {
+                            val result = withContext(Dispatchers.IO) {
+                                supabaseClient.updateUserFriendMask(user.id, selectedItem, user.authToken)
+                            }
+                            result.onFailure { result ->
+                                Log.d("ProfileFragment", result.message.toString(), result)
+                            }
+                        }
                     }
 
                     override fun onNothingSelected(parent: AdapterView<*>?) {
@@ -171,9 +197,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                     }
                 }
             } else {
-                CoroutineScope(Dispatchers.Main).launch {
-                    profileMaskSelector.isEnabled = false
-                }
+                profileMaskSelector.isEnabled = false
             }
         }
     }
@@ -259,7 +283,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                 bgView.rotationX = clampedPitch
                 bgView.rotationY = -clampedRoll
                 // Debug log
-                Log.d("HoloGyro", "shiftX=$shiftX shiftY=$shiftY rotX=$clampedPitch rotY=$clampedRoll maxX=$maxX maxY=$maxY")
+//                Log.d("HoloGyro", "shiftX=$shiftX shiftY=$shiftY rotX=$clampedPitch rotY=$clampedRoll maxX=$maxX maxY=$maxY")
             }
         }
     }
