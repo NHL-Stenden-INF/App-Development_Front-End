@@ -1,9 +1,11 @@
 package com.nhlstenden.appdev.features.friends.adapters
 
 import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.ImageView
 import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -56,14 +58,15 @@ class FriendAdapter(
                         .load(imageBytes as ByteArray)
                         .placeholder(R.drawable.ic_profile_placeholder)
                         .into(object : CustomTarget<Bitmap>() {
-                            public override fun onResourceReady(
+                            override fun onResourceReady(
                                 resource: Bitmap,
                                 transition: Transition<in Bitmap>?
                             ) {
                                 val drawable: Drawable = resource.toDrawable(binding.friendProfilePicture.context.resources)
                                 binding.friendProfilePicture.background = drawable
-//                                    TODO: Replace with actual mask
-                                binding.friendProfilePicture.setImageResource(R.drawable.coin_side)
+
+                                val imageResource = "triangle"
+                                binding.friendProfilePicture.setImageResource(getImageResource(imageResource))
                             }
 
                             override fun onLoadCleared(placeholder: Drawable?) {
@@ -78,6 +81,16 @@ class FriendAdapter(
             }
             
             binding.root.setOnClickListener { onFriendClick(friend) }
+        }
+
+        fun getImageResource(imageName: String): Int {
+            return when(imageName) {
+                "circle" -> R.drawable.profile_mask_circle
+                "square" -> R.drawable.profile_mask_square
+                "cross" -> R.drawable.profile_mask_cross
+                "triangle" -> R.drawable.profile_mask_triangle
+                else -> R.drawable.profile_mask_circle
+            }
         }
     }
 
