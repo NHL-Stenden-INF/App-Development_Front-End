@@ -2,7 +2,6 @@ package com.nhlstenden.appdev.features.task.screens
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -11,14 +10,9 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
-import com.google.android.material.button.MaterialButton
-import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.databinding.ActivityTaskBinding
@@ -26,7 +20,6 @@ import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
 import com.nhlstenden.appdev.features.task.TaskCompleteListener
 import com.nhlstenden.appdev.features.task.TaskFailureDialogFragment
 import com.nhlstenden.appdev.features.task.adapters.TaskPagerAdapter
-import com.nhlstenden.appdev.features.task.fragments.BaseTaskFragment
 import com.nhlstenden.appdev.features.task.models.Question
 import com.nhlstenden.appdev.features.task.viewmodels.TaskViewModel
 import com.nhlstenden.appdev.features.home.repositories.StreakRepository
@@ -36,39 +29,33 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import org.json.JSONArray
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CoroutineScope
-import org.json.JSONObject
 
 @AndroidEntryPoint
 class TaskActivity : AppCompatActivity() {
     
     @Inject lateinit var authRepository: AuthRepository
     @Inject lateinit var userRepository: UserRepository
+    @Inject lateinit var streakRepository: StreakRepository
+    @Inject lateinit var courseRepository: CourseRepositoryImpl
+
+    @Inject lateinit var achievementManager: AchievementManager
+
     private lateinit var binding: ActivityTaskBinding
     private val viewModel: TaskViewModel by viewModels()
     private lateinit var taskPagerAdapter: TaskPagerAdapter
-    private var allQuestions: List<Question> = emptyList()
-    private var wrongQuestionIds: MutableSet<String> = mutableSetOf()
-    private var roundWrongIds: MutableSet<String> = mutableSetOf()
-    private var currentQuestions: MutableList<Question> = mutableListOf()
+
+    private var shuffledQuestions: MutableList<Question> = mutableListOf()
     private var currentIndex = 0
-    private var remainingQuestions: MutableList<Question> = mutableListOf()
+
+    private var wrongQuestionIds: MutableSet<String> = mutableSetOf()
+    private var roundWrongQuestionIds: MutableSet<String> = mutableSetOf()
+
+    private var taskQuestions: List<Question> = emptyList()
+
     private var correctQuestionIds: MutableSet<String> = mutableSetOf()
-    private var attemptedQuestions: MutableSet<String> = mutableSetOf()
 
-    @Inject
-    lateinit var streakRepository: StreakRepository
-
-    @Inject
-    lateinit var courseRepository: CourseRepositoryImpl
-
-    @Inject
-    lateinit var achievementManager: AchievementManager
-
-    private val streakManager = StreakManager()
 
     private lateinit var questionTextView: TextView
     private lateinit var optionsContainer: LinearLayout
@@ -102,6 +89,124 @@ class TaskActivity : AppCompatActivity() {
         optionsContainer = LinearLayout(this)
         progressBar = binding.progressBar
         progressText = binding.taskProgress
+    }
+
+    private fun setupViewPager() {
+        taskPagerAdapter = TaskPagerAdapter(this, object : TaskCompleteListener {
+            override fun onTaskCompleted(question: Question) {
+                // No-op here
+            }
+
+            override fun onQuestionCompleted(isCorrect: Boolean) {
+                val question = shuffledQuestions[currentIndex]
+                Log.d("TaskActivity", "Question answered. Correct: $isCorrect, Current index: $currentIndex, Total questions: ${shuffledQuestions.size}")
+                if (isCorrect) {
+                    correctQuestionIds.add(question.id)
+                } else {
+                    wrongQuestionIds.add(question.id)
+                    roundWrongQuestionIds.add(question.id)
+                }
+                // Move to next question
+                if (currentIndex < shuffledQuestions.size - 1) {
+                    currentIndex++
+                    binding.viewPager.setCurrentItem(currentIndex, true)
+                } else {
+                    // We're at the last question
+                    if (roundWrongQuestionIds.isNotEmpty()) {
+                        // Show failure dialog
+                        showTaskFailedDialog()
+                    } else {
+                        // All questions were correct, task is completed
+                        onTaskCompleted()
+                    }
+                }
+            }
+        })
+        binding.viewPager.adapter = taskPagerAdapter
+
+        // Disable swipe between questions
+        binding.viewPager.isUserInputEnabled = false
+    }
+
+    private fun setupClickListeners() {
+        // TODO: Make this open the EndTaskDialogFragment
+        binding.exitButton.setOnClickListener {
+            Log.d("TaskActivity", "User exited task early - bell pepper was consumed and not returned")
+            finish()
+        }
+    }
+
+    private fun observeTaskState() {
+        viewModel.taskState.observe(this) { state ->
+            when (state) {
+                is TaskViewModel.TaskState.Loading -> {
+                    binding.progressBar.visibility = View.VISIBLE
+                    binding.viewPager.visibility = View.GONE
+                }
+                is TaskViewModel.TaskState.Success -> {
+                    binding.progressBar.visibility = View.GONE
+                    binding.viewPager.visibility = View.VISIBLE
+                    taskQuestions = state.questions
+                    correctQuestionIds.clear()
+                    wrongQuestionIds.clear()
+                    roundWrongQuestionIds.clear()
+                    shuffledQuestions = taskQuestions.shuffled().toMutableList()
+                    currentIndex = 0
+                    Log.d("TaskActivity", "Questions loaded. Total questions: ${shuffledQuestions.size}")
+                    updateQuestionNumber()
+                    taskPagerAdapter.submitList(shuffledQuestions)
+                    binding.viewPager.setCurrentItem(0, false)
+                }
+                is TaskViewModel.TaskState.Error -> {
+                    binding.progressBar.visibility = View.GONE
+                    binding.viewPager.visibility = View.GONE
+                    Toast.makeText(this, state.message, Toast.LENGTH_SHORT).show()
+                }
+                is TaskViewModel.TaskState.Completed -> {
+                    // Calculate points based on correct answers
+                    val pointsEarned = calculatePoints()
+                    updateUserPoints(pointsEarned)
+                    // Update course progress
+                    val currentUser = authRepository.getCurrentUserSync()
+                    val taskId = intent.getStringExtra(EXTRA_TASK_ID)
+                    Log.d("TaskActivity", "Calling updateTaskProgress for userId=${currentUser?.id}, taskId=$taskId")
+                    if (currentUser != null && taskId != null) {
+                        val courseId = taskId.substringBefore("_")
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            try {
+                                // Update progress using repository
+                                val progressUpdated = courseRepository.updateTaskProgress(
+                                    currentUser.id.toString(),
+                                    taskId,
+                                    1 // Increment by 1
+                                )
+
+                                if (progressUpdated) {
+                                    // Check for achievements after successful task completion
+                                    achievementManager.checkAchievementsAfterTaskCompletion(
+                                        currentUser.id.toString(),
+                                        courseId
+                                    )
+                                } else {
+                                    Log.e("TaskActivity", "Failed to update task progress")
+                                }
+                            } catch (e: Exception) {
+                                Log.e("TaskActivity", "Error updating task progress: ${e.message}")
+                            }
+                        }
+                    }
+                    Toast.makeText(this, "Task completed! You earned $pointsEarned points!", Toast.LENGTH_SHORT).show()
+                    setResult(RESULT_OK)
+                    finish()
+                }
+            }
+        }
+        binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                currentIndex = position
+                updateQuestionNumber()
+            }
+        })
     }
 
     private fun startTask() {
@@ -166,164 +271,8 @@ class TaskActivity : AppCompatActivity() {
         viewModel.loadTasks(taskId ?: "")
     }
 
-    private fun showCurrentQuestion() {
-        if (currentIndex < currentQuestions.size) {
-            val question = currentQuestions[currentIndex]
-            questionTextView.text = question.text
-            
-            // Clear previous options
-            optionsContainer.removeAllViews()
-            
-            // Add new options
-            question.options.forEach { option ->
-                val optionButton = MaterialButton(this).apply {
-                    text = option.text
-                    setOnClickListener {
-                        checkAnswer(option.isCorrect)
-                    }
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    ).apply {
-                        setMargins(0, 8, 0, 8)
-                    }
-                    stateListAnimator = android.animation.AnimatorInflater.loadStateListAnimator(
-                        context, R.animator.button_state_animator
-                    )
-                }
-                optionsContainer.addView(optionButton)
-            }
-            
-            // Update progress
-            progressBar.max = currentQuestions.size
-            progressBar.progress = currentIndex + 1
-            progressText.text = "${currentIndex + 1}/${currentQuestions.size}"
-        } else {
-            // All questions were correct, task is completed
-            onTaskCompleted()
-        }
-    }
-
-    private fun setupViewPager() {
-        taskPagerAdapter = TaskPagerAdapter(this, object : TaskCompleteListener {
-            override fun onTaskCompleted(question: Question) {
-                // No-op here
-            }
-
-            @RequiresApi(Build.VERSION_CODES.O)
-            override fun onTaskComplete(isCorrect: Boolean) {
-                val question = currentQuestions[currentIndex]
-                Log.d("TaskActivity", "Question answered. Correct: $isCorrect, Current index: $currentIndex, Total questions: ${currentQuestions.size}")
-                if (isCorrect) {
-                    correctQuestionIds.add(question.id)
-                } else {
-                    wrongQuestionIds.add(question.id)
-                    roundWrongIds.add(question.id)
-                }
-                // Move to next question
-                if (currentIndex < currentQuestions.size - 1) {
-                    currentIndex++
-                    binding.viewPager.setCurrentItem(currentIndex, true)
-                } else {
-                    // We're at the last question
-                    if (roundWrongIds.isNotEmpty()) {
-                        // Show failure dialog
-                        showTaskFailedDialog()
-                    } else {
-                        // All questions were correct, task is completed
-                        onTaskCompleted()
-                    }
-                }
-            }
-        })
-        binding.viewPager.adapter = taskPagerAdapter
-        
-        // Disable swipe between questions
-        binding.viewPager.isUserInputEnabled = false
-    }
-
-    private fun setupClickListeners() {
-        binding.exitButton.setOnClickListener {
-            Log.d("TaskActivity", "User exited task early - bell pepper was consumed and not returned")
-            finish()
-        }
-    }
-
-    private fun observeTaskState() {
-        viewModel.taskState.observe(this) { state ->
-            when (state) {
-                is TaskViewModel.TaskState.Loading -> {
-                    binding.progressBar.visibility = View.VISIBLE
-                    binding.viewPager.visibility = View.GONE
-                }
-                is TaskViewModel.TaskState.Success -> {
-                    binding.progressBar.visibility = View.GONE
-                    binding.viewPager.visibility = View.VISIBLE
-                    allQuestions = state.questions
-                    correctQuestionIds.clear()
-                    wrongQuestionIds.clear()
-                    roundWrongIds.clear()
-                    currentQuestions = allQuestions.shuffled().toMutableList()
-                    currentIndex = 0
-                    Log.d("TaskActivity", "Questions loaded. Total questions: ${currentQuestions.size}")
-                    updateQuestionNumber()
-                    taskPagerAdapter.submitList(currentQuestions)
-                    binding.viewPager.setCurrentItem(0, false)
-                }
-                is TaskViewModel.TaskState.Error -> {
-                    binding.progressBar.visibility = View.GONE
-                    binding.viewPager.visibility = View.GONE
-                    Toast.makeText(this, state.message, Toast.LENGTH_SHORT).show()
-                }
-                is TaskViewModel.TaskState.Completed -> {
-                    // Calculate points based on correct answers
-                    val pointsEarned = calculatePoints()
-                    updateUserPoints(pointsEarned)
-                    // Update course progress
-                    val currentUser = authRepository.getCurrentUserSync()
-                    val taskId = intent.getStringExtra(EXTRA_TASK_ID)
-                    Log.d("TaskActivity", "Calling updateTaskProgress for userId=${currentUser?.id}, taskId=$taskId")
-                    if (currentUser != null && taskId != null) {
-                        val courseId = taskId.substringBefore("_")
-                        lifecycleScope.launch(Dispatchers.IO) {
-                            try {
-                                // Update progress using repository
-                                val progressUpdated = courseRepository.updateTaskProgress(
-                                    currentUser.id.toString(),
-                                    taskId,
-                                    1 // Increment by 1
-                                )
-                                
-                                if (progressUpdated) {
-                                    // Check for achievements after successful task completion
-                                    achievementManager.checkAchievementsAfterTaskCompletion(
-                                        currentUser.id.toString(),
-                                        courseId
-                                    )
-                                } else {
-                                    Log.e("TaskActivity", "Failed to update task progress")
-                                }
-                            } catch (e: Exception) {
-                                Log.e("TaskActivity", "Error updating task progress: ${e.message}")
-                            }
-                        }
-                    }
-                    Toast.makeText(this, "Task completed! You earned $pointsEarned points!", Toast.LENGTH_SHORT).show()
-                    setResult(RESULT_OK)
-                    finish()
-                }
-            }
-        }
-        binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                currentIndex = position
-                updateQuestionNumber()
-            }
-        })
-    }
-
     private fun updateQuestionNumber() {
-        binding.taskProgress.text = "${currentIndex + 1} of ${currentQuestions.size}"
+        binding.taskProgress.text = "${currentIndex + 1} of ${shuffledQuestions.size}"
     }
 
     private fun calculatePoints(): Int {
@@ -334,7 +283,7 @@ class TaskActivity : AppCompatActivity() {
         points += correctQuestionIds.size * 10
         
         // Bonus points if all questions were answered correctly
-        if (correctQuestionIds.size == allQuestions.size) {
+        if (correctQuestionIds.size == taskQuestions.size) {
             points += 50 // Bonus for perfect score
         }
         
@@ -433,24 +382,6 @@ class TaskActivity : AppCompatActivity() {
         }
     }
 
-    fun onNextQuestion() {
-        Log.d("TaskActivity", "onNextQuestion called. Current index: $currentIndex, Total questions: ${currentQuestions.size}")
-        // Move to next question
-        if (currentIndex < currentQuestions.size - 1) {
-            currentIndex++
-            binding.viewPager.setCurrentItem(currentIndex, true)
-        } else {
-            // We're at the last question
-            if (roundWrongIds.isNotEmpty()) {
-                // Show failure dialog
-                showTaskFailedDialog()
-            } else {
-                // All questions were correct, task is completed
-                viewModel.completeTask()
-            }
-        }
-    }
-
     fun resetForWrongQuestions() {
         // First check and consume a bell pepper for the retry
         val currentUser = authRepository.getCurrentUserSync()
@@ -496,15 +427,48 @@ class TaskActivity : AppCompatActivity() {
 
                     withContext(Dispatchers.Main) {
                         // Only keep questions that were wrong in the last round
-                        currentQuestions = allQuestions.filter { it.id in roundWrongIds }.toMutableList()
+                        shuffledQuestions = taskQuestions.filter { it.id in roundWrongQuestionIds }.toMutableList()
                         currentIndex = 0
                         // Reset wrong question tracking for the next round
                         wrongQuestionIds.clear()
-                        roundWrongIds.clear()
+                        roundWrongQuestionIds.clear()
                         // Force ViewPager to recreate all fragments
+                        taskPagerAdapter = TaskPagerAdapter(this@TaskActivity, object : TaskCompleteListener {
+                            override fun onTaskCompleted(question: Question) {
+                                // No-op here
+                            }
+
+                            override fun onQuestionCompleted(isCorrect: Boolean) {
+                                val question = shuffledQuestions[currentIndex]
+                                Log.d("TaskActivity", "Question answered. Correct: $isCorrect, Current index: $currentIndex, Total questions: ${shuffledQuestions.size}")
+                                if (isCorrect) {
+                                    correctQuestionIds.add(question.id)
+                                } else {
+                                    wrongQuestionIds.add(question.id)
+                                    roundWrongQuestionIds.add(question.id)
+                                }
+                                // Move to next question
+                                if (currentIndex < shuffledQuestions.size - 1) {
+                                    currentIndex++
+                                    binding.viewPager.setCurrentItem(currentIndex, true)
+                                } else {
+                                    // We're at the last question
+                                    if (roundWrongQuestionIds.isNotEmpty()) {
+                                        // Show failure dialog
+                                        showTaskFailedDialog()
+                                    } else {
+                                        // All questions were correct, task is completed
+                                        onTaskCompleted()
+                                    }
+                                }
+                            }
+                        })
+
+                        binding.viewPager.adapter = taskPagerAdapter
+
                         taskPagerAdapter.submitList(emptyList())
                         binding.viewPager.post {
-                            taskPagerAdapter.submitList(currentQuestions)
+                            taskPagerAdapter.submitList(shuffledQuestions)
                             binding.viewPager.setCurrentItem(0, false)
                             updateQuestionNumber()
                         }
@@ -522,18 +486,12 @@ class TaskActivity : AppCompatActivity() {
 
     private fun getTaskTitle(context: Context, courseId: String, taskId: String): String {
         val taskParser = com.nhlstenden.appdev.features.courses.TaskParser(context)
-        val task = taskParser.loadAllCoursesOfTask(courseId).find { it.id == taskId }
+        val task = taskParser.loadAllTasksOfCourse(courseId).find { it.id == taskId }
         return task?.title ?: "Task"
     }
 
     private fun showTaskCompletedDialog() {
         // Implementation of showTaskCompletedDialog method
-    }
-
-    private fun checkAnswer(isCorrect: Boolean) {
-        // TODO: Implement answer checking logic
-        // For now, just move to the next question
-        onNextQuestion()
     }
 
     companion object {

@@ -8,6 +8,23 @@
         <option correct="false">&lt;formfield&gt;</option>
     </multiple_choice_question>
 
+    <flipcard_question>
+        <question_text>Hello</question_text>
+        <front>This is the front!</front>
+        <back>This isnt the front but the back!</back>
+    </flipcard_question>
+
+    <press_mistake_question>
+        <question_text>Select all the wrongs</question_text>
+        <displayed_text>
+            The wrong in this text is wrong so click on all wrongs please WRONG
+        </displayed_text>
+        <mistake position="1"/>
+        <mistake position="6"/>
+        <mistake position="11"/>
+        <mistake position="13"/>
+    </press_mistake_question>
+
     <multiple_choice_question>
         <question_text>What attribute is used to specify where to send form data?</question_text>
         <option correct="true">action</option>

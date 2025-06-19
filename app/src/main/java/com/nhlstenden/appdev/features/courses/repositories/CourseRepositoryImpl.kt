@@ -134,7 +134,7 @@ class CourseRepositoryImpl @Inject constructor(
 
     override suspend fun getTasks(courseId: String): List<Task> {
         // Get current user
-        val currentUser = authRepository.getCurrentUserSync() ?: return taskParser.loadAllCoursesOfTask(courseId)
+        val currentUser = authRepository.getCurrentUserSync() ?: return taskParser.loadAllTasksOfCourse(courseId)
         
         try {
             withContext(Dispatchers.IO) {
@@ -176,7 +176,7 @@ class CourseRepositoryImpl @Inject constructor(
             }
         }
         
-        return taskParser.loadAllCoursesOfTask(courseId)
+        return taskParser.loadAllTasksOfCourse(courseId)
     }
 
     override suspend fun getTotalTaskOfCourse(courseId: String): Int {

@@ -13,7 +13,6 @@ import com.nhlstenden.appdev.features.courses.TaskParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
-import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -385,7 +384,7 @@ class AchievementRepositoryImpl @Inject constructor(
 
     private fun getTotalTasksForCourse(courseId: String): Int {
         return try {
-            val tasks = taskParser.loadAllCoursesOfTask(courseId)
+            val tasks = taskParser.loadAllTasksOfCourse(courseId)
             Log.d(TAG, "Course $courseId has ${tasks.size} total tasks")
             tasks.size
         } catch (e: Exception) {
