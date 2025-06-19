@@ -491,7 +491,7 @@ class TaskActivity : AppCompatActivity() {
     }
 
     private fun showTaskCompletedDialog() {
-        // Implementation of showTaskCompletedDialog method
+        viewModel.completeTask()
     }
 
     companion object {
