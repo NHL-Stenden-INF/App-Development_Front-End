@@ -47,7 +47,7 @@ suspend fun SupabaseClient.getUserAttributes(userId: String, authToken: String):
     }
 }
 
-fun SupabaseClient.updateUserPoints(userId: String, points: Int, authToken: String): Result<Response> {
+suspend fun SupabaseClient.updateUserPoints(userId: String, points: Int, authToken: String): Result<Response> {
     val json = """{"points": $points}"""
     val requestBody = json.toRequestBody("application/json".toMediaType())
     val request = Request.Builder()
@@ -59,7 +59,7 @@ fun SupabaseClient.updateUserPoints(userId: String, points: Int, authToken: Stri
         .addHeader("Prefer", "return=minimal")
         .build()
     return try {
-        val response = client.newCall(request).execute()
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
 
         if (response.isSuccessful) {
             Result.success(response)
@@ -72,7 +72,7 @@ fun SupabaseClient.updateUserPoints(userId: String, points: Int, authToken: Stri
     }
 }
 
-fun SupabaseClient.updateUserBellPeppers(userId: String, bellPeppers: Int, authToken: String): Result<Response> {
+suspend fun SupabaseClient.updateUserBellPeppers(userId: String, bellPeppers: Int, authToken: String): Result<Response> {
     val json = """{"bell_peppers": $bellPeppers}"""
     val requestBody = json.toRequestBody("application/json".toMediaType())
     val request = Request.Builder()
@@ -84,7 +84,7 @@ fun SupabaseClient.updateUserBellPeppers(userId: String, bellPeppers: Int, authT
         .addHeader("Prefer", "return=minimal")
         .build()
     return try {
-        val response = client.newCall(request).execute()
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
 
         if (response.isSuccessful) {
             Result.success(response)
@@ -97,7 +97,7 @@ fun SupabaseClient.updateUserBellPeppers(userId: String, bellPeppers: Int, authT
     }
 }
 
-fun SupabaseClient.updateUserXp(userId: String, xp: Int, authToken: String): Result<Response> {
+suspend fun SupabaseClient.updateUserXp(userId: String, xp: Int, authToken: String): Result<Response> {
     val json = """{"xp": $xp}"""
     val requestBody = json.toRequestBody("application/json".toMediaType())
     val request = Request.Builder()
@@ -110,7 +110,7 @@ fun SupabaseClient.updateUserXp(userId: String, xp: Int, authToken: String): Res
         .build()
 
     return try {
-        val response = client.newCall(request).execute()
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
 
         if (response.isSuccessful) {
             Result.success(response)
@@ -123,8 +123,8 @@ fun SupabaseClient.updateUserXp(userId: String, xp: Int, authToken: String): Res
     }
 }
 
-fun SupabaseClient.updateUserOpenedDaily(userId: String, date: String, authToken: String): Result<Response> {
-    val json = """{"opened_daily_at": \"$date\"}"""
+suspend fun SupabaseClient.updateUserOpenedDaily(userId: String, date: String, authToken: String): Result<Response> {
+    val json = """{"opened_daily_at": "$date"}"""
     val requestBody = json.toRequestBody("application/json".toMediaType())
     val request = Request.Builder()
         .url("$supabaseUrl/rest/v1/user_attributes?id=eq.$userId")
@@ -136,7 +136,7 @@ fun SupabaseClient.updateUserOpenedDaily(userId: String, date: String, authToken
         .build()
 
     return try {
-        val response = client.newCall(request).execute()
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
 
         if (response.isSuccessful) {
             Result.success(response)
@@ -149,7 +149,7 @@ fun SupabaseClient.updateUserOpenedDaily(userId: String, date: String, authToken
     }
 }
 
-fun SupabaseClient.updateProfilePicture(userId: String, profilePicture: String, authToken: String): Result<Response> {
+suspend fun SupabaseClient.updateProfilePicture(userId: String, profilePicture: String, authToken: String): Result<Response> {
     return try {
         Log.d("SupabaseClient", "Attempting to update profile picture for user: $userId")
         val patchJson = JSONObject().apply { put("profile_picture", profilePicture) }
@@ -163,7 +163,7 @@ fun SupabaseClient.updateProfilePicture(userId: String, profilePicture: String, 
             .addHeader("Prefer", "return=minimal")
             .build()
 
-        val response = client.newCall(patchRequest).execute()
+        val response = withContext(Dispatchers.IO) { client.newCall(patchRequest).execute() }
 
         Result.success(response)
     } catch (e: Exception) {
@@ -172,7 +172,7 @@ fun SupabaseClient.updateProfilePicture(userId: String, profilePicture: String, 
     }
 }
 
-fun SupabaseClient.getUserUnlockedRewards(userId: String, authToken: String): Result<Response> {
+suspend fun SupabaseClient.getUserUnlockedRewards(userId: String, authToken: String): Result<Response> {
     return try {
         if (userId.isBlank() || userId == "null") {
             Log.e("SupabaseClient", "Invalid userId provided for unlocked rewards: $userId")
@@ -185,7 +185,7 @@ fun SupabaseClient.getUserUnlockedRewards(userId: String, authToken: String): Re
             .addHeader("Authorization", "Bearer $authToken")
             .build()
 
-        val response = client.newCall(request).execute()
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
 
         Result.success(response)
     } catch (e: Exception) {
@@ -464,7 +464,7 @@ suspend fun SupabaseClient.updateProfile(authToken: String, displayName: String?
     }
 }
 
-fun SupabaseClient.updateUserLastTaskDate(userID: String, lastTaskDate: String, authToken: String): Result<Response> {
+suspend fun SupabaseClient.updateUserLastTaskDate(userID: String, lastTaskDate: String, authToken: String): Result<Response> {
     return try {
         val url = "$supabaseUrl/rest/v1/user_attributes?id=eq.$userID"
         val requestBody = JSONObject().apply { put("last_task_date", lastTaskDate) }.toString()
@@ -477,7 +477,7 @@ fun SupabaseClient.updateUserLastTaskDate(userID: String, lastTaskDate: String, 
             .addHeader("Prefer", "return=representation")
             .build()
 
-        val response = client.newCall(request).execute()
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
 
         if (response.isSuccessful) {
             Result.success(response)
@@ -490,7 +490,7 @@ fun SupabaseClient.updateUserLastTaskDate(userID: String, lastTaskDate: String, 
     }
 }
 
-fun SupabaseClient.updateUserStreak(userId: String, streak: Int, authToken: String): Result<Response> {
+suspend fun SupabaseClient.updateUserStreak(userId: String, streak: Int, authToken: String): Result<Response> {
     return try {
         val json = """{"streak": $streak}"""
         val requestBody = json.toRequestBody("application/json".toMediaType())
@@ -503,7 +503,7 @@ fun SupabaseClient.updateUserStreak(userId: String, streak: Int, authToken: Stri
             .addHeader("Prefer", "return=minimal")
             .build()
 
-        val response = client.newCall(request).execute()
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
 
         if (response.isSuccessful) {
             Result.success(response)
