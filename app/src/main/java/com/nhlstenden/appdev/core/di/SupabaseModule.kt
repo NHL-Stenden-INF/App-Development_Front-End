@@ -1,7 +1,6 @@
 package com.nhlstenden.appdev.core.di
 
 import android.content.Context
-import com.nhlstenden.appdev.supabase.SupabaseClient
 import com.nhlstenden.appdev.core.repositories.ProfileRepository
 import com.nhlstenden.appdev.features.profile.repositories.ProfileRepositoryImpl
 import com.nhlstenden.appdev.features.courses.CourseRepository
@@ -22,6 +21,7 @@ import com.nhlstenden.appdev.features.profile.repositories.SettingsRepositoryImp
 import com.nhlstenden.appdev.features.rewards.repositories.RewardsRepositoryImpl
 import com.nhlstenden.appdev.core.repositories.AchievementRepository
 import com.nhlstenden.appdev.features.rewards.repositories.AchievementRepositoryImpl
+import com.nhlstenden.appdev.supabase.*
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
