@@ -54,16 +54,6 @@ import com.nhlstenden.appdev.features.home.HomeViewModel
 import com.nhlstenden.appdev.features.home.HomeCourse
 import com.nhlstenden.appdev.features.courses.CourseRepository
 
-// Data class for course info
-data class HomeCourse(
-    val id: String,
-    val title: String,
-    val progressText: String,
-    val progressPercent: Int,
-    val iconResId: Int,
-    val accentColor: Int
-)
-
 class HomeCourseAdapter(private val courses: List<HomeCourse>, private val fragment: Fragment) : RecyclerView.Adapter<HomeCourseAdapter.ViewHolder>() {
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val courseImage: ImageView = view.findViewById(R.id.courseImage)
