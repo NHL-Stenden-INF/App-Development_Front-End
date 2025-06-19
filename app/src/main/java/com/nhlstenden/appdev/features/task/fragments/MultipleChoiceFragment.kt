@@ -43,34 +43,6 @@ class MultipleChoiceFragment : BaseTaskFragment() {
     }
 
     override fun setupViews() {
-        binding.nextButton.visibility = View.GONE
-        binding.feedbackText.visibility = View.GONE
-
-        binding.optionsGroup.removeAllViews()
-
-        optionButtons = List(4) { i ->
-            MaterialButton(requireContext()).apply {
-                layoutParams = ViewGroup.MarginLayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, 8, 0, 8) }
-
-                isCheckable = true
-                isClickable = true
-
-                setOnClickListener {
-                    if (optionButtons.any { it.isEnabled }) {
-                        optionButtons.forEach { btn ->
-                            btn.isChecked = false
-                            btn.setBackgroundColor(0xFFEEEEEE.toInt())
-                        }
-                        this.isChecked = true
-                        this.setBackgroundColor(0xFF2196F3.toInt())
-                    }
-                }
-            }.also { binding.optionsGroup.addView(it) }
-        }
-
         binding.submitButton.setOnClickListener {
             val selectedIndex = optionButtons.indexOfFirst { it.isChecked }
             if (selectedIndex != -1) {
@@ -114,6 +86,41 @@ class MultipleChoiceFragment : BaseTaskFragment() {
     }
 
     override fun bindQuestion() {
+        binding.nextButton.visibility = View.GONE
+        binding.feedbackText.visibility = View.GONE
+        binding.submitButton.visibility = View.VISIBLE
+        binding.feedbackText.visibility = View.GONE
+
+        binding.optionsGroup.removeAllViews()
+
+        optionButtons = List(4) { i ->
+            MaterialButton(requireContext()).apply {
+                layoutParams = ViewGroup.MarginLayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 8, 0, 8) }
+
+                isCheckable = true
+                isClickable = true
+
+                setOnClickListener {
+                    if (optionButtons.any { it.isEnabled }) {
+                        optionButtons.forEach { btn ->
+                            btn.isChecked = false
+                            btn.setBackgroundColor(0xFFEEEEEE.toInt())
+                        }
+                        this.isChecked = true
+                        this.setBackgroundColor(0xFF2196F3.toInt())
+                    }
+                }
+            }.also { binding.optionsGroup.addView(it) }
+        }
+
+        optionButtons.forEachIndexed { i, btn ->
+            btn.isEnabled = false
+            btn.setTextColor(0xFF757575.toInt())
+        }
+
         binding.questionText.text = multipleChoiceQuestion.question
         shuffledOptions = multipleChoiceQuestion.options.shuffled()
 
@@ -127,10 +134,6 @@ class MultipleChoiceFragment : BaseTaskFragment() {
         optionButtons.forEachIndexed { i, btn ->
             btn.text = shuffledOptions[i].text
         }
-
-        binding.submitButton.visibility = View.VISIBLE
-        binding.nextButton.visibility = View.GONE
-        binding.feedbackText.visibility = View.GONE
     }
 
     override fun onDestroyView() {

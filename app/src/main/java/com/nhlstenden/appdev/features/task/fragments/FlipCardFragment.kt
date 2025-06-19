@@ -85,6 +85,7 @@ class FlipCardFragment : BaseTaskFragment() {
 
     override fun bindQuestion() {
         binding.cardText.text = flipCardQuestion.front
+        isShowingFront = true
     }
 
     private fun flipCard() {

@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <questions>
-<!--    <multiple_choice_question>-->
-<!--        <question_text>Which HTML element is used to create a form?</question_text>-->
-<!--        <option correct="true">&lt;form&gt;</option>-->
-<!--        <option correct="false">&lt;input&gt;</option>-->
-<!--        <option correct="false">&lt;formset&gt;</option>-->
-<!--        <option correct="false">&lt;formfield&gt;</option>-->
-<!--    </multiple_choice_question>-->
+    <multiple_choice_question>
+        <question_text>Which HTML element is used to create a form?</question_text>
+        <option correct="true">&lt;form&gt;</option>
+        <option correct="false">&lt;input&gt;</option>
+        <option correct="false">&lt;formset&gt;</option>
+        <option correct="false">&lt;formfield&gt;</option>
+    </multiple_choice_question>
 
-<!--    <flipcard_question>-->
-<!--        <question_text>Hello</question_text>-->
-<!--        <front>This is the front!</front>-->
-<!--        <back>This isnt the front but the back!</back>-->
-<!--    </flipcard_question>-->
+    <flipcard_question>
+        <question_text>Hello</question_text>
+        <front>This is the front!</front>
+        <back>This isnt the front but the back!</back>
+    </flipcard_question>
 
     <press_mistake_question>
         <question_text>Select all the wrongs</question_text>
@@ -25,27 +25,27 @@
         <mistake position="13"/>
     </press_mistake_question>
 
-<!--    <multiple_choice_question>-->
-<!--        <question_text>What attribute is used to specify where to send form data?</question_text>-->
-<!--        <option correct="true">action</option>-->
-<!--        <option correct="false">method</option>-->
-<!--        <option correct="false">target</option>-->
-<!--        <option correct="false">destination</option>-->
-<!--    </multiple_choice_question>-->
+    <multiple_choice_question>
+        <question_text>What attribute is used to specify where to send form data?</question_text>
+        <option correct="true">action</option>
+        <option correct="false">method</option>
+        <option correct="false">target</option>
+        <option correct="false">destination</option>
+    </multiple_choice_question>
 
-<!--    <multiple_choice_question>-->
-<!--        <question_text>Which input type creates a checkbox?</question_text>-->
-<!--        <option correct="true">&lt;input type="checkbox"&gt;</option>-->
-<!--        <option correct="false">&lt;input type="check"&gt;</option>-->
-<!--        <option correct="false">&lt;input type="box"&gt;</option>-->
-<!--        <option correct="false">&lt;checkbox&gt;</option>-->
-<!--    </multiple_choice_question>-->
+    <multiple_choice_question>
+        <question_text>Which input type creates a checkbox?</question_text>
+        <option correct="true">&lt;input type="checkbox"&gt;</option>
+        <option correct="false">&lt;input type="check"&gt;</option>
+        <option correct="false">&lt;input type="box"&gt;</option>
+        <option correct="false">&lt;checkbox&gt;</option>
+    </multiple_choice_question>
 
-<!--    <multiple_choice_question>-->
-<!--        <question_text>Which HTML element is used to create a dropdown list?</question_text>-->
-<!--        <option correct="true">&lt;select&gt;</option>-->
-<!--        <option correct="false">&lt;dropdown&gt;</option>-->
-<!--        <option correct="false">&lt;list&gt;</option>-->
-<!--        <option correct="false">&lt;option&gt;</option>-->
-<!--    </multiple_choice_question>-->
+    <multiple_choice_question>
+        <question_text>Which HTML element is used to create a dropdown list?</question_text>
+        <option correct="true">&lt;select&gt;</option>
+        <option correct="false">&lt;dropdown&gt;</option>
+        <option correct="false">&lt;list&gt;</option>
+        <option correct="false">&lt;option&gt;</option>
+    </multiple_choice_question>
 </questions> 

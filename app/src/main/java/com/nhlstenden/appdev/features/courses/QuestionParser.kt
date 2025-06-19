@@ -115,7 +115,7 @@ class QuestionParser(private val context: Context) {
                                 var explanation: String? = null
 
                                 var displayedText = ""
-                                val mistakes = mutableListOf<Int>()
+                                val mistakes = mutableSetOf<Int>()
 
 
                                 while (!(parser.eventType == XmlPullParser.END_TAG && parser.name == "press_mistake_question")) {

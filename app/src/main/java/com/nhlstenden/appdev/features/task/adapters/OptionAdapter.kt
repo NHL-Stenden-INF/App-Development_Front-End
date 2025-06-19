@@ -35,4 +35,8 @@ class OptionAdapter(
             return oldItem == newItem
         }
     }
+
+    fun clear() {
+        submitList(emptyList())
+    }
 } 
