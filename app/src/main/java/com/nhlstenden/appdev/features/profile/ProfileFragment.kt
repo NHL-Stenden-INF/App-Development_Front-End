@@ -60,6 +60,9 @@ import com.nhlstenden.appdev.shared.components.CameraActivity
 import com.nhlstenden.appdev.utils.LevelCalculator
 import com.nhlstenden.appdev.utils.RewardChecker
 import com.nhlstenden.appdev.core.repositories.AchievementRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlin.coroutines.CoroutineContext
 
 @AndroidEntryPoint
 class ProfileFragment : BaseFragment(), SensorEventListener {
@@ -138,24 +141,39 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
             showImageSourceDialog()
         }
 
-        val profileMaskSelector = binding.profileMaskSelector
-        ArrayAdapter.createFromResource(
-            requireContext(),
-            R.array.mask_types,
-            android.R.layout.simple_spinner_item
-        ).also { adapter ->
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            profileMaskSelector.adapter = adapter
-        }
+//        3 is the ID of the profile frames
+        CoroutineScope(Dispatchers.IO).launch {
+            val profileMaskSelector = binding.profileMaskSelector
+            if (rewardChecker.isRewardUnlocked(3)) {
+                ArrayAdapter.createFromResource(
+                    requireContext(),
+                    R.array.mask_types,
+                    android.R.layout.simple_spinner_item
+                ).also { adapter ->
+                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                    profileMaskSelector.adapter = adapter
+                }
 
-        profileMaskSelector.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val selectedItem = parent?.getItemAtPosition(position).toString()
-                Log.d("ProfileFragment", "Selected: $selectedItem")
-            }
+                profileMaskSelector.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                    override fun onItemSelected(
+                        parent: AdapterView<*>?,
+                        view: View?,
+                        position: Int,
+                        id: Long
+                    ) {
+                        val selectedItem = parent?.getItemAtPosition(position).toString()
+                        Log.d("ProfileFragment", "Selected: $selectedItem")
+//                TODO: Update this in Supabase once the rework is done
+                    }
 
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-
+                    override fun onNothingSelected(parent: AdapterView<*>?) {
+                        return
+                    }
+                }
+            } else {
+                CoroutineScope(Dispatchers.Main).launch {
+                    profileMaskSelector.isEnabled = false
+                }
             }
         }
     }
