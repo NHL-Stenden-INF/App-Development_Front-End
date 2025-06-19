@@ -1,10 +1,13 @@
 package com.nhlstenden.appdev.features.friends.adapters
 
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.ImageView
 import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.DiffUtil
@@ -64,9 +67,7 @@ class FriendAdapter(
                             ) {
                                 val drawable: Drawable = resource.toDrawable(binding.friendProfilePicture.context.resources)
                                 binding.friendProfilePicture.background = drawable
-
-                                val imageResource = "triangle"
-                                binding.friendProfilePicture.setImageResource(getImageResource(imageResource))
+                                binding.friendProfilePicture.setImageResource(getImageResource(friend.profileMask))
                             }
 
                             override fun onLoadCleared(placeholder: Drawable?) {
@@ -83,12 +84,12 @@ class FriendAdapter(
             binding.root.setOnClickListener { onFriendClick(friend) }
         }
 
-        fun getImageResource(imageName: String): Int {
-            return when(imageName) {
-                "circle" -> R.drawable.profile_mask_circle
-                "square" -> R.drawable.profile_mask_square
-                "cross" -> R.drawable.profile_mask_cross
-                "triangle" -> R.drawable.profile_mask_triangle
+        fun getImageResource(maskId: Int): Int {
+            return when(maskId) {
+                0 -> R.drawable.profile_mask_circle
+                1 -> R.drawable.profile_mask_square
+                2 -> R.drawable.profile_mask_cross
+                3 -> R.drawable.profile_mask_triangle
                 else -> R.drawable.profile_mask_circle
             }
         }

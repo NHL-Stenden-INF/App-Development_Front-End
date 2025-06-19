@@ -13,5 +13,6 @@ data class Friend(
     val level: Int = 1,
     val currentLevelProgress: Int = 0,
     val currentLevelMax: Int = 100,
-    val lastActive: Long = System.currentTimeMillis()
+    val lastActive: Long = System.currentTimeMillis(),
+    val profileMask: Int = 0,
 ) : Parcelable 
