@@ -1,15 +1,20 @@
 package com.nhlstenden.appdev.features.friends.adapters
 
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.ItemFriendBinding
 import com.nhlstenden.appdev.features.friends.models.Friend
-import java.io.File
+
 
 class FriendAdapter(
     private val onFriendClick: (Friend) -> Unit
@@ -50,18 +55,29 @@ class FriendAdapter(
                         .load(profilePic as String)
                         .placeholder(R.drawable.ic_profile_placeholder)
                         .error(R.drawable.ic_profile_placeholder)
-                        .circleCrop()
                         .into(binding.friendProfilePicture)
                 } else {
-                    // Try to load as base64
                     try {
-                        val imageBytes = android.util.Base64.decode(profilePic as String, android.util.Base64.DEFAULT)
+                        val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
                         Glide.with(binding.friendProfilePicture.context)
+                            .asBitmap()
                             .load(imageBytes as ByteArray)
                             .placeholder(R.drawable.ic_profile_placeholder)
-                            .error(R.drawable.ic_profile_placeholder)
-                            .circleCrop()
-                            .into(binding.friendProfilePicture)
+                            .into(object : CustomTarget<Bitmap>() {
+                                public override fun onResourceReady(
+                                    resource: Bitmap,
+                                    transition: Transition<in Bitmap>?
+                                ) {
+                                    val drawable: Drawable = resource.toDrawable(binding.friendProfilePicture.context.resources)
+                                    binding.friendProfilePicture.background = drawable
+//                                    TODO: Replace with actual mask
+                                    binding.friendProfilePicture.setImageResource(R.drawable.coin_side)
+                                }
+
+                                override fun onLoadCleared(placeholder: Drawable?) {
+                                    binding.friendProfilePicture.background = placeholder
+                                }
+                            })
                     } catch (e: Exception) {
                         binding.friendProfilePicture.setImageResource(R.drawable.ic_profile_placeholder)
                     }
