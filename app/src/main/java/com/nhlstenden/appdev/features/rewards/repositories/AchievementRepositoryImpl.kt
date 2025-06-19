@@ -35,7 +35,14 @@ class AchievementRepositoryImpl @Inject constructor(
                     ?: return@withContext Result.failure(Exception("No authenticated user"))
 
                 Log.d(TAG, "Fetching unlocked achievements for user: $userId")
-                val response = supabaseClient.getUserUnlockedAchievements(userId, currentUser.authToken)
+                val responseResult = supabaseClient.getUserUnlockedAchievements(userId, currentUser.authToken)
+
+                if (responseResult.isFailure) {
+                    Log.e(TAG, "Network error while fetching achievements", responseResult.exceptionOrNull())
+                    return@withContext Result.failure(responseResult.exceptionOrNull()!!)
+                }
+
+                val response =responseResult.getOrThrow()
                 
                 if (response.isSuccessful) {
                     val responseBody = response.body?.string() ?: ""
@@ -86,7 +93,15 @@ class AchievementRepositoryImpl @Inject constructor(
                     ?: return@withContext Result.failure(Exception("No authenticated user"))
 
                 Log.d(TAG, "Attempting to unlock achievement $achievementId for user $userId")
-                val response = supabaseClient.unlockAchievement(userId, achievementId, currentUser.authToken)
+
+
+                val responseResult = supabaseClient.unlockAchievement(userId, achievementId, currentUser.authToken)
+
+                if (responseResult.isFailure) {
+                    Log.e(TAG, "Network error while unlocking achievement", responseResult.exceptionOrNull())
+                }
+
+                val response = responseResult.getOrThrow()
                 
                 if (response.isSuccessful) {
                     Log.d(TAG, "Successfully unlocked achievement $achievementId for user $userId")
@@ -230,7 +245,16 @@ class AchievementRepositoryImpl @Inject constructor(
             withContext(Dispatchers.IO) {
                 val currentUser = authRepository.getCurrentUserSync() ?: return@withContext null
 
-                val streakResponse = supabaseClient.checkStreakAchievement(userId, currentUser.authToken)
+                val streakResponseResult = supabaseClient.checkStreakAchievement(userId, currentUser.authToken)
+
+                if (streakResponseResult.isFailure) {
+                    Log.e(TAG, "Error while checking streak achievent")
+                    return@withContext null
+                }
+
+                val streakResponse = streakResponseResult.getOrThrow()
+
+
                 if (streakResponse.isSuccessful) {
                     val responseBody = streakResponse.body?.string() ?: ""
                     Log.d(TAG, "Streak achievement response: $responseBody")
@@ -265,7 +289,15 @@ class AchievementRepositoryImpl @Inject constructor(
             withContext(Dispatchers.IO) {
                 val currentUser = authRepository.getCurrentUserSync() ?: return@withContext null
 
-                val response = supabaseClient.unlockAchievementIfNotExists(userId, achievementId, title, currentUser.authToken)
+                val responseResult = supabaseClient.unlockAchievementIfNotExists(userId, achievementId, title, currentUser.authToken)
+
+                if (responseResult.isFailure) {
+                    Log.e(TAG, "Error while unlocking achievement $title", responseResult.exceptionOrNull())
+                    return@withContext null
+                }
+
+                val response = responseResult.getOrThrow()
+
                 if (response.isSuccessful) {
                     val responseBody = response.body?.string() ?: ""
                     Log.d(TAG, "Unlock achievement response: $responseBody")
