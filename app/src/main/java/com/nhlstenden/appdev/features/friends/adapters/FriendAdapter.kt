@@ -49,38 +49,29 @@ class FriendAdapter(
             val profilePic = friend.profilePicture
             val invalidPics = listOf(null, "", "null")
             if (profilePic !in invalidPics) {
-                if (profilePic!!.startsWith("http")) {
-                    // Load from URL
+                try {
+                    val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
                     Glide.with(binding.friendProfilePicture.context)
-                        .load(profilePic as String)
+                        .asBitmap()
+                        .load(imageBytes as ByteArray)
                         .placeholder(R.drawable.ic_profile_placeholder)
-                        .error(R.drawable.ic_profile_placeholder)
-                        .into(binding.friendProfilePicture)
-                } else {
-                    try {
-                        val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
-                        Glide.with(binding.friendProfilePicture.context)
-                            .asBitmap()
-                            .load(imageBytes as ByteArray)
-                            .placeholder(R.drawable.ic_profile_placeholder)
-                            .into(object : CustomTarget<Bitmap>() {
-                                public override fun onResourceReady(
-                                    resource: Bitmap,
-                                    transition: Transition<in Bitmap>?
-                                ) {
-                                    val drawable: Drawable = resource.toDrawable(binding.friendProfilePicture.context.resources)
-                                    binding.friendProfilePicture.background = drawable
+                        .into(object : CustomTarget<Bitmap>() {
+                            public override fun onResourceReady(
+                                resource: Bitmap,
+                                transition: Transition<in Bitmap>?
+                            ) {
+                                val drawable: Drawable = resource.toDrawable(binding.friendProfilePicture.context.resources)
+                                binding.friendProfilePicture.background = drawable
 //                                    TODO: Replace with actual mask
-                                    binding.friendProfilePicture.setImageResource(R.drawable.coin_side)
-                                }
+                                binding.friendProfilePicture.setImageResource(R.drawable.coin_side)
+                            }
 
-                                override fun onLoadCleared(placeholder: Drawable?) {
-                                    binding.friendProfilePicture.background = placeholder
-                                }
-                            })
-                    } catch (e: Exception) {
-                        binding.friendProfilePicture.setImageResource(R.drawable.ic_profile_placeholder)
-                    }
+                            override fun onLoadCleared(placeholder: Drawable?) {
+                                binding.friendProfilePicture.background = placeholder
+                            }
+                        })
+                } catch (e: Exception) {
+                    binding.friendProfilePicture.setImageResource(R.drawable.ic_profile_placeholder)
                 }
             } else {
                 binding.friendProfilePicture.setImageResource(R.drawable.ic_profile_placeholder)
