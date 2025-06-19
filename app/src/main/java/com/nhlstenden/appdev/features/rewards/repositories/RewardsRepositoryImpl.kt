@@ -4,7 +4,7 @@ import android.util.Log
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.RewardsRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
-import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.supabase.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -25,10 +25,14 @@ class RewardsRepositoryImpl @Inject constructor(
             val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not authenticated"))
                 
-            val response = withContext(Dispatchers.IO) {
-                supabaseClient.getUserUnlockedRewards(currentUser.id, currentUser.authToken)
+            val responseResult = withContext(Dispatchers.IO) { supabaseClient.getUserUnlockedRewards(currentUser.id, currentUser.authToken) }
+
+            if (responseResult.isFailure) {
+                Log.e(TAG, "Network error while fetching unlocked rewards", responseResult.exceptionOrNull())
             }
-            
+
+            val response = responseResult.getOrThrow()
+
             if (response.isSuccessful) {
                 val body = response.body?.string()
                 if (!body.isNullOrEmpty()) {
@@ -52,10 +56,17 @@ class RewardsRepositoryImpl @Inject constructor(
             val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not authenticated"))
                 
-            val response = withContext(Dispatchers.IO) {
+            val responseResult = withContext(Dispatchers.IO) {
                 supabaseClient.unlockReward(currentUser.id, rewardId, currentUser.authToken)
             }
-            
+
+            if (responseResult.isFailure) {
+                Log.e(TAG, "Network error while unlocking reward", responseResult.exceptionOrNull())
+                return Result.failure(responseResult.exceptionOrNull()!!)
+            }
+
+            val response = responseResult.getOrThrow()
+
             if (response.isSuccessful) {
                 Log.d(TAG, "Reward $rewardId unlocked successfully")
                 Result.success(Unit)

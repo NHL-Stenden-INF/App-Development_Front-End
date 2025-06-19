@@ -10,7 +10,7 @@ import androidx.fragment.app.DialogFragment
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
-import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.supabase.*
 import com.nhlstenden.appdev.databinding.DialogBuyBellPepperBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

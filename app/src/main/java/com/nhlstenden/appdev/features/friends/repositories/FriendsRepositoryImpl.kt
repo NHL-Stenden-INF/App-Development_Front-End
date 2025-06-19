@@ -5,7 +5,7 @@ import com.nhlstenden.appdev.core.repositories.FriendsRepository
 import com.nhlstenden.appdev.features.friends.models.Friend
 import com.nhlstenden.appdev.features.friends.models.FriendDetails
 import com.nhlstenden.appdev.features.friends.models.CourseProgress
-import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.supabase.*
 import com.nhlstenden.appdev.features.courses.CourseParser
 import com.nhlstenden.appdev.features.courses.TaskParser
 import org.json.JSONArray
@@ -32,15 +32,17 @@ class FriendsRepositoryImpl @Inject constructor(
             val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not logged in"))
             
-            val response = supabaseClient.createMutualFriendship(friendId, currentUser.authToken)
-            if (response.isSuccessful) {
-                Log.d(TAG, "Friend added successfully: $friendId")
-                Result.success(Unit)
-            } else {
-                val error = "Failed to add friend: ${response.code}"
-                Log.e(TAG, error)
-                Result.failure(Exception(error))
-            }
+            val result = supabaseClient.createMutualFriendship(friendId, currentUser.authToken)
+
+            result.fold(
+                onSuccess = {
+                    Log.d(TAG, "Friend added successfully: $friendId")
+                    Result.success(Unit)
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Failed to add friend", error)
+                    Result.failure(error)
+                })
         } catch (e: Exception) {
             Log.e(TAG, "Error adding friend", e)
             Result.failure(e)
@@ -52,12 +54,9 @@ class FriendsRepositoryImpl @Inject constructor(
             val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not logged in"))
             
-            val response = supabaseClient.getAllFriends(currentUser.authToken)
-            if (!response.isSuccessful) {
-                val error = "Failed to load friends: ${response.code}"
-                Log.e(TAG, error)
-                return Result.failure(Exception(error))
-            }
+            val response = supabaseClient.getAllFriends(currentUser.authToken).getOrElse {
+                Log.e(TAG, "Failed to load friends", it)
+                return Result.failure(it)}
 
             val body = response.body?.string() ?: "[]"
             Log.d(TAG, "Get all friends response: $body")
@@ -134,15 +133,17 @@ class FriendsRepositoryImpl @Inject constructor(
             val currentUser = authRepository.getCurrentUserSync()
                 ?: return Result.failure(Exception("User not logged in"))
             
-            val response = supabaseClient.removeFriend(friendId, currentUser.authToken)
-            if (response.isSuccessful) {
-                Log.d(TAG, "Friend removed successfully: $friendId")
-                Result.success(Unit)
-            } else {
-                val error = "Failed to remove friend: ${response.code}"
-                Log.e(TAG, error)
-                Result.failure(Exception(error))
-            }
+            val result = supabaseClient.removeFriend(friendId, currentUser.authToken)
+
+            result.fold(
+                onSuccess = {
+                    Log.d(TAG, "Friend removed successfully: $friendId")
+                    Result.success(Unit)
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Failed to remove friend", error)
+                    Result.failure(error)
+                })
         } catch (e: Exception) {
             Log.e(TAG, "Error removing friend", e)
             Result.failure(e)

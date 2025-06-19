@@ -1,6 +1,6 @@
 package com.nhlstenden.appdev
 
-import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.supabase.*
 import org.json.JSONException
 import org.json.JSONObject
 import org.junit.Assert.*
