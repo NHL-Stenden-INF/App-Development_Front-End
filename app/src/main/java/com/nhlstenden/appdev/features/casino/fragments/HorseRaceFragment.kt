@@ -60,14 +60,6 @@ class HorseRaceFragment : BaseGameFragment(), RaceManager {
         }
     }
 
-    override fun calculateScore(score: Int): Int {
-        return if (winnerGuineaHorse == betterGuineaHorse) {
-            (score * 3).toInt()
-        } else {
-            (score / 3).toInt()
-        }
-    }
-
     override fun onRaceCompleted(guineaHorseName: String) {
         guineaHorseHandlerList.forEach { guineaHorseHandler ->
             guineaHorseHandler.stop()

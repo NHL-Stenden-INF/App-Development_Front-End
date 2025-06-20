@@ -9,7 +9,7 @@ import com.nhlstenden.appdev.features.casino.interfaces.GameType
 import com.nhlstenden.appdev.features.casino.viewmodels.CasinoViewmodel
 import kotlin.getValue
 
-abstract class BaseGameFragment : Fragment(), GameType {
+abstract class BaseGameFragment : Fragment() {
     protected val viewModel: CasinoViewmodel by viewModels({ requireActivity() })
 
     protected fun finishGame(points: Int) {
@@ -27,5 +27,4 @@ abstract class BaseGameFragment : Fragment(), GameType {
     }
 
     abstract fun startGame()
-    abstract fun calculateScore(score: Int): Int
 }

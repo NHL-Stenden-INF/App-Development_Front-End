@@ -1,5 +1,8 @@
 package com.nhlstenden.appdev.features.casino
 
+import com.nhlstenden.appdev.features.casino.games.CoinFlipGame
+import com.nhlstenden.appdev.features.casino.games.HorseRacesGame
+import com.nhlstenden.appdev.features.casino.games.WheelOfFortuneGame
 import com.nhlstenden.appdev.features.casino.interfaces.GameType
 
 object GameTypeFactory {

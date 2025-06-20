@@ -73,12 +73,4 @@ class CoinFlipFragment : BaseGameFragment() {
     override fun startGame() {
         handler.postDelayed(frameRunnable, frameDuration)
     }
-
-    override fun calculateScore(score: Int): Int {
-        return if (hasWonTheGame) {
-            (score  * 2).toInt()
-        } else {
-            (score / 2).toInt()
-        }
-    }
 }
