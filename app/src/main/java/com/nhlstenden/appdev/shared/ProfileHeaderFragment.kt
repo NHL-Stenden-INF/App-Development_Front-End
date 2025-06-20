@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.nhlstenden.appdev.R
@@ -38,7 +39,7 @@ class ProfileHeaderFragment : Fragment() {
     
     private var _binding: FragmentProfileHeaderBinding? = null
     private val binding get() = _binding!!
-    private val profileViewModel: ProfileViewModel by viewModels()
+    private val profileViewModel: ProfileViewModel by activityViewModels()
     
     @Inject lateinit var authRepository: AuthRepository
     @Inject lateinit var userRepository: UserRepository
@@ -66,6 +67,9 @@ class ProfileHeaderFragment : Fragment() {
         // The cached profile only contains user_attributes (points, streak, etc.) not profile table data
         observeProfile()
         
+        // Listen for profile updates from ProfileFragment
+        setupProfileUpdateListener()
+
         // Only load profile if not already loaded
         if (!isProfileLoaded) {
             Log.d("ProfileHeaderFragment", "Loading profile for the first time...")
@@ -84,6 +88,16 @@ class ProfileHeaderFragment : Fragment() {
         }
     }
     
+    private fun setupProfileUpdateListener() {
+        Log.d("ProfileHeaderFragment", "Setting up profile update listener...")
+        parentFragmentManager.setFragmentResultListener("profile_updated", viewLifecycleOwner) { _, bundle ->
+            if (bundle.getBoolean("updated", false)) {
+                Log.d("ProfileHeaderFragment", "Profile update notification received - refreshing profile")
+                refreshProfile()
+            }
+        }
+    }
+
     private fun navigateToProfile() {
         val profileFragment = ProfileFragment()
         
@@ -338,6 +352,10 @@ class ProfileHeaderFragment : Fragment() {
     fun refreshProfile() {
         Log.d("ProfileHeaderFragment", "refreshProfile() called - triggering ProfileViewModel.loadProfile()")
         isProfileLoaded = false // Reset flag to allow reload
+
+        // Clear any potential image cache for the profile image
+        Glide.get(requireContext()).clearMemory()
+
         profileViewModel.loadProfile()
         isProfileLoaded = true
     }
