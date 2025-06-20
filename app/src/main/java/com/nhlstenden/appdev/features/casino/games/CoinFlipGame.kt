@@ -1,11 +1,12 @@
 package com.nhlstenden.appdev.features.casino.games
 
 import androidx.fragment.app.Fragment
+import com.nhlstenden.appdev.features.casino.fragments.CoinFlipFragment
 import com.nhlstenden.appdev.features.casino.models.GameData
 
 class CoinFlipGame: BaseGame() {
     override fun createFragment(): Fragment {
-        TODO("Not yet implemented")
+        return CoinFlipFragment()
     }
 
     override fun getGameData(): GameData {

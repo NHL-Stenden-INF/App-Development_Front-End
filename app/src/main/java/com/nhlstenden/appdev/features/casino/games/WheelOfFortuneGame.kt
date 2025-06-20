@@ -1,11 +1,12 @@
 package com.nhlstenden.appdev.features.casino.games
 
 import androidx.fragment.app.Fragment
+import com.nhlstenden.appdev.features.casino.fragments.WheelOfFortuneFragment
 import com.nhlstenden.appdev.features.casino.models.GameData
 
 class WheelOfFortuneGame: BaseGame() {
     override fun createFragment(): Fragment {
-        TODO("Not yet implemented")
+        return WheelOfFortuneFragment()
     }
 
     override fun getGameData(): GameData {

@@ -6,7 +6,7 @@ import com.nhlstenden.appdev.features.casino.games.WheelOfFortuneGame
 import com.nhlstenden.appdev.features.casino.interfaces.GameType
 
 object GameTypeFactory {
-    fun createGameType(game: CasinoTypes): GameType {
+    fun createGameType(game: CasinoTypes?): GameType {
         return when (game) {
             CasinoTypes.COINFLIP -> CoinFlipGame()
             CasinoTypes.HORSE_RACES -> HorseRacesGame()
