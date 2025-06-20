@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.courses
+package com.nhlstenden.appdev.features.courses.screens
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -15,10 +15,11 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.features.courses.screens.CourseAdapter
+import com.nhlstenden.appdev.features.courses.adapters.CourseAdapter
 import com.nhlstenden.appdev.core.utils.NavigationManager
-import com.nhlstenden.appdev.features.courses.model.Course
+import com.nhlstenden.appdev.features.courses.models.Course
 import com.nhlstenden.appdev.shared.ui.base.BaseFragment
+import com.nhlstenden.appdev.features.courses.viewmodels.CoursesViewModel
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 import com.nhlstenden.appdev.core.repositories.AuthRepository
@@ -27,7 +28,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class CoursesFragment : BaseFragment() {
     @Inject lateinit var authRepository: AuthRepository
-    private val viewModel: CourseViewModel by viewModels()
+    private val viewModel: CoursesViewModel by viewModels()
     private lateinit var coursesList: RecyclerView
     private lateinit var searchEditText: TextInputEditText
     private lateinit var filterButton: MaterialButton

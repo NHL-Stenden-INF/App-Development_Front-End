@@ -43,4 +43,5 @@
     <color name="text_primary">#FF000000</color>
     <color name="text_secondary">#FF666666</color>
     <color name="colorPrimaryDark">#FF3700B3</color>
+    <color name="lightGray">#E0E0E0</color>
 </resources>

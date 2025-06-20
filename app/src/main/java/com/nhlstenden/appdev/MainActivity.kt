@@ -22,7 +22,7 @@ import com.nhlstenden.appdev.features.progress.ProgressFragment
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.rewards.ui.RewardsFragment
 import com.nhlstenden.appdev.core.models.User
-import com.nhlstenden.appdev.features.courses.CoursesFragment
+import com.nhlstenden.appdev.features.courses.screens.CoursesFragment
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.shared.ProfileHeaderFragment
 import dagger.hilt.android.AndroidEntryPoint

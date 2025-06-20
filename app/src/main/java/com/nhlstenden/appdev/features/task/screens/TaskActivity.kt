@@ -25,6 +25,7 @@ import com.nhlstenden.appdev.features.task.viewmodels.TaskViewModel
 import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import com.nhlstenden.appdev.features.home.StreakManager
 import com.nhlstenden.appdev.features.rewards.AchievementManager
+import com.nhlstenden.appdev.core.utils.TaskToCourseMapper
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -171,7 +172,9 @@ class TaskActivity : AppCompatActivity() {
                     val taskId = intent.getStringExtra(EXTRA_TASK_ID)
                     Log.d("TaskActivity", "Calling updateTaskProgress for userId=${currentUser?.id}, taskId=$taskId")
                     if (currentUser != null && taskId != null) {
-                        val courseId = taskId.substringBefore("_")
+                        // Map task ID to correct course ID using centralized mapper
+                        val courseId = TaskToCourseMapper.mapTaskIdToCourseId(taskId)
+                        
                         lifecycleScope.launch(Dispatchers.IO) {
                             try {
                                 // Update progress using repository
@@ -266,9 +269,11 @@ class TaskActivity : AppCompatActivity() {
     }
 
     private fun loadTasks() {
-        val courseId = taskId?.substringBefore("_") ?: return
-        binding.taskName.text = getTaskTitle(this, courseId, taskId ?: "")
-        viewModel.loadTasks(taskId ?: "")
+        val taskIdValue = taskId ?: return
+        // Map task ID to correct course ID using centralized mapper
+        val courseId = TaskToCourseMapper.mapTaskIdToCourseId(taskIdValue)
+        binding.taskName.text = getTaskTitle(this, courseId, taskIdValue)
+        viewModel.loadTasks(taskIdValue)
     }
 
     private fun updateQuestionNumber() {

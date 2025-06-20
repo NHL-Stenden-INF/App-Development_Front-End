@@ -1,8 +1,8 @@
-package com.nhlstenden.appdev.features.courses
+package com.nhlstenden.appdev.features.courses.viewmodels
 
 import androidx.lifecycle.ViewModel
-import com.nhlstenden.appdev.features.courses.model.Course
-import com.nhlstenden.appdev.features.courses.model.Task
+import com.nhlstenden.appdev.features.courses.models.Course
+import com.nhlstenden.appdev.features.courses.repositories.CoursesRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,8 +13,8 @@ import kotlinx.coroutines.launch
 import com.nhlstenden.appdev.core.models.User
 
 @HiltViewModel
-class CourseViewModel @Inject constructor(
-    private val courseRepository: CourseRepository
+class CoursesViewModel @Inject constructor(
+    private val coursesRepository: CoursesRepositoryImpl
 ) : ViewModel() {
     private val _courses = MutableStateFlow<List<Course>>(emptyList())
     val courses: StateFlow<List<Course>> = _courses.asStateFlow()
@@ -27,12 +27,6 @@ class CourseViewModel @Inject constructor(
 
     private val _filteredCourses = MutableStateFlow<List<Course>>(emptyList())
     val filteredCourses: StateFlow<List<Course>> = _filteredCourses.asStateFlow()
-
-    private val _tasksState = MutableStateFlow<TasksState>(TasksState.Loading)
-    val tasksState: StateFlow<TasksState> = _tasksState.asStateFlow()
-
-    private val _courseProgress = MutableStateFlow(0)
-    val courseProgress: StateFlow<Int> = _courseProgress.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -58,13 +52,13 @@ class CourseViewModel @Inject constructor(
 
     fun loadCourses() {
         viewModelScope.launch {
-            _courses.value = courseRepository.getCoursesWithoutProgress()
+            _courses.value = coursesRepository.getCoursesWithoutProgress()
         }
     }
 
     fun loadCoursesWithProgress(user: User) {
         viewModelScope.launch {
-            _courses.value = courseRepository.getCourses(user) ?: emptyList()
+            _courses.value = coursesRepository.getCourses(user) ?: emptyList()
         }
     }
 
@@ -79,26 +73,5 @@ class CourseViewModel @Inject constructor(
     fun clearFilters() {
         _searchQuery.value = ""
         _selectedStars.value = null
-    }
-
-    fun loadTasks(courseId: String, user: User) {
-        _tasksState.value = TasksState.Loading
-        viewModelScope.launch {
-            try {
-                val tasks = courseRepository.getTasks(courseId)
-                val courses = courseRepository.getCourses(user)
-                val course = courses?.find { it.id == courseId }
-                _courseProgress.value = course?.progress ?: 0
-                _tasksState.value = TasksState.Success(tasks)
-            } catch (e: Exception) {
-                _tasksState.value = TasksState.Error(e.message ?: "Failed to load tasks")
-            }
-        }
-    }
-
-    sealed class TasksState {
-        object Loading : TasksState()
-        data class Success(val tasks: List<Task>) : TasksState()
-        data class Error(val message: String) : TasksState()
     }
 } 

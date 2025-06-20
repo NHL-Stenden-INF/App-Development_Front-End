@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>Which keyword is used to create a new class in Python?</question_text>
+        <option correct="true">class</option>
+        <option correct="false">object</option>
+        <option correct="false">def</option>
+        <option correct="false">create</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is the purpose of the __init__ method in Python?</question_text>
+        <option correct="true">It's the constructor method that initializes new objects</option>
+        <option correct="false">It's used to delete objects</option>
+        <option correct="false">It's used to print objects</option>
+        <option correct="false">It's used to compare objects</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What does 'self' represent in Python class methods?</question_text>
+        <option correct="true">A reference to the current instance of the class</option>
+        <option correct="false">A reference to the class itself</option>
+        <option correct="false">A Python keyword for loops</option>
+        <option correct="false">A built-in function</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>How do you inherit from a parent class in Python?</question_text>
+        <option correct="true">class Child(Parent):</option>
+        <option correct="false">class Child extends Parent:</option>
+        <option correct="false">class Child inherits Parent:</option>
+        <option correct="false">class Child -> Parent:</option>
+    </multiple_choice_question>
+</questions> 

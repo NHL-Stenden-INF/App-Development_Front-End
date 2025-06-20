@@ -1,12 +1,9 @@
-package com.nhlstenden.appdev.features.courses.repositories
+package com.nhlstenden.appdev.features.course.repositories
 
 import android.app.Application
 import com.nhlstenden.appdev.core.models.User
-import com.nhlstenden.appdev.features.courses.model.Task
-import com.nhlstenden.appdev.features.courses.CourseParser
-import com.nhlstenden.appdev.features.courses.CourseRepository
-import com.nhlstenden.appdev.features.courses.TaskParser
-import com.nhlstenden.appdev.features.courses.model.Course
+import com.nhlstenden.appdev.features.course.models.Task
+import com.nhlstenden.appdev.features.course.utils.TaskParser
 import com.nhlstenden.appdev.features.courses.QuestionParser
 import com.nhlstenden.appdev.features.task.models.Question
 import javax.inject.Inject
@@ -23,8 +20,7 @@ import org.json.JSONArray
 class CourseRepositoryImpl @Inject constructor(
     private val application: Application,
     private val authRepository: AuthRepository
-) : CourseRepository {
-    val courseParser = CourseParser(application.applicationContext)
+) {
     val taskParser = TaskParser(application.applicationContext)
     val questionParser = QuestionParser(application.applicationContext)
     val supabaseClient = SupabaseClient()
@@ -80,60 +76,7 @@ class CourseRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getCourses(user: User): List<Course>? {
-        val userProgresses = try {
-            getUserProgressSafely(user.id, user.authToken)
-        } catch (e: Exception) {
-            // If JWT expired, let the exception propagate to trigger logout
-            if (e.message?.contains("Session expired") == true) {
-                throw e
-            }
-            // Return courses with 0 progress if there's an error
-            var courses = courseParser.loadAllCourses()
-            courses.forEach { course ->
-                course.totalTasks = this.getTotalTaskOfCourse(course.id)
-                course.progress = 0
-            }
-            return courses
-        }
-        
-        val userProgressMap = HashMap<String, Int>()
-        userProgresses?.let { progressArray ->
-            for(i in 0 until progressArray.length()) {
-                val JsonObject = progressArray.getJSONObject(i)
-                userProgressMap.put(
-                    JsonObject.getString("course_id"),
-                    JsonObject.getInt("progress")
-                )
-            }
-        }
-        
-        var courses = courseParser.loadAllCourses()
-
-        courses.forEach { course ->
-            course.totalTasks = this.getTotalTaskOfCourse(course.id)
-            // Ensure progress is 0 if no database entry exists
-            course.progress = userProgressMap[course.id] ?: 0
-        }
-
-        return courses
-    }
-
-    override suspend fun getCoursesWithoutProgress(): List<Course> {
-        var courses = courseParser.loadAllCourses()
-
-        courses.forEach { course ->
-            course.totalTasks = this.getTotalTaskOfCourse(course.id)
-        }
-
-        return courses
-    }
-
-    override suspend fun getTaskById(courseTitle: String, taskTitle: String): Task? {
-        return getTasks(courseTitle).find { it.title == taskTitle }
-    }
-
-    override suspend fun getTasks(courseId: String): List<Task> {
+    suspend fun getTasks(courseId: String): List<Task> {
         // Get current user
         val currentUser = authRepository.getCurrentUserSync() ?: return taskParser.loadAllTasksOfCourse(courseId)
         
@@ -180,15 +123,63 @@ class CourseRepositoryImpl @Inject constructor(
         return taskParser.loadAllTasksOfCourse(courseId)
     }
 
-    override suspend fun getTotalTaskOfCourse(courseId: String): Int {
-        return getTasks(courseId).size
+    suspend fun getCourseProgress(userId: String, courseId: String): Map<String, Int> {
+        return try {
+            withContext(Dispatchers.IO) {
+                val currentUser = authRepository.getCurrentUserSync()
+                if (currentUser != null) {
+                    // Get user progress for this specific course
+                    val userProgresses = getUserProgressSafely(currentUser.id, currentUser.authToken)
+                    val progressMap = mutableMapOf<String, Int>()
+                    
+                    // Find the progress for this course
+                    var courseProgress = 0
+                    userProgresses?.let { progressArray ->
+                        for(i in 0 until progressArray.length()) {
+                            val JsonObject = progressArray.getJSONObject(i)
+                            if (JsonObject.getString("course_id") == courseId) {
+                                courseProgress = JsonObject.getInt("progress")
+                                break
+                            }
+                        }
+                    }
+                    
+                    // Get all tasks for this course and map their progress
+                    val tasks = taskParser.loadAllTasksOfCourse(courseId)
+                    tasks.forEachIndexed { index, task ->
+                        when {
+                            index < courseProgress -> {
+                                // Task is completed - set to full question count
+                                progressMap[task.id] = task.questionCount
+                            }
+                            index == courseProgress || index == 0 -> {
+                                // Current task or first task (unlocked but not completed)
+                                // Use -1 as a special marker for "unlocked but not completed"
+                                progressMap[task.id] = -1
+                            }
+                            else -> {
+                                // Task is locked
+                                progressMap[task.id] = 0
+                            }
+                        }
+                    }
+                    
+                    progressMap
+                } else {
+                    emptyMap()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting course progress", e)
+            emptyMap()
+        }
     }
 
-    override suspend fun getQuestions(taskId: String): List<Question> {
+    suspend fun getQuestions(taskId: String): List<Question> {
         return questionParser.loadQuestionsForTask(taskId)
     }
 
-    override suspend fun updateTaskProgress(userId: String, taskId: String, progress: Int): Boolean {
+    suspend fun updateTaskProgress(userId: String, taskId: String, progress: Int): Boolean {
         Log.d(TAG, "updateTaskProgress ENTRY: userId=$userId, taskId=$taskId, progress=$progress")
         try {
             val currentUser = authRepository.getCurrentUserSync()

@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.courses.screens
+package com.nhlstenden.appdev.features.courses.adapters
 
 import android.view.LayoutInflater
 import android.view.View
@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.daimajia.numberprogressbar.NumberProgressBar
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.features.courses.model.Course
+import com.nhlstenden.appdev.features.courses.models.Course
 import com.nhlstenden.appdev.core.utils.ProgressCalculator
 
 class CourseAdapter(
