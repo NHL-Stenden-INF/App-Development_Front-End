@@ -61,6 +61,8 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.content.Context
 import android.util.Log
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.core.repositories.SettingsRepository
@@ -69,6 +71,10 @@ import com.nhlstenden.appdev.shared.components.CameraActivity
 import com.nhlstenden.appdev.utils.LevelCalculator
 import com.nhlstenden.appdev.utils.RewardChecker
 import com.nhlstenden.appdev.core.repositories.AchievementRepository
+import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.supabase.updateUserFriendMask
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
 class ProfileFragment : BaseFragment(), SensorEventListener {
