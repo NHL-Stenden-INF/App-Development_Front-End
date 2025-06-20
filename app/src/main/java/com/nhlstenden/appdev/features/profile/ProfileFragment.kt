@@ -16,6 +16,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -83,7 +84,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
 
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: ProfileViewModel by viewModels()
+    private val viewModel: ProfileViewModel by activityViewModels()
     private lateinit var achievementAdapter: AchievementAdapter
     private lateinit var musicLobbySwitch: SwitchMaterial
     private val MUSIC_LOBBY_REWARD_ID = 11
@@ -502,6 +503,14 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                 }
                 Log.d("ProfileFragment", "Updated displayname/ bio")
                 viewModel.updateProfile(newName, newBio, null)
+                
+                // Notify other fragments of profile update
+                parentFragmentManager.setFragmentResult(
+                    "profile_updated",
+                    Bundle().apply {
+                        putBoolean("updated", true)
+                    }
+                )
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -609,9 +618,9 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                         base64Image
                     )
                     
-                    // Notify HomeFragment of profile picture update
+                    // Notify other fragments of profile update
                     parentFragmentManager.setFragmentResult(
-                        "profile_picture_updated",
+                        "profile_updated",
                         Bundle().apply {
                             putBoolean("updated", true)
                         }

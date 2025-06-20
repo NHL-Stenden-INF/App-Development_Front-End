@@ -135,7 +135,7 @@ class HomeFragment : Fragment() {
         observeMotivationalMessage(view)
         observeDailyChallengeState(view)
 
-        parentFragmentManager.setFragmentResultListener("profile_picture_updated", viewLifecycleOwner) { _, bundle ->
+        parentFragmentManager.setFragmentResultListener("profile_updated", viewLifecycleOwner) { _, bundle ->
             if (bundle.getBoolean("updated", false)) {
                 profileViewModel.loadProfile()
             }
