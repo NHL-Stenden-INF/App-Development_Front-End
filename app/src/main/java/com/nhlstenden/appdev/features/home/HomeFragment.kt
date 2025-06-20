@@ -14,13 +14,12 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager2.widget.ViewPager2
-import com.nhlstenden.appdev.features.profile.screens.ProfileFragment
 import com.nhlstenden.appdev.R
 import android.app.AlertDialog
-import android.app.Application
+import android.content.Intent
 import android.os.Build
 import android.widget.EditText
 import androidx.annotation.RequiresApi
@@ -29,32 +28,31 @@ import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel.Profil
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
-import com.bumptech.glide.Glide
-import com.google.android.material.progressindicator.LinearProgressIndicator
-import com.nhlstenden.appdev.features.home.StreakManager
+import com.nhlstenden.appdev.features.rewards.AchievementManager
 import java.time.LocalDate
 import android.util.Log
-import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
+import android.widget.Button
 import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.time.temporal.ChronoUnit
-import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import com.daimajia.numberprogressbar.NumberProgressBar
-import com.nhlstenden.appdev.core.utils.UserManager
+import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.core.utils.NavigationManager
-import java.io.File
-
-// Data class for course info
-data class HomeCourse(
-    val title: String,
-    val progressText: String,
-    val progressPercent: Int,
-    val iconResId: Int,
-    val accentColor: Int
-)
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.runBlocking
+import android.widget.Toast
+import com.bumptech.glide.Glide
+import com.nhlstenden.appdev.features.task.BuyBellPepperDialogFragment
+import com.nhlstenden.appdev.utils.LevelCalculator
+import com.nhlstenden.appdev.core.repositories.FriendsRepository
+import com.nhlstenden.appdev.supabase.*
+import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.features.home.HomeViewModel
+import com.nhlstenden.appdev.features.home.HomeCourse
+import com.nhlstenden.appdev.features.courses.repositories.CoursesRepository
 
 class HomeCourseAdapter(private val courses: List<HomeCourse>, private val fragment: Fragment) : RecyclerView.Adapter<HomeCourseAdapter.ViewHolder>() {
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -81,7 +79,7 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>, private val fragm
         holder.progressBar.progress = course.progressPercent
 
         holder.root.setOnClickListener {
-            NavigationManager.navigateToCourseTasks(fragment.requireActivity(), course.title)
+            NavigationManager.navigateToCourseTasks(fragment.requireActivity(), course.id)
         }
     }
 
@@ -95,19 +93,25 @@ class HomeCourseAdapter(private val courses: List<HomeCourse>, private val fragm
  */
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
-    private lateinit var greetingText: TextView
-    private lateinit var motivationalMessage: TextView
-    private lateinit var profilePicture: ImageView
-    private lateinit var circularXpBar: CircularProgressBar
-    private lateinit var levelInCircleText: TextView
-    private lateinit var courseRepositoryImpl: CourseRepositoryImpl
+    
+    @Inject lateinit var authRepository: AuthRepository
+    @Inject lateinit var userRepository: UserRepository
+    @Inject lateinit var friendsRepository: FriendsRepository
     private val profileViewModel: ProfileViewModel by viewModels()
     private var displayNameDialogShown = false
+    private val homeViewModel: HomeViewModel by activityViewModels()
+
+    private lateinit var continueLearningRecyclerView: RecyclerView
 
     @Inject
     lateinit var streakRepository: StreakRepository
-    private val streakManager = StreakManager()
-
+    
+    @Inject
+    lateinit var achievementManager: AchievementManager
+    
+    @Inject
+    lateinit var coursesRepository: CoursesRepository
+    
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -118,15 +122,21 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        courseRepositoryImpl = CourseRepositoryImpl(requireContext().applicationContext as Application)
-        setupUI(view)
+        val userData = authRepository.getCurrentUserSync()
+        if (userData != null) {
+            setupUI(view)
+        } else {
+            Log.e("HomeFragment", "No valid user data available")
+        }
         observeViewModel()
-        dayCounter(view)
-        
-        // Set up fragment result listener for profile picture updates
+        observeStreakState(view)
+        observeStreakCircles(view)
+        observeHomeCourses(view)
+        observeMotivationalMessage(view)
+        observeDailyChallengeState(view)
+
         parentFragmentManager.setFragmentResultListener("profile_picture_updated", viewLifecycleOwner) { _, bundle ->
             if (bundle.getBoolean("updated", false)) {
-                // Reload the profile to get the updated picture
                 profileViewModel.loadProfile()
             }
         }
@@ -135,86 +145,25 @@ class HomeFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         setupUI(requireView())
-        dayCounter(requireView())
+        observeStreakState(requireView())
+        observeStreakCircles(requireView())
+        observeHomeCourses(requireView())
+        observeMotivationalMessage(requireView())
+        observeDailyChallengeState(requireView())
     }
 
+    // Initialize UI components and load user profile data
     fun setupUI(view: View) {
-        greetingText = view.findViewById(R.id.greetingText)
-        motivationalMessage = view.findViewById(R.id.motivationalMessage)
-        profilePicture = view.findViewById(R.id.profileImage)
-        circularXpBar = view.findViewById(R.id.circularXpBar)
-        levelInCircleText = view.findViewById(R.id.levelInCircleText)
-
-        val userData = UserManager.getCurrentUser()
+        continueLearningRecyclerView = view.findViewById(R.id.continueLearningList)
+        val userData = authRepository.getCurrentUserSync()
         if (userData == null) {
-            Log.e("HomeFragment", "No user data available")
+            Log.e("HomeFragment", "No valid user data available")
             return
         }
-
-        // Load profile picture
-        loadProfilePicture(userData.profilePicture ?: "")
-
-        // Add click listener to profile picture
-        profilePicture.setOnClickListener {
-            val profileFragment = ProfileFragment()
-            
-            // Hide ViewPager and show fragment container
-            activity?.findViewById<ViewPager2>(R.id.viewPager)?.visibility = View.GONE
-            activity?.findViewById<FrameLayout>(R.id.fragment_container)?.visibility = View.VISIBLE
-            
-            // Replace fragment container with profile fragment
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, profileFragment)
-                .addToBackStack(null)
-                .commit()
-        }
-
-        // Load courses and update UI
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val courses = courseRepositoryImpl.getCourses(userData)
-                val homeCourses = courses?.mapNotNull { course ->
-                    // Set default progress to 0 if no database entry exists
-                    val progress = course.progress ?: 0
-                    val totalTasks = course.totalTasks ?: 0
-                    
-                    if (progress == 0) {
-                        Log.d("HomeFragment", "Not adding course: ${course.title}")
-                        return@mapNotNull null
-                    }
-                    Log.d("HomeFragment", "Adding course: ${course.title}")
-
-                    val accentColor = when (course.id) {
-                        "html" -> ContextCompat.getColor(requireContext(), R.color.html_color)
-                        "css" -> ContextCompat.getColor(requireContext(), R.color.css_color)
-                        "sql" -> ContextCompat.getColor(requireContext(), R.color.sql_color)
-                        else -> ContextCompat.getColor(requireContext(), R.color.html_color)
-                    }
-
-                    HomeCourse(
-                        course.id,
-                        "Lesson: $progress of $totalTasks",
-                        ((progress.toFloat() / totalTasks.toFloat()) * 100).toInt(),
-                        course.imageResId,
-                        accentColor
-                    )
-                } ?: emptyList()
-
-                withContext(Dispatchers.Main) {
-                    val recyclerView = view.findViewById<RecyclerView>(R.id.continueLearningList)
-                    recyclerView.layoutManager = LinearLayoutManager(context)
-                    recyclerView.adapter = HomeCourseAdapter(homeCourses, this@HomeFragment)
-                }
-            } catch (e: Exception) {
-                Log.e("HomeFragment", "Error loading courses", e)
-            }
-        }
-
-        // Set user data in ProfileViewModel
-        profileViewModel.setUserData(userData)
         profileViewModel.loadProfile()
     }
 
+    // Monitor profile state changes and handle invalid display names
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             profileViewModel.profileState.collect { state ->
@@ -223,62 +172,13 @@ class HomeFragment : Fragment() {
                     val invalidNames = listOf("", "null", "default", "user", "anonymous")
                     if (displayName in invalidNames && !displayNameDialogShown) {
                         showDisplayNameDialog()
-                    } else {
-                        greetingText.text = getString(R.string.greeting_format, displayName)
                     }
-
-                    // Update profile picture
-                    loadProfilePicture(state.profile.profilePicture ?: "")
-
-                    // Set circular XP bar and level
-                    val level = state.profile.level
-                    val xp = state.profile.experience
-                    levelInCircleText.text = level.toString()
-                    
-                    // Calculate XP needed for next level
-                    var requiredXp = 100.0
-                    var totalXp = 0.0
-                    for (i in 1 until level) {
-                        totalXp += requiredXp
-                        requiredXp *= 1.1
-                    }
-                    val xpForCurrentLevel = xp - totalXp.toInt()
-                    val xpForNextLevel = requiredXp.toInt()
-                    circularXpBar.progressMax = xpForNextLevel.toFloat()
-                    circularXpBar.setProgressWithAnimation(xpForCurrentLevel.coerceAtLeast(0).toFloat(), 800)
                 }
             }
         }
     }
 
-    private fun loadProfilePicture(profilePic: String) {
-        if (profilePic.isNotEmpty() && profilePic != "null") {
-            if (profilePic.startsWith("http")) {
-                Glide.with(this)
-                    .load(profilePic)
-                    .placeholder(R.drawable.zorotlpf)
-                    .error(R.drawable.zorotlpf)
-                    .circleCrop()
-                    .into(profilePicture)
-            } else {
-                // Try to load as base64
-                try {
-                    val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
-                    Glide.with(this)
-                        .load(imageBytes)
-                        .placeholder(R.drawable.zorotlpf)
-                        .error(R.drawable.zorotlpf)
-                        .circleCrop()
-                        .into(profilePicture)
-                } catch (e: Exception) {
-                    profilePicture.setImageResource(R.drawable.zorotlpf)
-                }
-            }
-        } else {
-            profilePicture.setImageResource(R.drawable.zorotlpf)
-        }
-    }
-
+    // Show dialog to prompt user for a valid display name
     private fun showDisplayNameDialog() {
         displayNameDialogShown = true
         val editText = EditText(requireContext()).apply {
@@ -303,103 +203,23 @@ class HomeFragment : Fragment() {
             .show()
     }
 
+    // Create and display the weekly streak counter with visual indicators
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private fun dayCounter(view: View) {
-        val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-        val container = view.findViewById<LinearLayout>(R.id.daysContainer)
-        container.removeAllViews()
-
-        val today = LocalDate.now()
-        val startOfWeek = today.minusDays(today.dayOfWeek.value.toLong() -1)
-
+    private fun observeStreakState(view: View) {
         val streakCounter = view.findViewById<TextView>(R.id.streakCount)
-
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val currentUser = com.nhlstenden.appdev.core.utils.UserManager.getCurrentUser()
-                if (currentUser != null) {
-                    Log.d("HomeFragment", "Fetching last task date for user: ${currentUser.id}")
-                    val lastTaskDate = streakRepository.getLastTaskDate(currentUser.id.toString(), currentUser.authToken)
-                    val currentStreak = streakRepository.getCurrentStreak(currentUser.id.toString(), currentUser.authToken)
-                    Log.d("HomeFragment", "Last task date: $lastTaskDate")
-                    Log.d("HomeFragment", "Current streak from DB: $currentStreak")
-                    
-                    // Initialize streak manager with database values
-                    streakManager.initializeFromDatabase(lastTaskDate, currentStreak)
-                    
-                    // Switch to main thread for UI updates
-                    withContext(Dispatchers.Main) {
-                        // Update streak counter with the value from streak manager
-                        streakCounter.text = "${streakManager.getCurrentStreak()} days"
-                        
-                        // Draw the days
-                        for (i in 0..6) {
-                            val currentDate = startOfWeek.plusDays(i.toLong())
-                            val dayLayout = LinearLayout(requireContext()).apply {
-                                orientation = LinearLayout.VERTICAL
-                                gravity = Gravity.CENTER
-                                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                            }
-
-                            // Calculate if this day should be marked as completed
-                            val isCompleted = if (lastTaskDate != null) {
-                                // Check if this date is within the streak period
-                                val daysFromLastTask = ChronoUnit.DAYS.between(currentDate, lastTaskDate)
-                                daysFromLastTask >= 0 && daysFromLastTask < currentStreak
-                            } else {
-                                false
-                            }
-
-                            // Draw the circle
-                            val circle = FrameLayout(requireContext()).apply {
-                                layoutParams = FrameLayout.LayoutParams(64, 64).apply {
-                                    gravity = Gravity.CENTER
-                                }
-
-                                background = ContextCompat.getDrawable(
-                                    requireContext(),
-                                    if (isCompleted) R.drawable.day_circle_active else R.drawable.day_circle_inactive
-                                )
-                            }
-
-                            // Draw the fire icon for completed days
-                            val fireIcon = ImageView(requireContext()).apply {
-                                layoutParams = FrameLayout.LayoutParams(32, 32, Gravity.CENTER)
-                                setImageResource(R.drawable.ic_fire)
-                                visibility = if (isCompleted) View.VISIBLE else View.INVISIBLE
-                                setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN)
-                            }
-
-                            val label = TextView(requireContext()).apply {
-                                text = days[i]
-                                setTextColor(if (isNightMode()) Color.WHITE else Color.BLACK)
-                                textSize = 16f
-                                setPadding(0, 8, 0, 0)
-                                gravity = Gravity.CENTER
-                            }
-
-                            circle.addView(fireIcon)
-                            dayLayout.addView(circle)
-                            dayLayout.addView(label)
-                            container.addView(dayLayout)
-                        }
-                    }
-                } else {
-                    Log.e("HomeFragment", "No current user found")
-                    withContext(Dispatchers.Main) {
-                        streakCounter.text = "0 days"
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("HomeFragment", "Error updating streak: ${e.message}")
-                Log.e("HomeFragment", "Stack trace: ${e.stackTraceToString()}")
-                withContext(Dispatchers.Main) {
-                    streakCounter.text = "0 days"
+        viewLifecycleOwner.lifecycleScope.launch {
+            homeViewModel.streakState.collect { state ->
+                when (state) {
+                    is HomeViewModel.StreakState.Loading -> streakCounter.text = "Loading..."
+                    is HomeViewModel.StreakState.Success -> streakCounter.text = "${state.streak} days"
+                    is HomeViewModel.StreakState.Error -> streakCounter.text = "0 days"
                 }
             }
         }
+        homeViewModel.loadStreak()
     }
     
+    // Check if the app is currently in dark mode
     private fun isNightMode(): Boolean {
         return resources.configuration.uiMode and 
             android.content.res.Configuration.UI_MODE_NIGHT_MASK == 
@@ -408,5 +228,186 @@ class HomeFragment : Fragment() {
 
     private fun updateUserData(_user: com.nhlstenden.appdev.core.models.User) {
         // Implementation
+    }
+
+    // Load and display courses that the user is currently progressing through
+    private fun setupContinueLearning(userData: com.nhlstenden.appdev.core.models.User) {
+        continueLearningRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
+        lifecycleScope.launch {
+            try {
+                val courses = withContext(Dispatchers.IO) {
+                    coursesRepository.getCourses(userData)
+                }
+                if (courses != null) {
+                    val activeCourses = courses.filter { course: com.nhlstenden.appdev.features.courses.model.Course ->
+                        course.progress > 0 && course.progress < course.totalTasks
+                    }
+                    val homeCourses = activeCourses.map { course: com.nhlstenden.appdev.features.courses.model.Course ->
+                        val progressText = "${course.progress}/${course.totalTasks} tasks"
+                        val progressPercent = if (course.totalTasks > 0) {
+                            (course.progress.toFloat() / course.totalTasks * 100).toInt()
+                        } else {
+                            0
+                        }
+                        HomeCourse(
+                            id = course.id,
+                            title = course.title,
+                            progressText = progressText,
+                            progressPercent = progressPercent,
+                            iconResId = course.imageResId,
+                            accentColor = ContextCompat.getColor(requireContext(), R.color.colorAccent)
+                        )
+                    }
+                        .sortedByDescending { homeCourse: HomeCourse -> homeCourse.progressPercent } // Sort by progress percentage (highest to lowest)
+                        .take(3) // Take only the top 3 courses
+                    val adapter = HomeCourseAdapter(homeCourses, this@HomeFragment)
+                    continueLearningRecyclerView.adapter = adapter
+                } else {
+                    Log.e("HomeFragment", "Failed to load courses")
+                }
+            } catch (e: Exception) {
+                Log.e("HomeFragment", "Error setting up continue learning: ${e.message}")
+            }
+        }
+    }
+
+    // Generate a motivational message based on a random friend and show it under the streak counter.
+    private fun observeMotivationalMessage(view: View) {
+        val messageView = view.findViewById<TextView>(R.id.motivationalMessage) ?: return
+        val imageView = view.findViewById<ImageView>(R.id.motivationalFriendImage)
+        viewLifecycleOwner.lifecycleScope.launch {
+            homeViewModel.motivationalMessage.collect { (message, pic) ->
+                messageView.text = message
+                val invalidPics = listOf<String?>(null, "", "null")
+                if (pic !in invalidPics && imageView != null) {
+                    imageView.visibility = View.VISIBLE
+                    if (pic!!.startsWith("http")) {
+                        Glide.with(this@HomeFragment)
+                            .load(resolveProfilePictureUrl(pic))
+                            .placeholder(R.drawable.ic_profile_placeholder)
+                            .error(R.drawable.ic_profile_placeholder)
+                            .circleCrop()
+                            .into(imageView)
+                    } else {
+                        try {
+                            val bytes = android.util.Base64.decode(pic, android.util.Base64.DEFAULT)
+                            Glide.with(this@HomeFragment)
+                                .load(bytes)
+                                .placeholder(R.drawable.ic_profile_placeholder)
+                                .error(R.drawable.ic_profile_placeholder)
+                                .circleCrop()
+                                .into(imageView)
+                        } catch (e: Exception) {
+                            imageView.setImageResource(R.drawable.ic_profile_placeholder)
+                        }
+                    }
+                } else {
+                    imageView?.setImageResource(R.drawable.ic_profile_placeholder)
+                }
+            }
+        }
+        homeViewModel.loadMotivationalMessage()
+    }
+
+    private fun resolveProfilePictureUrl(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+        if (url.startsWith("http")) return url
+
+        val trimmed = url.trimStart('/')
+        val base = SupabaseClient().supabaseUrl.trimEnd('/')
+
+        return if (trimmed.startsWith("storage/v1/object/public")) {
+            "$base/${trimmed}"
+        } else {
+            "$base/storage/v1/object/public/${trimmed}"
+        }
+    }
+
+    private fun observeDailyChallengeState(view: View) {
+        val dailyChallengeStart: Button = view.findViewById(R.id.dailyChallengeButton)
+        val dailyChallengeSubtitle: TextView = view.findViewById(R.id.dailyChallengeSubtitle)
+        viewLifecycleOwner.lifecycleScope.launch {
+            homeViewModel.dailyChallengeState.collect { state ->
+                when (state) {
+                    is HomeViewModel.DailyChallengeState.Loading -> {
+                        dailyChallengeStart.visibility = View.GONE
+                        dailyChallengeSubtitle.text = "Loading..."
+                    }
+                    is HomeViewModel.DailyChallengeState.Success -> {
+                        if (state.isAvailable) {
+                            dailyChallengeStart.visibility = View.VISIBLE
+                            dailyChallengeSubtitle.text = getString(R.string.daily_challenge_home_subtitle)
+                            dailyChallengeStart.setOnClickListener {
+                                val intent = Intent(context, DailyChallengeActivity::class.java)
+                                startActivity(intent)
+                            }
+                        } else {
+                            dailyChallengeSubtitle.setText(R.string.daily_challenge_home_subtitle_completed)
+                            dailyChallengeStart.visibility = View.GONE
+                        }
+                    }
+                    is HomeViewModel.DailyChallengeState.Error -> {
+                        dailyChallengeStart.visibility = View.GONE
+                        dailyChallengeSubtitle.text = "Error loading challenge"
+                    }
+                }
+            }
+        }
+        homeViewModel.loadDailyChallengeState()
+    }
+
+    private fun observeHomeCourses(view: View) {
+        continueLearningRecyclerView = view.findViewById(R.id.continueLearningList)
+        continueLearningRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
+        viewLifecycleOwner.lifecycleScope.launch {
+            homeViewModel.homeCourses.collect { courses ->
+                val context = requireContext()
+                val coloredCourses = courses.map { it.copy(accentColor = ContextCompat.getColor(context, R.color.colorAccent)) }
+                continueLearningRecyclerView.adapter = HomeCourseAdapter(coloredCourses, this@HomeFragment)
+            }
+        }
+        homeViewModel.loadHomeCourses()
+    }
+
+    private fun observeStreakCircles(view: View) {
+        val container = view.findViewById<LinearLayout>(R.id.daysContainer)
+        viewLifecycleOwner.lifecycleScope.launch {
+            homeViewModel.streakDays.collect { streakDays ->
+                container.removeAllViews()
+                for (streakDay in streakDays) {
+                    val dayLayout = LinearLayout(requireContext()).apply {
+                        orientation = LinearLayout.VERTICAL
+                        gravity = Gravity.CENTER
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    }
+                    val circle = FrameLayout(requireContext()).apply {
+                        layoutParams = FrameLayout.LayoutParams(64, 64).apply {
+                            gravity = Gravity.CENTER
+                        }
+                        background = ContextCompat.getDrawable(
+                            requireContext(),
+                            if (streakDay.isCompleted) R.drawable.day_circle_active else R.drawable.day_circle_inactive
+                        )
+                    }
+                    val fireIcon = ImageView(requireContext()).apply {
+                        layoutParams = FrameLayout.LayoutParams(32, 32, Gravity.CENTER)
+                        setImageResource(R.drawable.ic_fire)
+                        visibility = if (streakDay.isCompleted) View.VISIBLE else View.INVISIBLE
+                        setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN)
+                    }
+                    val label = TextView(requireContext()).apply {
+                        text = streakDay.label
+                        setTextColor(if (isNightMode()) Color.WHITE else Color.BLACK)
+                        textSize = 16f
+                        setPadding(0, 8, 0, 0)
+                        gravity = Gravity.CENTER
+                    }
+                    circle.addView(fireIcon)
+                    dayLayout.addView(circle)
+                    dayLayout.addView(label)
+                    container.addView(dayLayout)
+                }
+            }
+        }
     }
 }

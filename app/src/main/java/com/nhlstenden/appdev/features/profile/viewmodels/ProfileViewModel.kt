@@ -1,24 +1,25 @@
 package com.nhlstenden.appdev.features.profile.viewmodels
 
+import android.app.Application
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.nhlstenden.appdev.core.models.Profile
 import com.nhlstenden.appdev.core.models.Achievement
 import com.nhlstenden.appdev.core.models.UserProfile
 import com.nhlstenden.appdev.core.repositories.ProfileRepository
+import com.nhlstenden.appdev.shared.ui.base.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
+    application: Application,
     private val profileRepository: ProfileRepository
-) : ViewModel() {
+) : BaseViewModel(application) {
     private val _userProfile = MutableLiveData<UserProfile>()
     val userProfile: LiveData<UserProfile> = _userProfile
 
@@ -28,26 +29,22 @@ class ProfileViewModel @Inject constructor(
     private val _achievements = MutableStateFlow<List<Achievement>>(emptyList())
     val achievements: StateFlow<List<Achievement>> = _achievements.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    private val _error = MutableLiveData<String>()
-    val error: LiveData<String> = _error
-
-    init {
-        loadProfile()
-    }
-
     fun loadProfile() {
-        viewModelScope.launch {
-            _profileState.value = ProfileState.Loading
-            try {
-                val profile = profileRepository.getProfile()
-                _profileState.value = ProfileState.Success(profile)
-            } catch (e: Exception) {
-                android.util.Log.e("ProfileViewModel", "Profile load failed", e)
-                _profileState.value = ProfileState.Error(e.message ?: "Failed to load profile")
-            }
+        Log.d("ProfileViewModel", "loadProfile() called - starting profile fetch...")
+        launchWithLoading {
+            profileRepository.getProfile()
+                .onSuccess { profile ->
+                    Log.d("ProfileViewModel", "Profile loaded successfully - Bell peppers: ${profile.bellPeppers}, Points: ${profile.experience}")
+                    _profileState.value = ProfileState.Success(profile)
+                    Log.d("ProfileViewModel", "ProfileState.Success emitted for ${profile.displayName}")
+                }
+                .onFailure { error ->
+                    val errorMessage = error.message ?: "Failed to load profile"
+                    Log.e("ProfileViewModel", "Failed to load profile: $errorMessage")
+                    _profileState.value = ProfileState.Error(errorMessage)
+                    setError(errorMessage)
+                    Log.e("ProfileViewModel", "Failed to load profile", error)
+                }
         }
     }
 
@@ -60,42 +57,88 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun logout() {
-        viewModelScope.launch {
-            try {
-                profileRepository.logout()
-                _profileState.value = ProfileState.LoggedOut
-            } catch (e: Exception) {
-                _profileState.value = ProfileState.Error(e.message ?: "Failed to logout")
-            }
+        launchWithLoading {
+            profileRepository.logout()
+                .onSuccess {
+                    _profileState.value = ProfileState.LoggedOut
+                    setSuccess("Logged out successfully")
+                    Log.d("ProfileViewModel", "User logged out successfully")
+                }
+                .onFailure { error ->
+                    val errorMessage = error.message ?: "Failed to logout"
+                    _profileState.value = ProfileState.Error(errorMessage)
+                    setError(errorMessage)
+                    Log.e("ProfileViewModel", "Failed to logout", error)
+                }
         }
     }
 
     fun updateProfile(displayName: String, bio: String?, profilePicture: String?) {
-        viewModelScope.launch {
-            _profileState.value = ProfileState.Loading
-            try {
-                val profile = profileRepository.updateProfile(displayName, bio, profilePicture)
-                _profileState.value = ProfileState.Success(profile)
-            } catch (e: Exception) {
-                _profileState.value = ProfileState.Error(e.message ?: "Failed to update profile")
-            }
+        launchWithLoading {
+            profileRepository.updateProfile(displayName, bio, profilePicture)
+                .onSuccess { profile ->
+                    _profileState.value = ProfileState.Success(profile)
+                    setSuccess("Profile updated successfully")
+                    Log.d("ProfileViewModel", "Profile updated successfully")
+                }
+                .onFailure { error ->
+                    val errorMessage = error.message ?: "Failed to update profile"
+                    _profileState.value = ProfileState.Error(errorMessage)
+                    setError(errorMessage)
+                    Log.e("ProfileViewModel", "Failed to update profile", error)
+                }
         }
     }
 
     fun updateProfilePicture(imagePath: String) {
-        viewModelScope.launch {
-            _profileState.value = ProfileState.Loading
-            try {
-                val profile = profileRepository.updateProfilePicture(imagePath)
-                _profileState.value = ProfileState.Success(profile)
-            } catch (e: Exception) {
-                _profileState.value = ProfileState.Error(e.message ?: "Failed to update profile picture")
-            }
+        launchWithLoading {
+            profileRepository.updateProfilePicture(imagePath)
+                .onSuccess { profile ->
+                    _profileState.value = ProfileState.Success(profile)
+                    setSuccess("Profile picture updated successfully")
+                    Log.d("ProfileViewModel", "Profile picture updated successfully")
+                }
+                .onFailure { error ->
+                    val errorMessage = error.message ?: "Failed to update profile picture"
+                    _profileState.value = ProfileState.Error(errorMessage)
+                    setError(errorMessage)
+                    Log.e("ProfileViewModel", "Failed to update profile picture", error)
+                }
         }
     }
 
-    fun setUserData(user: com.nhlstenden.appdev.core.models.User) {
-        (profileRepository as? com.nhlstenden.appdev.features.profile.repositories.ProfileRepositoryImpl)?.setUserData(user)
+    fun updateBio(bio: String) {
+        launchWithLoading {
+            profileRepository.updateBio(bio)
+                .onSuccess { profile ->
+                    _profileState.value = ProfileState.Success(profile)
+                    setSuccess("Bio updated successfully")
+                    Log.d("ProfileViewModel", "Bio updated successfully")
+                }
+                .onFailure { error ->
+                    val errorMessage = error.message ?: "Failed to update bio"
+                    _profileState.value = ProfileState.Error(errorMessage)
+                    setError(errorMessage)
+                    Log.e("ProfileViewModel", "Failed to update bio", error)
+                }
+        }
+    }
+
+    fun updateDisplayName(displayName: String) {
+        launchWithLoading {
+            profileRepository.updateDisplayName(displayName)
+                .onSuccess { profile ->
+                    _profileState.value = ProfileState.Success(profile)
+                    setSuccess("Display name updated successfully")
+                    Log.d("ProfileViewModel", "Display name updated successfully")
+                }
+                .onFailure { error ->
+                    val errorMessage = error.message ?: "Failed to update display name"
+                    _profileState.value = ProfileState.Error(errorMessage)
+                    setError(errorMessage)
+                    Log.e("ProfileViewModel", "Failed to update display name", error)
+                }
+        }
     }
 
     sealed class ProfileState {

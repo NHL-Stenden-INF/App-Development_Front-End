@@ -6,75 +6,91 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
-import com.nhlstenden.appdev.core.utils.UserManager
+import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.databinding.ActivityTaskBinding
-import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
+import com.nhlstenden.appdev.features.course.repositories.CourseRepository
 import com.nhlstenden.appdev.features.task.TaskCompleteListener
 import com.nhlstenden.appdev.features.task.TaskFailureDialogFragment
 import com.nhlstenden.appdev.features.task.adapters.TaskPagerAdapter
-import com.nhlstenden.appdev.features.task.fragments.BaseTaskFragment
 import com.nhlstenden.appdev.features.task.models.Question
 import com.nhlstenden.appdev.features.task.viewmodels.TaskViewModel
-import com.nhlstenden.appdev.main.MainActivity
 import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import com.nhlstenden.appdev.features.home.StreakManager
-import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.features.rewards.AchievementManager
+import com.nhlstenden.appdev.core.utils.TaskToCourseMapper
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import javax.inject.Inject
-import org.json.JSONArray
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CoroutineScope
 
 @AndroidEntryPoint
 class TaskActivity : AppCompatActivity() {
+    
+    @Inject lateinit var authRepository: AuthRepository
+    @Inject lateinit var userRepository: UserRepository
+    @Inject lateinit var streakRepository: StreakRepository
+    @Inject lateinit var courseRepository: CourseRepository
+
+    @Inject lateinit var achievementManager: AchievementManager
+
     private lateinit var binding: ActivityTaskBinding
     private val viewModel: TaskViewModel by viewModels()
     private lateinit var taskPagerAdapter: TaskPagerAdapter
-    private var allQuestions: List<Question> = emptyList()
-    private var wrongQuestionIds: MutableSet<String> = mutableSetOf()
-    private var roundWrongIds: MutableSet<String> = mutableSetOf()
-    private var currentQuestions: MutableList<Question> = mutableListOf()
+
+    private var shuffledQuestions: MutableList<Question> = mutableListOf()
     private var currentIndex = 0
-    private var remainingQuestions: MutableList<Question> = mutableListOf()
+
+    private var wrongQuestionIds: MutableSet<String> = mutableSetOf()
+    private var roundWrongQuestionIds: MutableSet<String> = mutableSetOf()
+
+    private var taskQuestions: List<Question> = emptyList()
+
     private var correctQuestionIds: MutableSet<String> = mutableSetOf()
-    private var attemptedQuestions: MutableSet<String> = mutableSetOf()
 
-    @Inject
-    lateinit var streakRepository: StreakRepository
 
-    @Inject
-    lateinit var supabaseClient: SupabaseClient
-
-    @Inject
-    lateinit var courseRepository: CourseRepositoryImpl
-
-    private val streakManager = StreakManager()
+    private lateinit var questionTextView: TextView
+    private lateinit var optionsContainer: LinearLayout
+    private lateinit var progressBar: ProgressBar
+    private lateinit var progressText: TextView
+    
+    private var taskId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityTaskBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val taskId = intent.getStringExtra(EXTRA_TASK_ID) ?: run {
-            Toast.makeText(this, "Error: No task ID provided", Toast.LENGTH_SHORT).show()
+        taskId = intent.getStringExtra(EXTRA_TASK_ID)
+        if (taskId == null) {
+            Toast.makeText(this, "Task ID not found", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
-        val courseId = taskId.substringBefore("_")
-        binding.taskName.text = getTaskTitle(this, courseId, taskId)
-
+        initializeViews()
         setupViewPager()
         setupClickListeners()
         observeTaskState()
-        viewModel.loadTasks(taskId)
+        startTask()
+    }
+
+    private fun initializeViews() {
+        // Initialize UI components
+        questionTextView = TextView(this)
+        optionsContainer = LinearLayout(this)
+        progressBar = binding.progressBar
+        progressText = binding.taskProgress
     }
 
     private fun setupViewPager() {
@@ -83,42 +99,56 @@ class TaskActivity : AppCompatActivity() {
                 // No-op here
             }
 
-            @RequiresApi(Build.VERSION_CODES.O)
-            override fun onTaskComplete(isCorrect: Boolean) {
-                val question = currentQuestions[currentIndex]
-                Log.d("TaskActivity", "Question answered. Correct: $isCorrect, Current index: $currentIndex, Total questions: ${currentQuestions.size}")
+            override fun onQuestionCompleted(isCorrect: Boolean) {
+                val question = shuffledQuestions[currentIndex]
+                Log.d("TaskActivity", "Question answered. Correct: $isCorrect, Current index: $currentIndex, Total questions: ${shuffledQuestions.size}")
                 if (isCorrect) {
                     correctQuestionIds.add(question.id)
                 } else {
                     wrongQuestionIds.add(question.id)
-                    roundWrongIds.add(question.id)
+                    roundWrongQuestionIds.add(question.id)
                 }
                 // Move to next question
-                if (currentIndex < currentQuestions.size - 1) {
+                if (currentIndex < shuffledQuestions.size - 1) {
                     currentIndex++
                     binding.viewPager.setCurrentItem(currentIndex, true)
                 } else {
                     // We're at the last question
-                    if (roundWrongIds.isNotEmpty()) {
+                    if (roundWrongQuestionIds.isNotEmpty()) {
                         // Show failure dialog
                         showTaskFailedDialog()
                     } else {
                         // All questions were correct, task is completed
-                        viewModel.completeTask()
+                        onTaskCompleted()
                     }
                 }
             }
         })
         binding.viewPager.adapter = taskPagerAdapter
-        
+
         // Disable swipe between questions
         binding.viewPager.isUserInputEnabled = false
     }
 
     private fun setupClickListeners() {
+        // TODO: Make this open the EndTaskDialogFragment
         binding.exitButton.setOnClickListener {
+            Log.d("TaskActivity", "User exited task early - bell pepper was consumed and not returned")
             finish()
         }
+    }
+
+    override fun finish() {
+        Log.d("TaskActivity", "TaskActivity finishing - triggering profile refresh")
+        
+        // Always set result with profile refresh flag when TaskActivity finishes
+        // This ensures profile is refreshed whether task completed, failed, or user exited
+        val resultIntent = Intent().apply {
+            putExtra("REFRESH_PROFILE", true)
+        }
+        setResult(RESULT_OK, resultIntent)
+        
+        super.finish()
     }
 
     private fun observeTaskState() {
@@ -131,15 +161,15 @@ class TaskActivity : AppCompatActivity() {
                 is TaskViewModel.TaskState.Success -> {
                     binding.progressBar.visibility = View.GONE
                     binding.viewPager.visibility = View.VISIBLE
-                    allQuestions = state.questions
+                    taskQuestions = state.questions
                     correctQuestionIds.clear()
                     wrongQuestionIds.clear()
-                    roundWrongIds.clear()
-                    currentQuestions = allQuestions.shuffled().toMutableList()
+                    roundWrongQuestionIds.clear()
+                    shuffledQuestions = taskQuestions.shuffled().toMutableList()
                     currentIndex = 0
-                    Log.d("TaskActivity", "Questions loaded. Total questions: ${currentQuestions.size}")
+                    Log.d("TaskActivity", "Questions loaded. Total questions: ${shuffledQuestions.size}")
                     updateQuestionNumber()
-                    taskPagerAdapter.submitList(currentQuestions)
+                    taskPagerAdapter.submitList(shuffledQuestions)
                     binding.viewPager.setCurrentItem(0, false)
                 }
                 is TaskViewModel.TaskState.Error -> {
@@ -152,34 +182,91 @@ class TaskActivity : AppCompatActivity() {
                     val pointsEarned = calculatePoints()
                     updateUserPoints(pointsEarned)
                     // Update course progress
-                    val currentUser = UserManager.getCurrentUser()
+                    val currentUser = authRepository.getCurrentUserSync()
                     val taskId = intent.getStringExtra(EXTRA_TASK_ID)
                     Log.d("TaskActivity", "Calling updateTaskProgress for userId=${currentUser?.id}, taskId=$taskId")
                     if (currentUser != null && taskId != null) {
-                        val courseId = taskId.substringBefore("_")
+                        // Map task ID to correct course ID using centralized mapper
+                        val courseId = TaskToCourseMapper.mapTaskIdToCourseId(taskId)
+                        
                         lifecycleScope.launch(Dispatchers.IO) {
                             try {
-                                // Get current progress
-                                val userProgresses = supabaseClient.getUserProgress(currentUser.id.toString(), currentUser.authToken)
-                                var currentProgress = 0
-                                
-                                // Find the current progress for this course
-                                for(i in 0 until userProgresses.length()) {
-                                    val jsonObject = userProgresses.getJSONObject(i)
-                                    if (jsonObject.getString("course_id") == courseId) {
-                                        currentProgress = jsonObject.getInt("progress")
-                                        break
-                                    }
-                                }
-                                
-                                // Update progress with the new value
+                                // Update progress using repository
                                 val progressUpdated = courseRepository.updateTaskProgress(
                                     currentUser.id.toString(),
                                     taskId,
-                                    currentProgress + 1
+                                    1 // Increment by 1
                                 )
-                                
-                                if (!progressUpdated) {
+
+                                if (progressUpdated) {
+                                    // Update last task date and streak for streak tracking
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        val today = java.time.LocalDate.now()
+                                        
+                                        // Get current streak and last task date from database
+                                        val currentStreak = streakRepository.getCurrentStreak(
+                                            currentUser.id.toString(),
+                                            currentUser.authToken
+                                        )
+                                        val lastTaskDate = streakRepository.getLastTaskDate(
+                                            currentUser.id.toString(),
+                                            currentUser.authToken
+                                        )
+                                        
+                                        Log.d("TaskActivity", "Current streak from DB: $currentStreak")
+                                        Log.d("TaskActivity", "Last task date from DB: $lastTaskDate")
+                                        
+                                        // Calculate new streak
+                                        val newStreak = if (lastTaskDate == null) {
+                                            // First task ever
+                                            1
+                                        } else {
+                                            val daysBetween = java.time.temporal.ChronoUnit.DAYS.between(lastTaskDate, today)
+                                            when {
+                                                daysBetween == 0L -> {
+                                                    // Same day, keep current streak
+                                                    currentStreak
+                                                }
+                                                daysBetween == 1L -> {
+                                                    // Next day, increment streak
+                                                    currentStreak + 1
+                                                }
+                                                else -> {
+                                                    // More than one day has passed, reset to 1
+                                                    1
+                                                }
+                                            }
+                                        }
+                                        
+                                        Log.d("TaskActivity", "Calculated new streak: $newStreak (was $currentStreak)")
+                                        
+                                        // Update last task date
+                                        val lastTaskDateUpdated = streakRepository.updateLastTaskDate(
+                                            currentUser.id.toString(),
+                                            today,
+                                            currentUser.authToken
+                                        )
+                                        Log.d("TaskActivity", "Last task date update result: $lastTaskDateUpdated")
+                                        
+                                        // Update streak if it changed
+                                        if (newStreak != currentStreak) {
+                                            val streakUpdated = streakRepository.updateStreak(
+                                                currentUser.id.toString(),
+                                                newStreak,
+                                                currentUser.authToken
+                                            )
+                                            Log.d("TaskActivity", "Streak update result: $streakUpdated (from $currentStreak to $newStreak)")
+                                        } else {
+                                            Log.d("TaskActivity", "Streak unchanged, no update needed")
+                                        }
+                                    }
+                                    
+                                    // Check for achievements after successful task completion
+                                    achievementManager.checkAchievementsAfterTaskCompletion(
+                                        currentUser.id.toString(),
+                                        courseId
+                                    )
+                                } else {
                                     Log.e("TaskActivity", "Failed to update task progress")
                                 }
                             } catch (e: Exception) {
@@ -188,7 +275,6 @@ class TaskActivity : AppCompatActivity() {
                         }
                     }
                     Toast.makeText(this, "Task completed! You earned $pointsEarned points!", Toast.LENGTH_SHORT).show()
-                    setResult(RESULT_OK)
                     finish()
                 }
             }
@@ -201,8 +287,72 @@ class TaskActivity : AppCompatActivity() {
         })
     }
 
+    private fun startTask() {
+        val currentUser = authRepository.getCurrentUserSync()
+        if (currentUser != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val attributesResult = userRepository.getUserAttributes(currentUser.id)
+                    if (attributesResult.isFailure) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "Failed to get user data. Please try again.", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        return@launch
+                    }
+
+                    val profile = attributesResult.getOrThrow()
+                    val currentBellPeppers = profile.optInt("bell_peppers", 0)
+                    
+                    Log.d("TaskActivity", "Starting task - Current bell peppers: $currentBellPeppers")
+                    
+                    if (currentBellPeppers <= 0) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "You need a bell pepper to start this task", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        return@launch
+                    }
+
+                    // Reduce bell peppers when starting task
+                    val newBellPeppers = currentBellPeppers - 1
+                    Log.d("TaskActivity", "Consuming bell pepper - New count: $newBellPeppers")
+                    
+                    val updateResult = userRepository.updateUserBellPeppers(currentUser.id, newBellPeppers)
+                    Log.d("TaskActivity", "Bell pepper update result: ${updateResult.isSuccess}")
+                    
+                    if (updateResult.isFailure) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "Failed to start task. Please try again.", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        return@launch
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        this@TaskActivity.loadTasks()
+                    }
+                } catch (e: Exception) {
+                    Log.e("TaskActivity", "Error starting task", e)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@TaskActivity, "Error starting task. Please try again.", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun loadTasks() {
+        val taskIdValue = taskId ?: return
+        // Map task ID to correct course ID using centralized mapper
+        val courseId = TaskToCourseMapper.mapTaskIdToCourseId(taskIdValue)
+        binding.taskName.text = getTaskTitle(this, courseId, taskIdValue)
+        viewModel.loadTasks(taskIdValue)
+    }
+
     private fun updateQuestionNumber() {
-        binding.taskProgress.text = "${currentIndex + 1} of ${currentQuestions.size}"
+        binding.taskProgress.text = "${currentIndex + 1} of ${shuffledQuestions.size}"
     }
 
     private fun calculatePoints(): Int {
@@ -213,7 +363,7 @@ class TaskActivity : AppCompatActivity() {
         points += correctQuestionIds.size * 10
         
         // Bonus points if all questions were answered correctly
-        if (correctQuestionIds.size == allQuestions.size) {
+        if (correctQuestionIds.size == taskQuestions.size) {
             points += 50 // Bonus for perfect score
         }
         
@@ -221,25 +371,23 @@ class TaskActivity : AppCompatActivity() {
     }
 
     private fun updateUserPoints(pointsEarned: Int) {
-        val currentUser = UserManager.getCurrentUser()
+        val currentUser = authRepository.getCurrentUserSync()
         if (currentUser != null) {
             lifecycleScope.launch(Dispatchers.IO) {
                 try {
                     // Get current points and XP
-                    val response = supabaseClient.getUserAttributes(currentUser.id, currentUser.authToken)
-                    if (response.isSuccessful) {
-                        val responseBody = response.body?.string()
-                        if (!responseBody.isNullOrEmpty()) {
-                            val userData = JSONArray(responseBody).getJSONObject(0)
-                            val currentPoints = userData.optInt("points", 0)
-                            val currentXp = userData.optInt("xp", 0)
-                            
-                            // Update points and XP (XP is 1:1 with points)
-                            val newPoints = currentPoints + pointsEarned
-                            val newXp = currentXp + pointsEarned
-                            supabaseClient.updateUserPoints(currentUser.id, newPoints, currentUser.authToken)
-                            supabaseClient.updateUserXp(currentUser.id, newXp, currentUser.authToken)
-                        }
+                    val attributesResult = userRepository.getUserAttributes(currentUser.id)
+                    if (attributesResult.isSuccess) {
+                        val userData = attributesResult.getOrThrow()
+                        val currentPoints = userData.optInt("points", 0)
+                        val currentXp = userData.optInt("xp", 0)
+                        
+                        // Update points and XP (XP is 1:1 with points)
+                        val newPoints = currentPoints + pointsEarned
+                        val newXp = currentXp + pointsEarned
+                        
+                        userRepository.updateUserPoints(currentUser.id, newPoints)
+                        userRepository.updateUserXp(currentUser.id, newXp.toLong())
                     }
                 } catch (e: Exception) {
                     Log.e("TaskActivity", "Error updating points and XP: ${e.message}")
@@ -249,48 +397,181 @@ class TaskActivity : AppCompatActivity() {
     }
 
     private fun showTaskFailedDialog() {
-        Log.d("TaskActivity", "Showing failure dialog. Current index: $currentIndex, Total questions: ${currentQuestions.size}")
-        TaskFailureDialogFragment().show(supportFragmentManager, "task_failure_dialog")
+        val currentUser = authRepository.getCurrentUserSync()
+        if (currentUser != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val attributesResult = userRepository.getUserAttributes(currentUser.id)
+                    if (attributesResult.isSuccess) {
+                        val profile = attributesResult.getOrThrow()
+                        val currentBellPeppers = profile.optInt("bell_peppers", 0)
+                        
+                        Log.d("TaskActivity", "Task failed - Current bell peppers: $currentBellPeppers (bell pepper was consumed and not returned)")
+                        
+                        withContext(Dispatchers.Main) {
+                            TaskFailureDialogFragment().show(supportFragmentManager, "task_failed")
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "Error checking bell peppers. Please try again.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@TaskActivity, "Error checking bell peppers. Please try again.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
     }
 
-    fun onNextQuestion() {
-        Log.d("TaskActivity", "onNextQuestion called. Current index: $currentIndex, Total questions: ${currentQuestions.size}")
-        // Move to next question
-        if (currentIndex < currentQuestions.size - 1) {
-            currentIndex++
-            binding.viewPager.setCurrentItem(currentIndex, true)
-        } else {
-            // We're at the last question
-            if (roundWrongIds.isNotEmpty()) {
-                // Show failure dialog
-                showTaskFailedDialog()
-            } else {
-                // All questions were correct, task is completed
-                viewModel.completeTask()
+    private fun onTaskCompleted() {
+        val currentUser = authRepository.getCurrentUserSync()
+        if (currentUser != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val attributesResult = userRepository.getUserAttributes(currentUser.id)
+                    if (attributesResult.isSuccess) {
+                        val profile = attributesResult.getOrThrow()
+                        val currentBellPeppers = profile.optInt("bell_peppers", 0)
+                        
+                        Log.d("TaskActivity", "Task completed - Current bell peppers: $currentBellPeppers")
+                        
+                        // Return the bell pepper on successful completion
+                        val newBellPeppers = currentBellPeppers + 1
+                        Log.d("TaskActivity", "Returning bell pepper - New count: $newBellPeppers")
+                        
+                        val updateResult = userRepository.updateUserBellPeppers(currentUser.id, newBellPeppers)
+                        Log.d("TaskActivity", "Bell pepper return result: ${updateResult.isSuccess}")
+                        
+                        if (updateResult.isFailure) {
+                            Log.e("TaskActivity", "Failed to return bell pepper")
+                        }
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        showTaskCompletedDialog()
+                    }
+                } catch (e: Exception) {
+                    Log.e("TaskActivity", "Error returning bell pepper", e)
+                    withContext(Dispatchers.Main) {
+                        showTaskCompletedDialog()
+                    }
+                }
             }
         }
     }
 
     fun resetForWrongQuestions() {
-        // Only keep questions that were wrong in the last round
-        currentQuestions = allQuestions.filter { it.id in roundWrongIds }.toMutableList()
-        currentIndex = 0
-        // Reset wrong question tracking for the next round
-        wrongQuestionIds.clear()
-        roundWrongIds.clear()
-        // Force ViewPager to recreate all fragments
-        taskPagerAdapter.submitList(emptyList())
-        binding.viewPager.post {
-            taskPagerAdapter.submitList(currentQuestions)
-            binding.viewPager.setCurrentItem(0, false)
-            updateQuestionNumber()
+        // First check and consume a bell pepper for the retry
+        val currentUser = authRepository.getCurrentUserSync()
+        if (currentUser != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val attributesResult = userRepository.getUserAttributes(currentUser.id)
+                    if (attributesResult.isFailure) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "Failed to get user data. Please try again.", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        return@launch
+                    }
+
+                    val profile = attributesResult.getOrThrow()
+                    val currentBellPeppers = profile.optInt("bell_peppers", 0)
+                    
+                    Log.d("TaskActivity", "Retry attempt - Current bell peppers: $currentBellPeppers")
+                    
+                    if (currentBellPeppers <= 0) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "You need a bell pepper to retry this task", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        return@launch
+                    }
+
+                    // Consume bell pepper for retry
+                    val newBellPeppers = currentBellPeppers - 1
+                    Log.d("TaskActivity", "Consuming bell pepper for retry - New count: $newBellPeppers")
+                    
+                    val updateResult = userRepository.updateUserBellPeppers(currentUser.id, newBellPeppers)
+                    Log.d("TaskActivity", "Bell pepper retry consumption result: ${updateResult.isSuccess}")
+                    
+                    if (updateResult.isFailure) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@TaskActivity, "Failed to start retry. Please try again.", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        return@launch
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        // Only keep questions that were wrong in the last round
+                        shuffledQuestions = taskQuestions.filter { it.id in roundWrongQuestionIds }.toMutableList()
+                        currentIndex = 0
+                        // Reset wrong question tracking for the next round
+                        wrongQuestionIds.clear()
+                        roundWrongQuestionIds.clear()
+                        // Force ViewPager to recreate all fragments
+                        taskPagerAdapter = TaskPagerAdapter(this@TaskActivity, object : TaskCompleteListener {
+                            override fun onTaskCompleted(question: Question) {
+                                // No-op here
+                            }
+
+                            override fun onQuestionCompleted(isCorrect: Boolean) {
+                                val question = shuffledQuestions[currentIndex]
+                                Log.d("TaskActivity", "Question answered. Correct: $isCorrect, Current index: $currentIndex, Total questions: ${shuffledQuestions.size}")
+                                if (isCorrect) {
+                                    correctQuestionIds.add(question.id)
+                                } else {
+                                    wrongQuestionIds.add(question.id)
+                                    roundWrongQuestionIds.add(question.id)
+                                }
+                                // Move to next question
+                                if (currentIndex < shuffledQuestions.size - 1) {
+                                    currentIndex++
+                                    binding.viewPager.setCurrentItem(currentIndex, true)
+                                } else {
+                                    // We're at the last question
+                                    if (roundWrongQuestionIds.isNotEmpty()) {
+                                        // Show failure dialog
+                                        showTaskFailedDialog()
+                                    } else {
+                                        // All questions were correct, task is completed
+                                        onTaskCompleted()
+                                    }
+                                }
+                            }
+                        })
+
+                        binding.viewPager.adapter = taskPagerAdapter
+
+                        taskPagerAdapter.submitList(emptyList())
+                        binding.viewPager.post {
+                            taskPagerAdapter.submitList(shuffledQuestions)
+                            binding.viewPager.setCurrentItem(0, false)
+                            updateQuestionNumber()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("TaskActivity", "Error during retry", e)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@TaskActivity, "Error starting retry. Please try again.", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
+                }
+            }
         }
     }
 
     private fun getTaskTitle(context: Context, courseId: String, taskId: String): String {
-        val taskParser = com.nhlstenden.appdev.features.courses.TaskParser(context)
-        val task = taskParser.loadAllCoursesOfTask(courseId).find { it.id == taskId }
+        val taskParser = com.nhlstenden.appdev.features.course.utils.TaskParser(context)
+        val task = taskParser.loadAllTasksOfCourse(courseId).find { it.id == taskId }
         return task?.title ?: "Task"
+    }
+
+    private fun showTaskCompletedDialog() {
+        viewModel.completeTask()
     }
 
     companion object {

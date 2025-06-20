@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.profile.screens
+package com.nhlstenden.appdev.features.profile
 
 import android.app.Activity
 import android.content.Intent
@@ -20,6 +20,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import com.bumptech.glide.Glide
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.FragmentProfileBinding
@@ -30,8 +31,8 @@ import com.nhlstenden.appdev.features.profile.repositories.ProfileRepositoryImpl
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel.ProfileState
 import com.nhlstenden.appdev.shared.components.ImageCropActivity
-import com.nhlstenden.appdev.core.utils.UserManager
-import com.nhlstenden.appdev.shared.ui.base.BaseFragment
+import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.core.ui.base.BaseFragment
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -59,10 +60,21 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.content.Context
+import android.util.Log
+import android.widget.FrameLayout
+import androidx.viewpager2.widget.ViewPager2
+import com.nhlstenden.appdev.core.repositories.SettingsRepository
+import com.nhlstenden.appdev.features.profile.repositories.SettingsRepositoryImpl.SettingsConstants
 import com.nhlstenden.appdev.shared.components.CameraActivity
+import com.nhlstenden.appdev.utils.LevelCalculator
+import com.nhlstenden.appdev.utils.RewardChecker
+import com.nhlstenden.appdev.core.repositories.AchievementRepository
 
 @AndroidEntryPoint
 class ProfileFragment : BaseFragment(), SensorEventListener {
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
+
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
     private val viewModel: ProfileViewModel by viewModels()
@@ -70,9 +82,19 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     private lateinit var musicLobbySwitch: SwitchMaterial
     private val MUSIC_LOBBY_REWARD_ID = 11
     private val PREFS_NAME = "reward_settings"
-    private val MUSIC_LOBBY_KEY = "music_lobby_enabled"
+    
+    @Inject
+    lateinit var authRepository: AuthRepository
+    
+    @Inject
+    lateinit var rewardChecker: RewardChecker
+    
+    @Inject
+    lateinit var achievementRepository: AchievementRepository
     
     private val PROFILE_IMAGE_SIZE = 120
+    private val MAX_BIO_LENGTH = 128
+    private val MAX_NAME_LENGTH = 32
     
     private lateinit var xpCircularProgress: CircularProgressIndicator
     private lateinit var levelBadge: TextView
@@ -81,21 +103,31 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     private var sensorManager: SensorManager? = null
     private var gyroSensor: Sensor? = null
     private var profileCard: View? = null
-    
+
+    // Gyro smoothing and animation parameters
+    private val maxShift = 60f // px, tweak for more/less movement
+    private val maxTilt = 15f // degrees, tweak for more/less tilt
+    private val cardTiltFactor = 0.4f // how much the card tilts compared to bg
+    private val smoothing = 0.15f // 0..1, higher = snappier, lower = smoother
+    private var lastShiftX = 0f
+    private var lastShiftY = 0f
+    private var lastPitch = 0f
+    private var lastRoll = 0f
+
     private fun setupViews() {
         binding.editProfileButton.setOnClickListener {
             showEditProfileDialog()
         }
 
         binding.logoutButton.setOnClickListener {
-            viewModel.logout()
+            onLogoutClicked()
         }
 
         binding.settingsIcon.setOnClickListener {
             showSettingsDialog()
         }
 
-        binding.achievementsRecyclerView.layoutManager = LinearLayoutManager(context)
+        binding.achievementsRecyclerView.layoutManager = GridLayoutManager(context, 2)
         achievementAdapter = AchievementAdapter()
         binding.achievementsRecyclerView.adapter = achievementAdapter
         
@@ -104,11 +136,26 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         }
 
         musicLobbySwitch = binding.root.findViewById(R.id.musicLobbySwitch)
-        val sharedPrefs = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
-        val isMusicLobbyEnabled = sharedPrefs.getBoolean(MUSIC_LOBBY_KEY, true)
+        val sharedPrefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val isMusicLobbyEnabled = settingsRepository.hasValue(SettingsConstants.COURSE_LOBBY_MUSIC)
         musicLobbySwitch.isChecked = isMusicLobbyEnabled
         musicLobbySwitch.setOnCheckedChangeListener { _, isChecked ->
-            sharedPrefs.edit().putBoolean(MUSIC_LOBBY_KEY, isChecked).apply()
+            lifecycleScope.launch {
+                val success = rewardChecker.setMusicLobbyEnabled(requireContext(), isChecked)
+                if (success) {
+                    if (isChecked) {
+                        settingsRepository.addValue(SettingsConstants.COURSE_LOBBY_MUSIC)
+                        Toast.makeText(requireContext(), "Course lobby music enabled", Toast.LENGTH_SHORT).show()
+                    } else {
+                        settingsRepository.removeValue(SettingsConstants.COURSE_LOBBY_MUSIC)
+                        Toast.makeText(requireContext(), "Course lobby music disabled", Toast.LENGTH_SHORT).show()
+                    }
+                } else if (isChecked) {
+                    // If trying to enable but not unlocked, revert the switch
+                    musicLobbySwitch.isChecked = false
+                    Toast.makeText(requireContext(), "Music lobby reward not unlocked", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
         musicLobbySwitch.isEnabled = false
 
@@ -120,12 +167,22 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        // Get user data from UserManager
-        val userData = UserManager.getCurrentUser()
-        
-        userData?.let { user ->
-            android.util.Log.d("ProfileFragment", "user.id=${user.id}, user.authToken=${user.authToken}")
-            viewModel.setUserData(user)
+        // Check authentication using AuthRepository instead of UserManager
+        if (authRepository.isLoggedIn()) {
+            val currentUser = authRepository.getCurrentUserSync()
+            if (currentUser != null) {
+                Log.d("ProfileFragment", "user.id=${currentUser.id}, authenticated")
+                viewModel.loadProfile()
+            } else {
+                Log.e("ProfileFragment", "User is logged in but current user is null")
+                viewModel.loadProfile() // Try loading anyway, repository will handle authentication
+            }
+        } else {
+            Log.e("ProfileFragment", "User is not logged in")
+            // Redirect to login or show login prompt
+            startActivity(Intent(requireContext(), LoginActivity::class.java))
+            requireActivity().finish()
+            return
         }
         
         xpCircularProgress = binding.root.findViewById(R.id.xpCircularProgress)
@@ -139,15 +196,14 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         
         setupViews()
         observeProfileState()
-        viewModel.loadProfile()
     }
     
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
         // Ensure ViewPager is visible and fragment_container is hidden when leaving profile
-        activity?.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)?.visibility = View.VISIBLE
-        activity?.findViewById<android.widget.FrameLayout>(R.id.fragment_container)?.visibility = View.GONE
+        activity?.findViewById<ViewPager2>(R.id.viewPager)?.visibility = View.VISIBLE
+        activity?.findViewById<FrameLayout>(R.id.fragment_container)?.visibility = View.GONE
     }
     
     override fun onResume() {
@@ -155,6 +211,8 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         gyroSensor?.let {
             sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
+        // Refresh achievements in case user completed tasks
+        refreshAchievements()
     }
 
     override fun onPause() {
@@ -170,24 +228,38 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
             SensorManager.getOrientation(rotationMatrix, orientation)
             val roll = Math.toDegrees(orientation[2].toDouble()).toFloat()   // sideways
             val pitch = Math.toDegrees(orientation[1].toDouble()).toFloat() // up/down
-            val maxShift = 60f // px, more movement for larger bg
-            val maxTilt = 15f
             val clampedRoll = roll.coerceIn(-maxTilt, maxTilt)
             val clampedPitch = pitch.coerceIn(-maxTilt, maxTilt)
             val shiftX = -clampedRoll / maxTilt * maxShift
             val shiftY = clampedPitch / maxTilt * maxShift
+
+            // Low-pass filter for smoothing
+            lastShiftX += (shiftX - lastShiftX) * smoothing
+            lastShiftY += (shiftY - lastShiftY) * smoothing
+            lastPitch += (clampedPitch - lastPitch) * smoothing
+            lastRoll += (clampedRoll - lastRoll) * smoothing
+
             val bgView = view?.findViewById<View>(R.id.holoCardBg)
             val cardView = profileCard
             if (bgView != null && cardView != null) {
                 val maxX = ((bgView.width - cardView.width) / 2).toFloat().coerceAtLeast(0f)
                 val maxY = ((bgView.height - cardView.height) / 2).toFloat().coerceAtLeast(0f)
-                bgView.translationX = shiftX.coerceIn(-maxX, maxX)
-                bgView.translationY = shiftY.coerceIn(-maxY, maxY)
-                // 3D tilt for extra holo effect
-                bgView.rotationX = clampedPitch
-                bgView.rotationY = -clampedRoll
+                // Animate background
+                bgView.animate()
+                    .translationX(lastShiftX.coerceIn(-maxX, maxX))
+                    .translationY(lastShiftY.coerceIn(-maxY, maxY))
+                    .rotationX(lastPitch)
+                    .rotationY(-lastRoll)
+                    .setDuration(80)
+                    .start()
+                // Animate card for subtle tilt
+                cardView.animate()
+                    .rotationX(lastPitch * cardTiltFactor)
+                    .rotationY(-lastRoll * cardTiltFactor)
+                    .setDuration(80)
+                    .start()
                 // Debug log
-                android.util.Log.d("HoloGyro", "shiftX=$shiftX shiftY=$shiftY rotX=$clampedPitch rotY=$clampedRoll maxX=$maxX maxY=$maxY")
+                Log.d("HoloGyro", "shiftX=$lastShiftX shiftY=$lastShiftY rotX=$lastPitch rotY=$lastRoll maxX=$maxX maxY=$maxY")
             }
         }
     }
@@ -220,7 +292,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                             } else {
                                 // Try to load as base64
                                 try {
-                                    val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
+                                    val imageBytes = Base64.decode(profilePic, Base64.DEFAULT)
                                     Glide.with(this@ProfileFragment)
                                         .load(imageBytes)
                                         .placeholder(R.drawable.zorotlpf)
@@ -244,8 +316,18 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                         )
 
                         val bio = state.profile.bio
-                        profileCardBio.text = if (bio.isNullOrEmpty() || bio == "null") "No bio set yet" else bio
+                        val displayBio = if (bio.isNullOrEmpty() || bio == "null") "No bio set yet" else bio
+                        profileCardBio.text = displayBio
                         profileCardUsername.text = state.profile.displayName
+                        
+                        android.util.Log.d("ProfileFragment", "Profile UI updated: displayName='${state.profile.displayName}', bio='$displayBio'")
+                        
+                        // Add click listener to show full bio in toast
+                        profileCardBio.setOnClickListener {
+                            if (!bio.isNullOrEmpty() && bio != "null" && bio != "No bio set yet") {
+                                Toast.makeText(requireContext(), bio, Toast.LENGTH_LONG).show()
+                            }
+                        }
 
                         // Check unlocked rewards and update toggle
                         val unlockedRewardIds = state.profile.unlockedRewardIds ?: emptyList()
@@ -255,17 +337,10 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                         val level = state.profile.level
                         val xp = state.profile.experience
                         levelBadge.text = "Lv. $level"
-                        // Calculate XP needed for next level
-                        var requiredXp = 100.0
-                        var totalXp = 0.0
-                        for (i in 1 until level) {
-                            totalXp += requiredXp
-                            requiredXp *= 1.1
-                        }
-                        val xpForCurrentLevel = xp - totalXp.toInt()
-                        val xpForNextLevel = requiredXp.toInt()
-                        xpCircularProgress.max = xpForNextLevel
-                        xpCircularProgress.progress = xpForCurrentLevel.coerceAtLeast(0)
+                        // Calculate XP needed for next level using centralized calculator
+                        val (currentLevelProgress, currentLevelMax) = LevelCalculator.calculateLevelProgress(xp.toLong())
+                        xpCircularProgress.max = currentLevelMax
+                        xpCircularProgress.progress = currentLevelProgress
                     }
                     is ProfileState.Error -> {
                         binding.progressBar.visibility = View.GONE
@@ -286,6 +361,60 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                 }
             }
         }
+        
+        // Load real achievements from repository
+        loadAchievements()
+    }
+    
+    private fun loadAchievements() {
+        lifecycleScope.launch {
+            try {
+                val currentUser = authRepository.getCurrentUserSync()
+                if (currentUser != null) {
+                    // Get all achievements and user's unlocked ones
+                    val allAchievements = achievementRepository.getAllAchievements()
+                    val unlockedResult = achievementRepository.getUserUnlockedAchievements(currentUser.id.toString())
+                    val unlockedIds = unlockedResult.getOrElse { emptyList() }.toSet()
+                    
+                    // Filter to only show unlocked achievements
+                    val unlockedAchievements = allAchievements.filter { achievement ->
+                        unlockedIds.contains(achievement.id.toInt())
+                    }.map { achievement ->
+                        achievement.copy(unlocked = true)
+                    }
+                    
+                    achievementAdapter.submitList(unlockedAchievements)
+                    updateAchievementsVisibility(unlockedAchievements.isNotEmpty())
+                    Log.d("ProfileFragment", "Loaded ${unlockedAchievements.size} unlocked achievements")
+                } else {
+                    // Show empty list if no user
+                    achievementAdapter.submitList(emptyList())
+                    updateAchievementsVisibility(false)
+                }
+            } catch (e: Exception) {
+                Log.e("ProfileFragment", "Error loading achievements", e)
+                // Fallback: show empty list
+                achievementAdapter.submitList(emptyList())
+                updateAchievementsVisibility(false)
+            }
+        }
+    }
+    
+    fun refreshAchievements() {
+        loadAchievements()
+    }
+    
+    private fun updateAchievementsVisibility(hasAchievements: Boolean) {
+        val emptyState = binding.root.findViewById<View>(R.id.achievementsEmptyState)
+        val recyclerView = binding.achievementsRecyclerView
+        
+        if (hasAchievements) {
+            recyclerView.visibility = View.VISIBLE
+            emptyState.visibility = View.GONE
+        } else {
+            recyclerView.visibility = View.GONE
+            emptyState.visibility = View.VISIBLE
+        }
     }
     
     private fun showEditProfileDialog() {
@@ -300,6 +429,17 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
             .setPositiveButton("Save") { dialog, which ->
                 val newName = usernameEdit.text.toString()
                 val newBio = bioEdit.text.toString()
+                if (newBio.length > MAX_BIO_LENGTH) {
+                    Log.d("ProfileFragment", "Bio too long")
+                    Toast.makeText(context, "Bio cannot be longer than $MAX_BIO_LENGTH characters", Toast.LENGTH_LONG).show()
+                    return@setPositiveButton
+                }
+                if (newName.length > MAX_NAME_LENGTH) {
+                    Log.d("ProfileFragment", "Name too long")
+                    Toast.makeText(context, "Name cannot be longer than $MAX_NAME_LENGTH characters", Toast.LENGTH_LONG).show()
+                    return@setPositiveButton
+                }
+                Log.d("ProfileFragment", "Updated displayname/ bio")
                 viewModel.updateProfile(newName, newBio, null)
             }
             .setNegativeButton("Cancel", null)
@@ -399,7 +539,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                     // Convert image to base64
                     val inputStream = requireContext().contentResolver.openInputStream(uri)
                     val bytes = inputStream?.readBytes()
-                    val base64Image = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
+                    val base64Image = Base64.encodeToString(bytes, Base64.DEFAULT)
                     
                     // Update profile with base64 image
                     viewModel.updateProfile(
@@ -429,7 +569,11 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
 
     private fun onLogoutClicked() {
         viewModel.logout()
-        startActivity(Intent(requireContext(), LoginActivity::class.java))
+        
+        // Navigate to LoginActivity and clear the entire task stack
+        val intent = Intent(requireContext(), LoginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
         requireActivity().finish()
     }
 
@@ -455,32 +599,38 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         val deleteAccountButton = dialogView.findViewById<MaterialButton>(R.id.deleteAccountButton)
 
         // Load saved settings
-        val settingsPrefs = requireContext().getSharedPreferences("app_settings", android.content.Context.MODE_PRIVATE)
-        biometricSwitch.isChecked = settingsPrefs.getBoolean("biometric_enabled", false)
-        achievementNotificationsSwitch.isChecked = settingsPrefs.getBoolean("achievement_notifications", true)
-        progressNotificationsSwitch.isChecked = settingsPrefs.getBoolean("progress_notifications", true)
-        friendActivitySwitch.isChecked = settingsPrefs.getBoolean("friend_activity", true)
+        biometricSwitch.isChecked = settingsRepository.hasValue("biometric_enabled")
+        achievementNotificationsSwitch.isChecked = settingsRepository.hasValue("achievement_notifications")
+        progressNotificationsSwitch.isChecked = settingsRepository.hasValue("progress_notifications")
+        friendActivitySwitch.isChecked = settingsRepository.hasValue("friend_activity")
 
         // Set up switch listeners
         biometricSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsPrefs.edit().putBoolean("biometric_enabled", isChecked).apply()
+            lifecycleScope.launch {
+                settingsRepository.toggleValue(SettingsConstants.BIOMETRICS)
+            }
         }
 
         achievementNotificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsPrefs.edit().putBoolean("achievement_notifications", isChecked).apply()
+            lifecycleScope.launch {
+                settingsRepository.toggleValue(SettingsConstants.ACHIEVEMENTS_NOTIFICATIONS)
+            }
         }
 
         progressNotificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsPrefs.edit().putBoolean("progress_notifications", isChecked).apply()
+            lifecycleScope.launch {
+                settingsRepository.toggleValue(SettingsConstants.PROGRESS_NOTIFICATIONS)
+            }
         }
 
         friendActivitySwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsPrefs.edit().putBoolean("friend_activity", isChecked).apply()
+            lifecycleScope.launch {
+                settingsRepository.toggleValue(SettingsConstants.FRIENDS_ACTIVITY)
+            }
         }
 
         // Set up button listeners
         exportDataButton.setOnClickListener {
-            // TODO: Implement data export functionality
             Toast.makeText(requireContext(), "Data export functionality coming soon!", Toast.LENGTH_SHORT).show()
         }
 
@@ -489,7 +639,6 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                 .setTitle("Delete Account")
                 .setMessage("Are you sure you want to delete your account? This action cannot be undone.")
                 .setPositiveButton("Delete") { _, _ ->
-                    // TODO: Implement account deletion
                     Toast.makeText(requireContext(), "Account deletion functionality coming soon!", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("Cancel", null)

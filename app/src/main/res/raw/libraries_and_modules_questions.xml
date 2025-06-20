@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<questions>
+    <multiple_choice_question>
+        <question_text>How do you import a module in Python?</question_text>
+        <option correct="true">import module_name</option>
+        <option correct="false">include module_name</option>
+        <option correct="false">require module_name</option>
+        <option correct="false">use module_name</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>Which library is commonly used for data analysis in Python?</question_text>
+        <option correct="true">pandas</option>
+        <option correct="false">requests</option>
+        <option correct="false">flask</option>
+        <option correct="false">tkinter</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>How do you install a package using pip?</question_text>
+        <option correct="true">pip install package_name</option>
+        <option correct="false">pip get package_name</option>
+        <option correct="false">pip add package_name</option>
+        <option correct="false">pip download package_name</option>
+    </multiple_choice_question>
+
+    <multiple_choice_question>
+        <question_text>What is the purpose of __init__.py file?</question_text>
+        <option correct="true">To make a directory a Python package</option>
+        <option correct="false">To initialize variables</option>
+        <option correct="false">To create the main function</option>
+        <option correct="false">To define imports</option>
+    </multiple_choice_question>
+</questions> 

@@ -26,13 +26,19 @@
         tools:targetApi="33">
 
         <activity
-            android:name=".features.login.screens.LoginActivity"
+            android:name=".features.splash.SplashActivity"
             android:exported="true"
-            android:windowSoftInputMode="adjustPan">
+            android:theme="@style/Theme.AppdevNHL.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".features.login.screens.LoginActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan">
         </activity>
 
         <activity
@@ -42,7 +48,7 @@
         </activity>
 
         <activity
-            android:name=".main.MainActivity"
+            android:name=".MainActivity"
             android:exported="true">
         </activity>
 
@@ -72,6 +78,18 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppdevNHL.NoActionBar" />
+
+        <activity
+            android:name=".features.casino.CasinoActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppdevNHL.NoActionBar" />
+
+        <activity
+            android:name=".features.home.DailyChallengeActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppdevNHL.NoActionBar"/>
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -31,11 +31,11 @@
                 android:padding="16dp">
 
                 <ImageView
-                    android:id="@+id/diamondIcon"
+                    android:id="@+id/pointsIcon"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:contentDescription="Diamond icon"
-                    android:src="@drawable/ic_diamond"
+                    android:contentDescription="Points icon"
+                    android:src="@drawable/animated_points"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
@@ -47,8 +47,8 @@
                     android:layout_marginStart="16dp"
                     android:text="Your Points"
                     android:textSize="16sp"
-                    app:layout_constraintStart_toEndOf="@id/diamondIcon"
-                    app:layout_constraintTop_toTopOf="@id/diamondIcon" />
+                    app:layout_constraintStart_toEndOf="@id/pointsIcon"
+                    app:layout_constraintTop_toTopOf="@id/pointsIcon" />
 
                 <TextView
                     android:id="@+id/pointsValue"
@@ -58,7 +58,7 @@
                     android:text="1,234"
                     android:textSize="24sp"
                     android:textStyle="bold"
-                    app:layout_constraintStart_toEndOf="@id/diamondIcon"
+                    app:layout_constraintStart_toEndOf="@id/pointsIcon"
                     app:layout_constraintTop_toBottomOf="@id/pointsLabel" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
@@ -130,121 +130,6 @@
             </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- Achievements Section -->
-        <TextView
-            android:id="@+id/achievementsTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="24dp"
-            android:text="Achievements"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/dailyRewardCard" />
-
-        <HorizontalScrollView
-            android:id="@+id/achievementsScrollView"
-            android:layout_width="match_parent"
-            android:layout_height="121dp"
-            android:layout_marginTop="16dp"
-            android:scrollbars="none"
-            app:layout_constraintTop_toBottomOf="@id/achievementsTitle"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingStart="16dp">
-
-                <include
-                    android:id="@+id/achievement1"
-                    layout="@layout/item_achievement"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp" />
-
-                <include
-                    android:id="@+id/achievement2"
-                    layout="@layout/item_achievement"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp" />
-
-                <include
-                    android:id="@+id/achievement3"
-                    layout="@layout/item_achievement"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp" />
-
-                <include
-                    android:id="@+id/achievement4"
-                    layout="@layout/item_achievement"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp" />
-
-                <include
-                    android:id="@+id/achievement5"
-                    layout="@layout/item_achievement"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp" />
-
-                <include
-                    android:id="@+id/achievement6"
-                    layout="@layout/item_achievement"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp" />
-
-                <include
-                    android:id="@+id/achievement7"
-                    layout="@layout/item_achievement"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp" />
-
-                <include
-                    android:id="@+id/achievement8"
-                    layout="@layout/item_achievement"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp" />
-
-                <include
-                    android:id="@+id/achievement9"
-                    layout="@layout/item_achievement"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp" />
-
-                <include
-                    android:id="@+id/achievement10"
-                    layout="@layout/item_achievement"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp" />
-
-                <include
-                    android:id="@+id/achievement11"
-                    layout="@layout/item_achievement"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp" />
-
-                <include
-                    android:id="@+id/achievement12"
-                    layout="@layout/item_achievement"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-
-            </LinearLayout>
-        </HorizontalScrollView>
-
         <!-- Reward Shop Section -->
         <TextView
             android:id="@+id/rewardShopTitle"
@@ -256,7 +141,7 @@
             android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/achievementsScrollView" />
+            app:layout_constraintTop_toBottomOf="@id/dailyRewardCard" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rewardShopList"

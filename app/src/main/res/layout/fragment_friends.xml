@@ -44,27 +44,15 @@
                 app:layout_constraintTop_toTopOf="parent" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/shareButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:layout_marginEnd="8dp"
-                android:text="Share"
-                app:icon="@drawable/ic_share"
-                app:layout_constraintEnd_toStartOf="@id/scanButton"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/qrCodeImage" />
-
-            <com.google.android.material.button.MaterialButton
                 android:id="@+id/scanButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginTop="16dp"
                 android:text="Scan"
                 app:icon="@drawable/ic_qr_code_scanner"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/shareButton"
-                app:layout_constraintTop_toTopOf="@id/shareButton" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/qrCodeImage" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

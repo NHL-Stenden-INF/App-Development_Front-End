@@ -8,7 +8,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.features.courses.model.Task
-import com.nhlstenden.appdev.main.MainActivity
+import com.nhlstenden.appdev.MainActivity
 
 class TaskCompleteActivity : AppCompatActivity() {
     private lateinit var returnButton: Button

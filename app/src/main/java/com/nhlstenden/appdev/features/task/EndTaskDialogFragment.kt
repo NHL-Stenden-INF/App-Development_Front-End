@@ -15,7 +15,7 @@ import androidx.fragment.app.DialogFragment
 import com.nhlstenden.appdev.core.utils.UserManager
 import com.google.android.material.button.MaterialButton
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.main.MainActivity
+import com.nhlstenden.appdev.MainActivity
 
 class EndTaskDialogFragment : DialogFragment() {
     

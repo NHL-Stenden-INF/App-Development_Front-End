@@ -2,34 +2,72 @@ package com.nhlstenden.appdev.features.courses.repositories
 
 import android.app.Application
 import com.nhlstenden.appdev.core.models.User
-import com.nhlstenden.appdev.features.courses.model.Task
-import com.nhlstenden.appdev.features.courses.CourseParser
-import com.nhlstenden.appdev.features.courses.CourseRepository
-import com.nhlstenden.appdev.features.courses.TaskParser
 import com.nhlstenden.appdev.features.courses.model.Course
-import com.nhlstenden.appdev.features.courses.QuestionParser
-import com.nhlstenden.appdev.features.task.models.Question
-import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.features.courses.repositories.CoursesRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 import android.util.Log
-import com.nhlstenden.appdev.core.utils.UserManager
+import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.core.repositories.BaseRepository
+import com.nhlstenden.appdev.supabase.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 
 @Singleton
 class CourseRepositoryImpl @Inject constructor(
-    application: Application
-) : CourseRepository {
-    val courseParser = CourseParser(application.applicationContext)
-    val taskParser = TaskParser(application.applicationContext)
-    val questionParser = QuestionParser(application.applicationContext)
-    val supabaseClient = SupabaseClient()
+    private val application: Application,
+    private val authRepository: AuthRepository,
+    private val courseParser: com.nhlstenden.appdev.core.parsers.CourseParser,
+    private val taskParser: com.nhlstenden.appdev.core.parsers.TaskParser,
+    private val supabaseClient: SupabaseClient
+) : BaseRepository(), CoursesRepository {
+
+    private val TAG = "CourseRepositoryImpl"
+
+    private suspend fun getUserProgressSafely(userId: String, authToken: String): JSONArray? {
+        return try {
+            val result = withContext(Dispatchers.IO) {
+                supabaseClient.getUserProgressResponse(userId, authToken)
+            }
+
+            if (result.isFailure) {
+                Log.e(TAG, "Error getting user progress", result.exceptionOrNull())
+                return null
+            }
+
+            val response = result.getOrNull() ?: return null
+            var resultArray: JSONArray? = null
+            
+            handleApiResponse(
+                response = response,
+                authRepository = authRepository,
+                onSuccess = { body ->
+                    parseJsonArraySafely(
+                        jsonString = body,
+                        onSuccess = { jsonArray -> resultArray = jsonArray }
+                    )
+                }
+            )
+            
+            resultArray
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting user progress", e)
+            if (e.message?.contains("Session expired") == true) {
+                throw e
+            }
+            null
+        }
+    }
 
     override suspend fun getCourses(user: User): List<Course>? {
         val userProgresses = try {
-            supabaseClient.getUserProgress(user.id, user.authToken)
+            getUserProgressSafely(user.id, user.authToken)
         } catch (e: Exception) {
+            // If JWT expired, let the exception propagate to trigger logout
+            if (e.message?.contains("Session expired") == true) {
+                throw e
+            }
             // Return courses with 0 progress if there's an error
             var courses = courseParser.loadAllCourses()
             courses.forEach { course ->
@@ -39,14 +77,17 @@ class CourseRepositoryImpl @Inject constructor(
             return courses
         }
         
-        val userProgressMap = HashMap<String, Int>(userProgresses.length())
-        for(i in 0 until userProgresses.length()) {
-            val JsonObject = userProgresses.getJSONObject(i)
-            userProgressMap.put(
-                JsonObject.getString("course_id"),
-                JsonObject.getInt("progress")
-            )
+        val userProgressMap = HashMap<String, Int>()
+        userProgresses?.let { progressArray ->
+            for(i in 0 until progressArray.length()) {
+                val JsonObject = progressArray.getJSONObject(i)
+                userProgressMap.put(
+                    JsonObject.getString("course_id"),
+                    JsonObject.getInt("progress")
+                )
+            }
         }
+        
         var courses = courseParser.loadAllCourses()
 
         courses.forEach { course ->
@@ -68,61 +109,8 @@ class CourseRepositoryImpl @Inject constructor(
         return courses
     }
 
-    override suspend fun getTaskById(courseTitle: String, taskTitle: String): Task? {
-        return getTasks(courseTitle).find { it.title == taskTitle }
-    }
-
-    override suspend fun getTasks(courseId: String): List<Task> {
-        // Get current user
-        val currentUser = UserManager.getCurrentUser() ?: return taskParser.loadAllCoursesOfTask(courseId)
-        
-        try {
-            withContext(Dispatchers.IO) {
-                // Try to get user progress for this course
-                val userProgresses = supabaseClient.getUserProgress(currentUser.id, currentUser.authToken)
-                var hasProgress = false
-                
-                // Check if user has progress for this course
-                for(i in 0 until userProgresses.length()) {
-                    val JsonObject = userProgresses.getJSONObject(i)
-                    if (JsonObject.getString("course_id") == courseId) {
-                        hasProgress = true
-                        break
-                    }
-                }
-                
-                // If no progress exists, create it
-                if (!hasProgress) {
-                    supabaseClient.createUserProgress(currentUser.id, courseId, 0, currentUser.authToken)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("CourseRepositoryImpl", "Error handling user progress", e)
-        }
-        
-        return taskParser.loadAllCoursesOfTask(courseId)
-    }
-
-    override suspend fun getTotalTaskOfCourse(courseId: String): Int {
-        return getTasks(courseId).size
-    }
-
-    override suspend fun getQuestions(taskId: String): List<Question> {
-        return questionParser.loadQuestionsForTask(taskId)
-    }
-
-    override suspend fun updateTaskProgress(userId: String, taskId: String, progress: Int): Boolean {
-        try {
-            val currentUser = UserManager.getCurrentUser()
-            if (currentUser == null) {
-                Log.e("CourseRepositoryImpl", "No current user found")
-                return false
-            }
-            val response = supabaseClient.updateUserProgress(userId, taskId, progress, currentUser.authToken)
-            return response.code == 200 || response.code == 204
-        } catch (e: Exception) {
-            Log.e("CourseRepositoryImpl", "Error updating task progress: ${e.message}")
-            return false
-        }
+    // Helper method for getting total tasks count
+    private suspend fun getTotalTaskOfCourse(courseId: String): Int {
+        return taskParser.loadAllTasksOfCourse(courseId).size
     }
 } 

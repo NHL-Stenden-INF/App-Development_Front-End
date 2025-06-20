@@ -1,103 +1,281 @@
 # Contributing Guidelines
 
-This document provides guidelines for contributing to the project.
+Welcome to the App Development Front-End project! This document provides comprehensive guidelines for contributing to our Android learning application.
 
-## Development Workflow
+## 🌿 Development Workflow
 
-### 1. Branch Strategy
-- `main` - Production-ready code
-- `develop` - Development branch
-- `feature/*` - New features
-- `bugfix/*` - Bug fixes
-- `release/*` - Release preparation
+### Branch Strategy
+We follow a simplified Git flow suitable for educational projects:
 
-### 2. Commit Messages
-- Use present tense ("Add feature" not "Added feature")
-- Use imperative mood ("Move cursor to..." not "Moves cursor to...")
-- Limit the first line to 72 characters or less
-- Reference issues and pull requests liberally
+```
+main (production-ready)
+├── dev (integration branch)
+├── feat-jwt-expiration-fix
+├── feat-bell-pepper-ui-updates
+├── feat-course-navigation-consistency
+└── bugfix/profile-picture-sync
+```
 
-### 3. Pull Requests
-- Update documentation
-- Add tests for new functionality
-- Ensure all tests pass
-- Follow the existing code style
+**Branch Types:**
+- `main` - Stable, production-ready code
+- `dev` - Integration branch for features
+- `feat-*` - New features and enhancements
+- `bug-*` - Bug fixes and issue resolutions
 
-## Architecture Guidelines
+### Contribution Process
+1. **Create a feature branch**:
+   ```bash
+   git checkout dev
+   git pull upstream dev
+   git checkout -b feat-your-amazing-feature
+   ```
 
-### MVVM Pattern
-- ViewModels for business logic
-- LiveData/Flow for data observation
-- Repository pattern for data operations
-- Use cases for complex business logic
+2. **Make your changes** following our coding standards
+3. **Test thoroughly** (unit tests, integration tests, manual testing or whatever tickles your fancy. Make sure it works)
+4. **Commit with descriptive messages**:
+   ```bash
+   git commit -m "Add JWT expiration handling to ProfileRepository
+    ,Implement automatic detection of expired tokens
+    ,Add graceful session cleanup on 401 responses
+    ,Include comprehensive logging for debugging
+       "
+   ```
 
-### Dependency Injection
-- Use Hilt for dependency injection
-- Provide dependencies through modules
-- Use @Inject for constructor injection
-- Use @Module for providing dependencies
+5. **Push and create pull request**:
+   ```bash
+   git push origin feat-your-amazing-feature
+   ```
 
-## Testing Guidelines
+## 📝 Commit Message Standards
 
-### Unit Tests
-- Test each class in isolation
-- Use descriptive test names
-- Follow AAA pattern (Arrange, Act, Assert)
-- Mock dependencies
+### Examples
+```bash
+# Good commit messages
+feat(auth): implement JWT expiration handling in repositories
+fix(ui): resolve bell pepper purchase visual feedback delay
+refactor(home): clean up unnecessary comments and improve documentation
+test(profile): add comprehensive unit tests for ProfileViewModel
 
-### Integration Tests
-- Test component interactions
-- Verify data flow
-- Test repository implementations
-- Medium execution time
+# Bad commit messages
+fix stuff
+update code
+changes
+working version
+```
 
-### UI Tests
-- Test user flows
-- Use Espresso for UI testing
-- Test edge cases
-- Verify UI state changes
+## 🏗 Architecture Guidelines
 
-## Code Quality
+### Current Architecture (MVVM + Clean Architecture)
+Our application follows **MVVM with Clean Architecture** principles:
 
-### Linting
-- Run ktlint before committing
-- Fix all warnings
-- Follow Kotlin style guide
+```kotlin
+// ✅ Good: Repository implementation with proper error handling
+@Singleton
+class ProfileRepositoryImpl @Inject constructor(
+    private val supabaseClient: SupabaseClient,
+    private val authRepository: AuthRepository
+) : ProfileRepository {
+    
+    override suspend fun getUserProfile(): Profile {
+        return try {
+            val response = supabaseClient.getUserProfile()
+            if (response.isSuccessful) {
+                response.body()!!.toDomain()
+            } else {
+                if (isJWTExpired(response)) {
+                    handleJWTExpiration()
+                    throw JWTExpiredException("Session expired")
+                }
+                throw ApiException("Failed to load profile: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e("ProfileRepository", "Error loading profile", e)
+            throw e
+        }
+    }
+}
+```
 
-### Documentation
-- Document public APIs
-- Keep README up to date
-- Document architecture decisions
-- Include examples where necessary
+### State Management
+Use **StateFlow** for reactive UI updates:
 
-### Performance
-- Profile critical paths
-- Optimize memory usage
-- Monitor app size
-- Test on low-end devices
+```kotlin
+// ✅ Good: StateFlow with proper error handling
+class ProfileViewModel @Inject constructor(
+    private val profileRepository: ProfileRepository
+) : ViewModel() {
+    
+    private val _profileState = MutableStateFlow<ProfileState>(ProfileState.Loading)
+    val profileState: StateFlow<ProfileState> = _profileState.asStateFlow()
+    
+    fun loadProfile() {
+        viewModelScope.launch {
+            try {
+                _profileState.value = ProfileState.Loading
+                val profile = profileRepository.getUserProfile()
+                _profileState.value = ProfileState.Success(profile)
+            } catch (e: Exception) {
+                _profileState.value = ProfileState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+}
+```
 
-## Release Process
+### Dependency Injection with Hilt
+All dependencies must be provided through Hilt:
 
-### 1. Versioning
-- Follow semantic versioning
-- Update version in build.gradle
-- Update changelog
+```kotlin
+// ✅ Good: Proper repository binding
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class RepositoryModule {
+    
+    @Binds
+    abstract fun bindProfileRepository(
+        profileRepositoryImpl: ProfileRepositoryImpl
+    ): ProfileRepository
+}
+```
 
-### 2. Testing
-- Run all tests
-- Perform manual testing
-- Test on multiple devices
-- Verify all features
+## 🎨 Code Quality Standards
 
-### 3. Documentation
-- Update documentation
-- Generate API docs
-- Update changelog
-- Tag release
+### SOLID & DRY Principles
+We strictly follow **SOLID** and **DRY** principles:
 
-## Getting Help
+```kotlin
+// ✅ Good: Single Responsibility Principle
+class JWTExpirationHandler @Inject constructor(
+    private val authRepository: AuthRepository
+) {
+    
+    fun isJWTExpired(response: Response<*>): Boolean {
+        return response.code() == 401 && 
+               response.errorBody()?.string()?.contains("JWT expired") == true
+    }
+    
+    suspend fun handleJWTExpiration() {
+        authRepository.clearSession()
+        // Trigger app-wide logout
+    }
+}
 
-- Check existing documentation
-- Search closed issues
-- Ask in discussions
-- Contact maintainers 
+// ❌ Bad: Multiple responsibilities in one class
+class ProfileHandler {
+    fun loadProfile() { /* profile logic */ }
+    fun handleJWT() { /* JWT logic */ }
+    fun updateUI() { /* UI logic */ }
+    fun validateData() { /* validation logic */ }
+}
+```
+
+### Error Handling Standards
+All error scenarios must be properly handled:
+
+```kotlin
+// ✅ Good: Comprehensive error handling
+private suspend fun loadUserData() {
+    try {
+        _state.value = UiState.Loading
+        val user = userRepository.getCurrentUser()
+        _state.value = UiState.Success(user)
+    } catch (e: JWTExpiredException) {
+        Log.w("ViewModel", "Session expired, redirecting to login")
+        _state.value = UiState.Error(e)
+        // Handle specific JWT expiration
+    } catch (e: NetworkException) {
+        Log.e("ViewModel", "Network error loading user data", e)
+        _state.value = UiState.Error(e)
+    } catch (e: Exception) {
+        Log.e("ViewModel", "Unexpected error loading user data", e)
+        _state.value = UiState.Error(e)
+    }
+}
+```
+
+### Documentation Standards
+We follow **Proffesional programming level** documentation:
+
+```kotlin
+// ✅ Good: Function-level comments explaining purpose and context
+// Load and display courses that the user is currently progressing through
+private fun setupContinueLearning(userData: User) {
+    lifecycleScope.launch {
+        try {
+            val courses = withContext(Dispatchers.IO) {
+                courseRepositoryImpl.getCourses(userData)
+            }
+            // Filter for active courses (progress > 0 and < totalTasks)
+            val activeCourses = courses.filter { course ->
+                course.progress > 0 && course.progress < course.totalTasks
+            }
+            updateUI(activeCourses)
+        } catch (e: Exception) {
+            Log.e("HomeFragment", "Error setting up continue learning", e)
+        }
+    }
+}
+
+// ❌ Bad: Obvious or redundant comments
+private fun setupContinueLearning(userData: User) {
+    // Launch coroutine
+    lifecycleScope.launch {
+        // Try to get courses
+        try {
+            // Get courses from repository
+            val courses = courseRepositoryImpl.getCourses(userData)
+            // Filter courses
+            val activeCourses = courses.filter { /* filter logic */ }
+        } catch (e: Exception) {
+            // Lol throw error (╯°□°）╯︵ ┻━┻
+            Log.e("TAG", "Error", e)
+        }
+    }
+}
+```
+
+## 🔧 Build and Validation
+
+### Pre-commit Checklist
+Before submitting any changes, ensure:
+
+- [ ] **Code compiles** without warnings
+- [ ] **All tests pass** (unit, integration, UI)
+- [ ] **Lint checks pass** (ktlint, Android lint)
+- [ ] **No unused imports** or variables
+- [ ] **Documentation updated** if adding new features
+- [ ] **Architecture compliance** verified
+- [ ] **Performance impact** considered
+
+### Validation Commands
+```bash
+# Build and test everything
+./gradlew clean build test
+
+# Run lint checks
+./gradlew ktlintCheck
+./gradlew lint
+
+# Check for dependency updates
+./gradlew dependencyUpdates
+
+# Generate coverage reports
+./gradlew jacocoTestReport
+```
+
+## 🤝 Code Review Guidelines
+
+### What Reviewers Look For
+- **Architecture compliance** with MVVM + Clean Architecture
+- **Proper error handling** and edge case coverage
+- **Performance implications** of changes
+- **UI/UX consistency** with existing patterns
+- **Security considerations** (especially authentication)
+
+### Review Checklist
+- [ ] Code follows established patterns
+- [ ] All edge cases handled appropriately
+- [ ] Documentation updated
+- [ ] No breaking changes without discussion
+- [ ] Performance impact assessed
+- [ ] Security implications considered

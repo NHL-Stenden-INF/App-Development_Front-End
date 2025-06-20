@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE tasks SYSTEM "tasks.dtd">
+<tasks>
+    <task>
+        <title>Python Basics</title>
+        <difficulty>Beginner</difficulty>
+        <description>Learn Python fundamentals, variables, and basic syntax</description>
+    </task>
+    <task>
+        <title>Data Structures</title>
+        <difficulty>Beginner</difficulty>
+        <description>Master Python lists, dictionaries, tuples, and sets</description>
+    </task>
+    <task>
+        <title>Python OOP</title>
+        <difficulty>Intermediate</difficulty>
+        <description>Learn classes, objects, inheritance, and encapsulation in Python</description>
+    </task>
+    <task>
+        <title>Libraries and Modules</title>
+        <difficulty>Advanced</difficulty>
+        <description>Explore popular Python libraries and how to create modules</description>
+    </task>
+</tasks> 

@@ -217,12 +217,69 @@
                     android:text="Logout"
                     app:layout_constraintTop_toBottomOf="@id/editProfileButton" />
 
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/achievementsRecyclerView"
+                <!-- Achievements Section -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:nestedScrollingEnabled="false" />
+                    android:orientation="vertical"
+                    android:layout_marginTop="24dp"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/achievementsTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🏆 Achievements"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorPrimary"
+                        android:layout_marginBottom="16dp" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/achievementsRecyclerView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+
+                    <!-- Empty state for achievements -->
+                    <LinearLayout
+                        android:id="@+id/achievementsEmptyState"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:padding="32dp"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:layout_width="64dp"
+                            android:layout_height="64dp"
+                            android:src="@drawable/ic_trophy_empty"
+                            android:alpha="0.5"
+                            android:layout_marginBottom="16dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="No achievements yet"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorOnSurface"
+                            android:alpha="0.7" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Complete courses and maintain learning streaks to unlock achievements!"
+                            android:textSize="14sp"
+                            android:textColor="?attr/colorOnSurface"
+                            android:alpha="0.6"
+                            android:gravity="center"
+                            android:layout_marginTop="8dp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
 
                 <!-- Reward Settings Section -->
                 <com.google.android.material.card.MaterialCardView

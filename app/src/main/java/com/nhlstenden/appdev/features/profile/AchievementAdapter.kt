@@ -5,13 +5,13 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.nhlstenden.appdev.databinding.ItemAchievementBinding
+import com.nhlstenden.appdev.databinding.ItemProfileAchievementBinding
 import com.nhlstenden.appdev.core.models.Achievement
 
 class AchievementAdapter : ListAdapter<Achievement, AchievementAdapter.AchievementViewHolder>(AchievementDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AchievementViewHolder {
-        val binding = ItemAchievementBinding.inflate(
+        val binding = ItemProfileAchievementBinding.inflate(
             LayoutInflater.from(parent.context),
             parent,
             false
@@ -24,16 +24,13 @@ class AchievementAdapter : ListAdapter<Achievement, AchievementAdapter.Achieveme
     }
 
     class AchievementViewHolder(
-        private val binding: ItemAchievementBinding
+        private val binding: ItemProfileAchievementBinding
     ) : RecyclerView.ViewHolder(binding.root) {
         
         fun bind(achievement: Achievement) {
             binding.achievementTitle.text = achievement.title
             binding.achievementDescription.text = achievement.description
             binding.achievementIcon.setImageResource(achievement.iconResId)
-            
-            // Set alpha based on whether achievement is unlocked
-            binding.root.alpha = if (achievement.unlocked) 1.0f else 0.5f
         }
     }
 
