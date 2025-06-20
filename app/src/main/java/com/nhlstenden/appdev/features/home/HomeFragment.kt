@@ -52,7 +52,7 @@ import com.nhlstenden.appdev.supabase.*
 import com.nhlstenden.appdev.supabase.SupabaseClient
 import com.nhlstenden.appdev.features.home.HomeViewModel
 import com.nhlstenden.appdev.features.home.HomeCourse
-import com.nhlstenden.appdev.features.courses.CourseRepository
+import com.nhlstenden.appdev.features.course.repositories.CourseRepository
 
 class HomeCourseAdapter(private val courses: List<HomeCourse>, private val fragment: Fragment) : RecyclerView.Adapter<HomeCourseAdapter.ViewHolder>() {
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {

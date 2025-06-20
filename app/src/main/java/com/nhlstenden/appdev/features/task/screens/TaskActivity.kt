@@ -553,7 +553,7 @@ class TaskActivity : AppCompatActivity() {
     }
 
     private fun getTaskTitle(context: Context, courseId: String, taskId: String): String {
-        val taskParser = com.nhlstenden.appdev.features.courses.TaskParser(context)
+        val taskParser = com.nhlstenden.appdev.features.course.utils.TaskParser(context)
         val task = taskParser.loadAllTasksOfCourse(courseId).find { it.id == taskId }
         return task?.title ?: "Task"
     }

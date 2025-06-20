@@ -2,13 +2,17 @@ package com.nhlstenden.appdev.features.course.utils
 
 import android.content.Context
 import android.util.Log
-import com.nhlstenden.appdev.features.course.models.Task
+import com.nhlstenden.appdev.features.courses.model.Task
+import com.nhlstenden.appdev.core.parsers.TaskParser as TaskParserInterface
 import org.w3c.dom.Element
 import java.io.InputStream
 import javax.xml.parsers.DocumentBuilderFactory
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class TaskParser(private val context: Context) {
-    fun loadAllTasksOfCourse(courseTitle: String): List<Task> {
+@Singleton
+class TaskParser @Inject constructor(private val context: Context) : TaskParserInterface {
+    override fun loadAllTasksOfCourse(courseTitle: String): List<Task> {
         val courseIdentifier: String = courseTitle
             .lowercase()
             .trim()

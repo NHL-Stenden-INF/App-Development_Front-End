@@ -32,7 +32,7 @@ import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel.ProfileState
 import com.nhlstenden.appdev.shared.components.ImageCropActivity
 import com.nhlstenden.appdev.core.repositories.AuthRepository
-import com.nhlstenden.appdev.shared.ui.base.BaseFragment
+import com.nhlstenden.appdev.core.ui.base.BaseFragment
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -140,11 +140,17 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         val isMusicLobbyEnabled = settingsRepository.hasValue(SettingsConstants.COURSE_LOBBY_MUSIC)
         musicLobbySwitch.isChecked = isMusicLobbyEnabled
         musicLobbySwitch.setOnCheckedChangeListener { _, isChecked ->
-            // Use RewardChecker to properly validate and update music lobby preference
             lifecycleScope.launch {
                 val success = rewardChecker.setMusicLobbyEnabled(requireContext(), isChecked)
-                settingsRepository.addValue(SettingsConstants.COURSE_LOBBY_MUSIC)
-                if (!success && isChecked) {
+                if (success) {
+                    if (isChecked) {
+                        settingsRepository.addValue(SettingsConstants.COURSE_LOBBY_MUSIC)
+                        Toast.makeText(requireContext(), "Course lobby music enabled", Toast.LENGTH_SHORT).show()
+                    } else {
+                        settingsRepository.removeValue(SettingsConstants.COURSE_LOBBY_MUSIC)
+                        Toast.makeText(requireContext(), "Course lobby music disabled", Toast.LENGTH_SHORT).show()
+                    }
+                } else if (isChecked) {
                     // If trying to enable but not unlocked, revert the switch
                     musicLobbySwitch.isChecked = false
                     Toast.makeText(requireContext(), "Music lobby reward not unlocked", Toast.LENGTH_SHORT).show()
@@ -600,19 +606,27 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
 
         // Set up switch listeners
         biometricSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsRepository.toggleValue(SettingsConstants.BIOMETRICS)
+            lifecycleScope.launch {
+                settingsRepository.toggleValue(SettingsConstants.BIOMETRICS)
+            }
         }
 
         achievementNotificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsRepository.toggleValue(SettingsConstants.ACHIEVEMENTS_NOTIFICATIONS)
+            lifecycleScope.launch {
+                settingsRepository.toggleValue(SettingsConstants.ACHIEVEMENTS_NOTIFICATIONS)
+            }
         }
 
         progressNotificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsRepository.toggleValue(SettingsConstants.PROGRESS_NOTIFICATIONS)
+            lifecycleScope.launch {
+                settingsRepository.toggleValue(SettingsConstants.PROGRESS_NOTIFICATIONS)
+            }
         }
 
         friendActivitySwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsRepository.toggleValue(SettingsConstants.FRIENDS_ACTIVITY)
+            lifecycleScope.launch {
+                settingsRepository.toggleValue(SettingsConstants.FRIENDS_ACTIVITY)
+            }
         }
 
         // Set up button listeners

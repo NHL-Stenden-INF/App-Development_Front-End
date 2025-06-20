@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.courses
+package com.nhlstenden.appdev.features.course.repositories
 
 import com.nhlstenden.appdev.core.models.User
 import com.nhlstenden.appdev.features.courses.model.Course

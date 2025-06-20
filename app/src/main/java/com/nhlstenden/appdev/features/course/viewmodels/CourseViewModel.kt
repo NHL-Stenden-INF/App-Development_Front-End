@@ -3,7 +3,7 @@ package com.nhlstenden.appdev.features.course.viewmodels
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.nhlstenden.appdev.features.course.models.Task
+import com.nhlstenden.appdev.features.courses.model.Task
 import com.nhlstenden.appdev.features.course.repositories.CourseRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

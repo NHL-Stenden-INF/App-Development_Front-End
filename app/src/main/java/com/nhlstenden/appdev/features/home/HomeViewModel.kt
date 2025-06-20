@@ -11,7 +11,7 @@ import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import com.nhlstenden.appdev.features.home.StreakManager
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import java.time.LocalDate
-import com.nhlstenden.appdev.features.courses.CourseRepository
+import com.nhlstenden.appdev.features.course.repositories.CourseRepository
 import com.nhlstenden.appdev.features.home.HomeCourse
 import kotlinx.coroutines.flow.update
 import com.nhlstenden.appdev.core.repositories.FriendsRepository

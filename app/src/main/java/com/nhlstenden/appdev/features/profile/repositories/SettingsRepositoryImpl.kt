@@ -29,19 +29,19 @@ class SettingsRepositoryImpl @Inject constructor(
         preferences[booleanPreferencesKey(key)] == true
     }
 
-    override fun addValue(key: String) = runBlocking {
+    override suspend fun addValue(key: String) {
         context.dataStore.edit { preferences ->
             preferences[booleanPreferencesKey(key)] = true
         }
     }
 
-    override fun removeValue(key: String) = runBlocking {
+    override suspend fun removeValue(key: String) {
         context.dataStore.edit { preferences ->
             preferences[booleanPreferencesKey(key)] = false
         }
     }
 
-    override fun toggleValue(key: String) = runBlocking{
+    override suspend fun toggleValue(key: String) {
         context.dataStore.edit { preferences ->
             val currentValue = preferences[booleanPreferencesKey(key)] ?: false
             preferences[booleanPreferencesKey(key)] = !currentValue

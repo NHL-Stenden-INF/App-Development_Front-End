@@ -2,9 +2,9 @@ package com.nhlstenden.appdev.features.course.repositories
 
 import android.app.Application
 import com.nhlstenden.appdev.core.models.User
-import com.nhlstenden.appdev.features.course.models.Task
+import com.nhlstenden.appdev.features.courses.model.Task
 import com.nhlstenden.appdev.features.course.utils.TaskParser
-import com.nhlstenden.appdev.features.courses.QuestionParser
+import com.nhlstenden.appdev.features.course.utils.QuestionParser
 import com.nhlstenden.appdev.features.task.models.Question
 import javax.inject.Inject
 import javax.inject.Singleton

@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.courses
+package com.nhlstenden.appdev.features.course.utils
 
 import android.content.Context
 import android.util.Log

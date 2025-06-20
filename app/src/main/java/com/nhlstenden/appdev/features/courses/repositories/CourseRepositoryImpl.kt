@@ -3,16 +3,17 @@ package com.nhlstenden.appdev.features.courses.repositories
 import android.app.Application
 import com.nhlstenden.appdev.core.models.User
 import com.nhlstenden.appdev.features.courses.model.Task
-import com.nhlstenden.appdev.features.courses.CourseParser
-import com.nhlstenden.appdev.features.courses.CourseRepository
-import com.nhlstenden.appdev.features.courses.TaskParser
+import com.nhlstenden.appdev.features.course.utils.CourseParser
+import com.nhlstenden.appdev.features.course.repositories.CourseRepository
+import com.nhlstenden.appdev.features.course.utils.TaskParser
 import com.nhlstenden.appdev.features.courses.model.Course
-import com.nhlstenden.appdev.features.courses.QuestionParser
+import com.nhlstenden.appdev.features.course.utils.QuestionParser
 import com.nhlstenden.appdev.features.task.models.Question
 import javax.inject.Inject
 import javax.inject.Singleton
 import android.util.Log
 import com.nhlstenden.appdev.core.repositories.AuthRepository
+import com.nhlstenden.appdev.core.repositories.BaseRepository
 import com.nhlstenden.appdev.core.utils.TaskToCourseMapper
 import com.nhlstenden.appdev.supabase.*
 import kotlinx.coroutines.Dispatchers
@@ -22,26 +23,14 @@ import org.json.JSONArray
 @Singleton
 class CourseRepositoryImpl @Inject constructor(
     private val application: Application,
-    private val authRepository: AuthRepository
-) : CourseRepository {
-    val courseParser = CourseParser(application.applicationContext)
-    val taskParser = TaskParser(application.applicationContext)
-    val questionParser = QuestionParser(application.applicationContext)
-    val supabaseClient = SupabaseClient()
+    private val authRepository: AuthRepository,
+    private val courseParser: com.nhlstenden.appdev.core.parsers.CourseParser,
+    private val taskParser: com.nhlstenden.appdev.core.parsers.TaskParser,
+    private val questionParser: QuestionParser,
+    private val supabaseClient: SupabaseClient
+) : BaseRepository(), CourseRepository {
 
     private val TAG = "CourseRepositoryImpl"
-
-    private suspend fun isJWTExpired(response: okhttp3.Response): Boolean {
-        if (response.code == 401) {
-            val body = response.body?.string()
-            if (body?.contains("JWT expired") == true) {
-                Log.w(TAG, "JWT expired detected, clearing session")
-                authRepository.handleJWTExpiration()
-                return true
-            }
-        }
-        return false
-    }
 
     private suspend fun getUserProgressSafely(userId: String, authToken: String): JSONArray? {
         return try {
@@ -51,28 +40,26 @@ class CourseRepositoryImpl @Inject constructor(
 
             if (result.isFailure) {
                 Log.e(TAG, "Error getting user progress", result.exceptionOrNull())
+                return null
             }
 
             val response = result.getOrNull() ?: return null
+            var resultArray: JSONArray? = null
             
-            if (response.isSuccessful) {
-                val body = response.body?.string()
-                if (!body.isNullOrEmpty()) {
-                    JSONArray(body)
-                } else {
-                    null
+            handleApiResponse(
+                response = response,
+                authRepository = authRepository,
+                onSuccess = { body ->
+                    parseJsonArraySafely(
+                        jsonString = body,
+                        onSuccess = { jsonArray -> resultArray = jsonArray }
+                    )
                 }
-            } else {
-                if (isJWTExpired(response)) {
-                    throw Exception("Session expired. Please login again.")
-                } else {
-                    Log.e(TAG, "Failed to get user progress: ${response.code}")
-                    null
-                }
-            }
+            )
+            
+            resultArray
         } catch (e: Exception) {
             Log.e(TAG, "Error getting user progress", e)
-            // Re-throw JWT expiration exceptions
             if (e.message?.contains("Session expired") == true) {
                 throw e
             }

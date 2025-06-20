@@ -9,7 +9,7 @@ import com.nhlstenden.appdev.core.repositories.AchievementRepository
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.supabase.*
-import com.nhlstenden.appdev.features.courses.TaskParser
+import com.nhlstenden.appdev.features.course.utils.TaskParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray

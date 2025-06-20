@@ -7,12 +7,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import com.nhlstenden.appdev.core.ui.base.BaseFragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.core.content.ContextCompat
-import com.nhlstenden.appdev.features.course.models.Task
+import com.nhlstenden.appdev.features.courses.model.Task
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.FragmentCourseBinding
 import com.google.android.material.progressindicator.LinearProgressIndicator
@@ -21,7 +22,6 @@ import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 import com.nhlstenden.appdev.features.task.screens.TaskActivity
 import com.nhlstenden.appdev.core.utils.NavigationManager
-import android.media.MediaPlayer
 import android.util.Log
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.nhlstenden.appdev.core.repositories.UserRepository
@@ -33,11 +33,7 @@ import android.content.Intent
 import android.app.Activity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import android.media.AudioManager
-import android.media.AudioAttributes
-import android.os.Build
-import android.content.Context
-import android.media.AudioFocusRequest
+import com.nhlstenden.appdev.core.services.MusicManager
 import com.nhlstenden.appdev.utils.RewardChecker
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.SettingsRepository
@@ -48,14 +44,11 @@ import com.nhlstenden.appdev.features.courses.screens.CoursesFragment
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class CourseFragment : Fragment() {
+class CourseFragment : BaseFragment() {
     private lateinit var binding: FragmentCourseBinding
     private val viewModel: CourseViewModel by viewModels()
     private val profileViewModel: ProfileViewModel by viewModels()
     private var taskAdapter: TaskAdapter? = null
-    private var mediaPlayer: MediaPlayer? = null
-    private var audioManager: AudioManager? = null
-    private var audioFocusRequest: AudioFocusRequest? = null
     
     @Inject
     lateinit var rewardChecker: RewardChecker
@@ -65,6 +58,9 @@ class CourseFragment : Fragment() {
 
     @Inject
     lateinit var settingsRepository: SettingsRepository
+    
+    @Inject
+    lateinit var musicManager: MusicManager
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -77,32 +73,6 @@ class CourseFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding = FragmentCourseBinding.bind(view)
-
-        audioManager = requireContext().getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                .setAudioAttributes(AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_GAME)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build())
-                .setOnAudioFocusChangeListener { focusChange ->
-                    when (focusChange) {
-                        AudioManager.AUDIOFOCUS_LOSS -> {
-                            mediaPlayer?.pause()
-                        }
-                        AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                            mediaPlayer?.pause()
-                        }
-                        AudioManager.AUDIOFOCUS_GAIN -> {
-                            mediaPlayer?.start()
-                        }
-                        else -> {
-                            // Handle any other focus changes if needed
-                        }
-                    }
-                }
-                .build()
-        }
 
         setupRecyclerView()
         observeViewModel()
@@ -198,21 +168,12 @@ class CourseFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
-        stopMusic()
+        musicManager.pauseMusic()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        stopMusic()
-        mediaPlayer?.release()
-        mediaPlayer = null
-        audioManager?.let { am ->
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                audioFocusRequest?.let { request ->
-                    am.abandonAudioFocusRequest(request)
-                }
-            }
-        }
+        musicManager.stopMusic()
     }
 
     private fun setupRecyclerView() {
@@ -258,65 +219,9 @@ class CourseFragment : Fragment() {
     }
 
     private fun setupMusic() {
-        // For now, always start music. Settings integration can be added later.
-        startMusic()
-    }
-
-    private fun startMusic() {
-        if (mediaPlayer?.isPlaying == true) return
-        
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                audioFocusRequest?.let { request ->
-                    val result = audioManager?.requestAudioFocus(request)
-                    if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                        playMusic()
-                    }
-                }
-            } else {
-                @Suppress("DEPRECATION")
-                val result = audioManager?.requestAudioFocus(
-                    null,
-                    AudioManager.STREAM_MUSIC,
-                    AudioManager.AUDIOFOCUS_GAIN
-                )
-                if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                    playMusic()
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("CourseFragment", "Error starting music", e)
-        }
-    }
-
-    private fun playMusic() {
-        try {
-            if (mediaPlayer == null) {
-                mediaPlayer = MediaPlayer.create(requireContext(), R.raw.default_themesong)
-                mediaPlayer?.isLooping = true
-                mediaPlayer?.setVolume(0.3f, 0.3f)
-            }
-            mediaPlayer?.start()
-        } catch (e: Exception) {
-            Log.e("CourseFragment", "Error playing music", e)
-        }
-    }
-
-    private fun stopMusic() {
-        try {
-            mediaPlayer?.pause()
-            audioManager?.let { am ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    audioFocusRequest?.let { request ->
-                        am.abandonAudioFocusRequest(request)
-                    }
-                } else {
-                    @Suppress("DEPRECATION")
-                    am.abandonAudioFocus(null)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("CourseFragment", "Error stopping music", e)
+        val courseId = arguments?.getString("COURSE_ID") ?: return
+        launchSafely {
+            musicManager.startCourseMusic(courseId)
         }
     }
 

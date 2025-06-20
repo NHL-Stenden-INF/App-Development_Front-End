@@ -2,13 +2,17 @@ package com.nhlstenden.appdev.features.course.utils
 
 import android.content.Context
 import android.util.Log
-import com.nhlstenden.appdev.features.courses.models.Course
+import com.nhlstenden.appdev.features.courses.model.Course
+import com.nhlstenden.appdev.core.parsers.CourseParser as CourseParserInterface
 import org.w3c.dom.Element
 import java.io.InputStream
 import javax.xml.parsers.DocumentBuilderFactory
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class CourseParser(private val context: Context) {
-    fun loadAllCourses(): List<Course> {
+@Singleton
+class CourseParser @Inject constructor(private val context: Context) : CourseParserInterface {
+    override fun loadAllCourses(): List<Course> {
         val resourceId = context.resources.getIdentifier("courses", "raw", context.packageName)
         
         if (resourceId == 0) {
@@ -25,7 +29,7 @@ class CourseParser(private val context: Context) {
         }
     }
     
-    fun loadCourseByTitle(courseTitle: String): Course? {
+    override fun loadCourseByTitle(courseTitle: String): Course? {
         return loadAllCourses().find { it.title.equals(courseTitle, ignoreCase = true) }
     }
     

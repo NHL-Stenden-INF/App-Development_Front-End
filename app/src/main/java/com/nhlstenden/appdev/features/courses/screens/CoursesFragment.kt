@@ -17,8 +17,8 @@ import com.google.android.material.textfield.TextInputEditText
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.features.courses.adapters.CourseAdapter
 import com.nhlstenden.appdev.core.utils.NavigationManager
-import com.nhlstenden.appdev.features.courses.models.Course
-import com.nhlstenden.appdev.shared.ui.base.BaseFragment
+import com.nhlstenden.appdev.features.courses.model.Course
+import com.nhlstenden.appdev.core.ui.base.BaseFragment
 import com.nhlstenden.appdev.features.courses.viewmodels.CoursesViewModel
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint

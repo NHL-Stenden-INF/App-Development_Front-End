@@ -1,7 +1,7 @@
 package com.nhlstenden.appdev.features.courses.repositories
 
 import com.nhlstenden.appdev.core.models.User
-import com.nhlstenden.appdev.features.courses.models.Course
+import com.nhlstenden.appdev.features.courses.model.Course
 
 interface CoursesRepository {
     suspend fun getCourses(user: User): List<Course>?

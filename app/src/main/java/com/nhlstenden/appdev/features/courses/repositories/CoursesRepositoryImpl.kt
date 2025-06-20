@@ -2,7 +2,7 @@ package com.nhlstenden.appdev.features.courses.repositories
 
 import android.app.Application
 import com.nhlstenden.appdev.core.models.User
-import com.nhlstenden.appdev.features.courses.models.Course
+import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.features.course.utils.CourseParser
 import com.nhlstenden.appdev.features.course.utils.TaskParser
 import javax.inject.Inject
