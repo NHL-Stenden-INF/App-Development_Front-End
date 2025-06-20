@@ -172,10 +172,10 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
             showImageSourceDialog()
         }
 
-//        3 is the ID of the profile frames
+//        4 is the ID of the profile frames
         lifecycleScope.launch {
             val canChangeProfileMask = withContext(Dispatchers.IO) {
-                rewardChecker.isRewardUnlocked(3)
+                rewardChecker.isRewardUnlocked(4)
             }
             val profileMaskSelector = binding.profileMaskSelector
             if (canChangeProfileMask) {
