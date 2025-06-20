@@ -36,10 +36,7 @@ import kotlinx.coroutines.withContext
 import com.nhlstenden.appdev.core.services.MusicManager
 import com.nhlstenden.appdev.utils.RewardChecker
 import com.nhlstenden.appdev.core.repositories.AuthRepository
-import com.nhlstenden.appdev.core.repositories.SettingsRepository
-import com.nhlstenden.appdev.features.profile.repositories.SettingsRepositoryImpl.SettingsConstants
 import com.nhlstenden.appdev.features.course.viewmodels.CourseViewModel
-import com.nhlstenden.appdev.features.course.utils.CourseParser
 import com.nhlstenden.appdev.features.courses.screens.CoursesFragment
 import javax.inject.Inject
 
@@ -51,13 +48,7 @@ class CourseFragment : BaseFragment() {
     private var taskAdapter: TaskAdapter? = null
     
     @Inject
-    lateinit var rewardChecker: RewardChecker
-    
-    @Inject
     lateinit var authRepository: AuthRepository
-
-    @Inject
-    lateinit var settingsRepository: SettingsRepository
     
     @Inject
     lateinit var musicManager: MusicManager
@@ -85,22 +76,7 @@ class CourseFragment : BaseFragment() {
         val currentUser = authRepository.getCurrentUserSync()
         if (currentUser != null) {
             viewModel.loadTasks(courseId, currentUser)
-            
-            // Load and display course info
-            lifecycleScope.launch(Dispatchers.IO) {
-                try {
-                    val courseParser = CourseParser(requireContext())
-                    val course = courseParser.loadCourseByTitle(courseId)
-                    withContext(Dispatchers.Main) {
-                        course?.let {
-                            binding.courseTitle.text = it.title
-                            binding.courseDescription.text = it.description
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("CourseFragment", "Error loading course info", e)
-                }
-            }
+            viewModel.loadCourseInfo(courseId)
         }
 
         // Observe course progress and update adapter
@@ -148,6 +124,7 @@ class CourseFragment : BaseFragment() {
             if (currentUser != null) {
                 // Reload tasks and course progress
                 viewModel.loadTasks(courseId, currentUser)
+                viewModel.loadCourseInfo(courseId)
                 // Force refresh the view
                 binding.swipeRefreshLayout.isRefreshing = true
             }
@@ -163,6 +140,7 @@ class CourseFragment : BaseFragment() {
             binding.swipeRefreshLayout.isRefreshing = true
             // Reload tasks and course progress
             viewModel.loadTasks(courseId, currentUser)
+            viewModel.loadCourseInfo(courseId)
         }
     }
 
@@ -196,6 +174,18 @@ class CourseFragment : BaseFragment() {
                 }
             }
         }
+
+        viewModel.courseInfo.observe(viewLifecycleOwner) { course ->
+            if (course != null) {
+                binding.courseTitle.text = course.title
+                binding.courseDescription.text = course.description
+            } else {
+                // Fallback if course info couldn't be loaded
+                val courseId = arguments?.getString("COURSE_ID") ?: ""
+                binding.courseTitle.text = courseId.replace("_", " ").replaceFirstChar { it.uppercase() }
+                binding.courseDescription.text = "Course information"
+            }
+        }
     }
 
     private fun setupSwipeRefresh() {
@@ -208,6 +198,7 @@ class CourseFragment : BaseFragment() {
             val currentUser = authRepository.getCurrentUserSync()
             if (currentUser != null) {
                 viewModel.loadTasks(courseId, currentUser)
+                viewModel.loadCourseInfo(courseId)
             }
         }
     }

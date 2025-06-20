@@ -1,8 +1,8 @@
 package com.nhlstenden.appdev.features.course.repositories
 
-import android.app.Application
 import com.nhlstenden.appdev.core.models.User
 import com.nhlstenden.appdev.features.courses.model.Task
+import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.features.course.utils.TaskParser
 import com.nhlstenden.appdev.features.course.utils.QuestionParser
 import com.nhlstenden.appdev.features.task.models.Question
@@ -18,35 +18,30 @@ import org.json.JSONArray
 
 @Singleton
 class CourseRepositoryImpl @Inject constructor(
-    private val application: Application,
+    private val taskParser: TaskParser,
+    private val questionParser: QuestionParser,
+    private val supabaseClient: SupabaseClient,
     private val authRepository: AuthRepository
-) {
-    val taskParser = TaskParser(application.applicationContext)
-    val questionParser = QuestionParser(application.applicationContext)
-    val supabaseClient = SupabaseClient()
+) : CourseRepository {
 
     private val TAG = "CourseRepositoryImpl"
 
-    private suspend fun isJWTExpired(response: okhttp3.Response): Boolean {
-        if (response.code == 401) {
-            val body = response.body?.string()
-            if (body?.contains("JWT expired") == true) {
-                Log.w(TAG, "JWT expired detected, clearing session")
-                authRepository.handleJWTExpiration()
-                return true
-            }
+
+
+    override suspend fun getTaskById(courseTitle: String, taskTitle: String): Task? {
+        return taskParser.loadAllTasksOfCourse(courseTitle).find { 
+            it.title.equals(taskTitle, ignoreCase = true) 
         }
-        return false
+    }
+
+    override suspend fun getTotalTaskOfCourse(courseId: String): Int {
+        return taskParser.loadAllTasksOfCourse(courseId).size
     }
 
     private suspend fun getUserProgressSafely(userId: String, authToken: String): JSONArray? {
         return try {
             val result = withContext(Dispatchers.IO) {
                 supabaseClient.getUserProgressResponse(userId, authToken)
-            }
-
-            if (result.isFailure) {
-                Log.e(TAG, "Error getting user progress", result.exceptionOrNull())
             }
 
             val response = result.getOrNull() ?: return null
@@ -59,24 +54,16 @@ class CourseRepositoryImpl @Inject constructor(
                     null
                 }
             } else {
-                if (isJWTExpired(response)) {
-                    throw Exception("Session expired. Please login again.")
-                } else {
-                    Log.e(TAG, "Failed to get user progress: ${response.code}")
-                    null
-                }
+                Log.e(TAG, "Failed to get user progress: ${response.code}")
+                null
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting user progress", e)
-            // Re-throw JWT expiration exceptions
-            if (e.message?.contains("Session expired") == true) {
-                throw e
-            }
             null
         }
     }
 
-    suspend fun getTasks(courseId: String): List<Task> {
+    override suspend fun getTasks(courseId: String): List<Task> {
         // Get current user
         val currentUser = authRepository.getCurrentUserSync() ?: return taskParser.loadAllTasksOfCourse(courseId)
         
@@ -100,15 +87,8 @@ class CourseRepositoryImpl @Inject constructor(
                 // If no progress exists, create it
                 if (!hasProgress) {
                     val result = supabaseClient.createUserProgress(currentUser.id, courseId, 0, currentUser.authToken)
-                    val response = result.getOrNull()
-
-                    if (response != null && !response.isSuccessful && response.code == 401) {
-                        val body = response.body?.string()
-                        if (body?.contains("JWT expired") == true) {
-                            Log.w(TAG, "JWT expired during createUserProgress")
-                            authRepository.handleJWTExpiration()
-                            throw Exception("Session expired. Please login again.")
-                        }
+                    if (result.isFailure) {
+                        Log.e(TAG, "Failed to create user progress", result.exceptionOrNull())
                     }
                 }
             }
@@ -123,7 +103,7 @@ class CourseRepositoryImpl @Inject constructor(
         return taskParser.loadAllTasksOfCourse(courseId)
     }
 
-    suspend fun getCourseProgress(userId: String, courseId: String): Map<String, Int> {
+    override suspend fun getCourseProgress(userId: String, courseId: String): Map<String, Int> {
         return try {
             withContext(Dispatchers.IO) {
                 val currentUser = authRepository.getCurrentUserSync()
@@ -175,11 +155,11 @@ class CourseRepositoryImpl @Inject constructor(
         }
     }
 
-    suspend fun getQuestions(taskId: String): List<Question> {
+    override suspend fun getQuestions(taskId: String): List<Question> {
         return questionParser.loadQuestionsForTask(taskId)
     }
 
-    suspend fun updateTaskProgress(userId: String, taskId: String, progress: Int): Boolean {
+    override suspend fun updateTaskProgress(userId: String, taskId: String, progress: Int): Boolean {
         Log.d(TAG, "updateTaskProgress ENTRY: userId=$userId, taskId=$taskId, progress=$progress")
         try {
             val currentUser = authRepository.getCurrentUserSync()
@@ -224,23 +204,10 @@ class CourseRepositoryImpl @Inject constructor(
 
             val result = supabaseClient.updateUserProgress(userId, taskId, newProgress, currentUser.authToken)
             val response = result.getOrNull() ?: return false
-            
-            if (!response.isSuccessful && response.code == 401) {
-                val body = response.body?.string()
-                if (body?.contains("JWT expired") == true) {
-                    Log.w(TAG, "JWT expired during updateTaskProgress")
-                    authRepository.handleJWTExpiration()
-                    throw Exception("Session expired. Please login again.")
-                }
-            }
-            
             return response.code == 200 || response.code == 204
         } catch (e: Exception) {
             Log.e(TAG, "Error updating task progress: ${e.message}")
-            // Re-throw JWT expiration exceptions
-            if (e.message?.contains("Session expired") == true) {
-                throw e
-            }
+            // BaseRepository already handles JWT expiration
             return false
         }
     }

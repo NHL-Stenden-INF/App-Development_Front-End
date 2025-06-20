@@ -52,7 +52,7 @@ import com.nhlstenden.appdev.supabase.*
 import com.nhlstenden.appdev.supabase.SupabaseClient
 import com.nhlstenden.appdev.features.home.HomeViewModel
 import com.nhlstenden.appdev.features.home.HomeCourse
-import com.nhlstenden.appdev.features.course.repositories.CourseRepository
+import com.nhlstenden.appdev.features.courses.repositories.CoursesRepository
 
 class HomeCourseAdapter(private val courses: List<HomeCourse>, private val fragment: Fragment) : RecyclerView.Adapter<HomeCourseAdapter.ViewHolder>() {
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -110,7 +110,7 @@ class HomeFragment : Fragment() {
     lateinit var achievementManager: AchievementManager
     
     @Inject
-    lateinit var courseRepository: CourseRepository
+    lateinit var coursesRepository: CoursesRepository
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -236,7 +236,7 @@ class HomeFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 val courses = withContext(Dispatchers.IO) {
-                    courseRepository.getCourses(userData)
+                    coursesRepository.getCourses(userData)
                 }
                 if (courses != null) {
                     val activeCourses = courses.filter { course: com.nhlstenden.appdev.features.courses.model.Course ->

@@ -11,7 +11,7 @@ import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import com.nhlstenden.appdev.features.home.StreakManager
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import java.time.LocalDate
-import com.nhlstenden.appdev.features.course.repositories.CourseRepository
+import com.nhlstenden.appdev.features.courses.repositories.CoursesRepository
 import com.nhlstenden.appdev.features.home.HomeCourse
 import kotlinx.coroutines.flow.update
 import com.nhlstenden.appdev.core.repositories.FriendsRepository
@@ -25,7 +25,7 @@ class HomeViewModel @Inject constructor(
     private val streakRepository: StreakRepository,
     private val authRepository: AuthRepository,
     private val streakManager: StreakManager,
-    private val courseRepository: CourseRepository,
+    private val coursesRepository: CoursesRepository,
     private val friendsRepository: FriendsRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
@@ -80,7 +80,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val user = authRepository.getCurrentUserSync()
             if (user != null) {
-                val courses = courseRepository.getCourses(user)
+                val courses = coursesRepository.getCourses(user)
                 if (courses != null) {
                     val activeCourses = courses.filter { it.progress > 0 && it.progress < it.totalTasks }
                     val homeCourses = activeCourses.map { course ->
@@ -110,7 +110,7 @@ class HomeViewModel @Inject constructor(
             val userXp = userRepository.getUserAttributes(currentUser.id).getOrNull()?.optInt("xp", 0) ?: 0
             val userLevel = LevelCalculator.calculateLevelFromXp(userXp.toLong())
             val userCourseProgress: Map<String, Int> = try {
-                val list = courseRepository.getCourses(currentUser) ?: emptyList()
+                val list = coursesRepository.getCourses(currentUser) ?: emptyList()
                 list.associate { c -> c.id to if (c.totalTasks > 0) (c.progress.toFloat() / c.totalTasks * 100).toInt() else 0 }
             } catch (e: Exception) { emptyMap() }
             val friendsResult = friendsRepository.getAllFriends()

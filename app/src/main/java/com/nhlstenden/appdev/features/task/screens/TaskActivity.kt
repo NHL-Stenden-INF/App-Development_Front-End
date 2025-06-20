@@ -17,7 +17,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.databinding.ActivityTaskBinding
-import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
+import com.nhlstenden.appdev.features.course.repositories.CourseRepository
 import com.nhlstenden.appdev.features.task.TaskCompleteListener
 import com.nhlstenden.appdev.features.task.TaskFailureDialogFragment
 import com.nhlstenden.appdev.features.task.adapters.TaskPagerAdapter
@@ -40,7 +40,7 @@ class TaskActivity : AppCompatActivity() {
     @Inject lateinit var authRepository: AuthRepository
     @Inject lateinit var userRepository: UserRepository
     @Inject lateinit var streakRepository: StreakRepository
-    @Inject lateinit var courseRepository: CourseRepositoryImpl
+    @Inject lateinit var courseRepository: CourseRepository
 
     @Inject lateinit var achievementManager: AchievementManager
 

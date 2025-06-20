@@ -4,7 +4,9 @@ import android.content.Context
 import com.nhlstenden.appdev.core.repositories.ProfileRepository
 import com.nhlstenden.appdev.features.profile.repositories.ProfileRepositoryImpl
 import com.nhlstenden.appdev.features.course.repositories.CourseRepository
-import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
+import com.nhlstenden.appdev.features.course.repositories.CourseRepositoryImpl as CourseRepoImpl
+import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl as CoursesRepoImpl
+import com.nhlstenden.appdev.features.courses.repositories.CoursesRepository
 import com.nhlstenden.appdev.features.course.utils.CourseParser as CourseParserImpl
 import com.nhlstenden.appdev.features.course.utils.TaskParser as TaskParserImpl
 import com.nhlstenden.appdev.core.parsers.CourseParser
@@ -53,7 +55,10 @@ abstract class RepositoryModule {
     abstract fun bindProfileRepository(impl: ProfileRepositoryImpl): ProfileRepository
 
     @Binds
-    abstract fun bindCourseRepository(impl: CourseRepositoryImpl): CourseRepository
+    abstract fun bindCourseRepository(impl: CourseRepoImpl): CourseRepository
+
+    @Binds
+    abstract fun bindCoursesRepository(impl: CoursesRepoImpl): CoursesRepository
 
     @Binds
     abstract fun bindTaskRepository(impl: TaskRepositoryImpl): TaskRepository

@@ -631,7 +631,6 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
 
         // Set up button listeners
         exportDataButton.setOnClickListener {
-            // TODO: Implement data export functionality
             Toast.makeText(requireContext(), "Data export functionality coming soon!", Toast.LENGTH_SHORT).show()
         }
 
@@ -640,7 +639,6 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                 .setTitle("Delete Account")
                 .setMessage("Are you sure you want to delete your account? This action cannot be undone.")
                 .setPositiveButton("Delete") { _, _ ->
-                    // TODO: Implement account deletion
                     Toast.makeText(requireContext(), "Account deletion functionality coming soon!", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("Cancel", null)
