@@ -8,7 +8,9 @@ import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.content.ContextCompat
 import com.daimajia.numberprogressbar.NumberProgressBar
+import com.google.android.material.card.MaterialCardView
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.utils.DifficultyFormatter
 import android.util.Log
@@ -22,8 +24,14 @@ data class CourseItem(
     val imageResId: Int,
     val showDescription: Boolean = false,
     val showDifficultyStars: Boolean = false,
-    val difficulty: Int = 0
-)
+    val difficulty: Int = 0,
+    val isCompleted: Boolean = false,
+    val isLocked: Boolean = false
+) {
+    companion object {
+        fun isProgressComplete(progressPercentage: Int): Boolean = progressPercentage >= 100
+    }
+}
 
 class SharedCourseAdapter(
     private val onCourseClick: (String) -> Unit
@@ -35,6 +43,8 @@ class SharedCourseAdapter(
         val difficultyLevel: TextView = view.findViewById(R.id.difficultyLevel)
         val courseDescription: TextView = view.findViewById(R.id.courseDescription)
         val progressBar: NumberProgressBar = view.findViewById(R.id.progressBar)
+        val lockIcon: ImageView = view.findViewById(R.id.lockIcon)
+        val cardView: MaterialCardView = view as MaterialCardView
         val root: View = view
     }
 
@@ -68,9 +78,47 @@ class SharedCourseAdapter(
             holder.difficultyLevel.text = course.progressText
         }
         
+        // Handle completion and lock states
+        when {
+            course.isCompleted -> {
+                holder.lockIcon.visibility = View.GONE
+                holder.itemView.alpha = 1.0f
+                // Set completed course background color - subtle green tint
+                holder.cardView.setCardBackgroundColor(
+                    ContextCompat.getColor(holder.itemView.context, R.color.course_completed_bg)
+                )
+                // Optionally change progress text color to match
+                holder.difficultyLevel.setTextColor(
+                    ContextCompat.getColor(holder.itemView.context, R.color.course_completed_text)
+                )
+            }
+            course.isLocked -> {
+                holder.lockIcon.visibility = View.VISIBLE
+                holder.itemView.alpha = 0.6f
+                // Reset to default card background
+                holder.cardView.setCardBackgroundColor(
+                    ContextCompat.getColor(holder.itemView.context, R.color.cardBackground)
+                )
+                holder.difficultyLevel.setTextColor(
+                    ContextCompat.getColor(holder.itemView.context, R.color.textSecondary)
+                )
+            }
+            else -> {
+                holder.lockIcon.visibility = View.GONE
+                holder.itemView.alpha = 1.0f
+                // Reset to default card background
+                holder.cardView.setCardBackgroundColor(
+                    ContextCompat.getColor(holder.itemView.context, R.color.cardBackground)
+                )
+                holder.difficultyLevel.setTextColor(
+                    ContextCompat.getColor(holder.itemView.context, android.R.color.white)
+                )
+            }
+        }
+        
         // Debug logging
         Log.d("SharedCourseAdapter", 
-            "Course: ${course.title}, Progress: ${course.progressPercentage}%, Text: ${course.progressText}")
+            "Course: ${course.title}, Progress: ${course.progressPercentage}%, Completed: ${course.isCompleted}, Text: ${course.progressText}")
 
         holder.root.setOnClickListener {
             onCourseClick(course.id)

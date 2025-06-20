@@ -15,12 +15,13 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.features.courses.adapters.CourseAdapter
+import com.nhlstenden.appdev.core.adapters.SharedCourseAdapter
 import com.nhlstenden.appdev.core.utils.NavigationManager
 import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.core.ui.base.BaseFragment
 import com.nhlstenden.appdev.features.courses.viewmodels.CoursesViewModel
 import com.nhlstenden.appdev.core.utils.DifficultyFormatter
+import com.nhlstenden.appdev.core.utils.toCourseItem
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -30,7 +31,7 @@ class CoursesFragment : BaseFragment() {
     private lateinit var coursesList: RecyclerView
     private lateinit var searchEditText: TextInputEditText
     private lateinit var filterButton: MaterialButton
-    private lateinit var adapter: CourseAdapter
+    private lateinit var adapter: SharedCourseAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -60,8 +61,8 @@ class CoursesFragment : BaseFragment() {
 
     private fun setupCoursesList() {
         coursesList.layoutManager = LinearLayoutManager(context)
-        adapter = CourseAdapter { course ->
-            NavigationManager.navigateToCourseTasks(requireActivity(), course.id)
+        adapter = SharedCourseAdapter { courseId ->
+            NavigationManager.navigateToCourseTasks(requireActivity(), courseId)
         }
         coursesList.adapter = adapter
     }
@@ -104,7 +105,10 @@ class CoursesFragment : BaseFragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.filteredCourses.collect { courses ->
-                        adapter.submitList(courses)
+                        val courseItems = courses.map { course -> 
+                            course.toCourseItem(showDescription = true)
+                        }
+                        adapter.submitList(courseItems)
                     }
                 }
                 
