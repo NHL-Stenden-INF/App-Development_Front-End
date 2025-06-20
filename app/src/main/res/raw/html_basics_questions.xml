@@ -8,6 +8,28 @@
         <option correct="false">Hyper Technical Machine Language</option>
     </multiple_choice_question>
 
+    <flipcard_question>
+        <question_text>Hello</question_text>
+        <front>How to import JS with modules?</front>
+        <back>&lt;script src='x.js'&gt;&lt;/script&gt;</back>
+    </flipcard_question>
+
+    <press_mistake_question>
+        <question_text>Select all the mistakes in this HTML</question_text>
+        <displayed_text>
+            Please fiks the mistaks in this tekt
+        </displayed_text>
+        <mistake position="1"/>
+        <mistake position="3"/>
+        <mistake position="6"/>
+    </press_mistake_question>
+
+    <edit_text_question>
+        <question_text>Fix the spelling mistake</question_text>
+        <displayed_text>This is the displayd text</displayed_text>
+        <correct_text>This is the displayed text</correct_text>
+    </edit_text_question>
+
     <multiple_choice_question>
         <question_text>Which HTML tag is used for creating a paragraph?</question_text>
         <option correct="true">&lt;p&gt;</option>

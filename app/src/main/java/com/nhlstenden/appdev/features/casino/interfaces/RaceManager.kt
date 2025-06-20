@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.casino.games
+package com.nhlstenden.appdev.features.casino.interfaces
 
 interface RaceManager {
     fun onRaceCompleted(guineaHorseName: String)

@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.casino.games
+package com.nhlstenden.appdev.features.casino.fragments
 
 import com.nhlstenden.appdev.R
 import android.os.Bundle
@@ -9,11 +9,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.Toast
+import com.nhlstenden.appdev.features.casino.interfaces.GameCallback
 import dagger.hilt.android.AndroidEntryPoint
 import kotlin.random.Random
 
 @AndroidEntryPoint
-class CoinFlipFragment : BaseGameFragment() {
+class CoinFlipFragment(
+    gameCallback: GameCallback
+) : BaseGameFragment(gameCallback) {
     private lateinit var coinflipCoin: ImageButton
     private val frames = listOf(
         R.drawable.coin_head,
@@ -27,6 +30,8 @@ class CoinFlipFragment : BaseGameFragment() {
     private var iterations = 0
     private val maxIterations = Random.nextInt(25, 35)
 
+    var hasWonTheGame: Boolean = false
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -35,7 +40,7 @@ class CoinFlipFragment : BaseGameFragment() {
         val view = inflater.inflate(R.layout.fragment_casino_coin_flip, container, false)
         coinflipCoin = view.findViewById<ImageButton>(R.id.coinButton)
         coinflipCoin.setOnClickListener {
-            startAnimation()
+            startGame()
             coinflipCoin.setOnClickListener(null)
         }
 
@@ -49,15 +54,11 @@ class CoinFlipFragment : BaseGameFragment() {
                     frameDuration = Random.nextLong(2500, 5000)
                 } else {
                     coinflipCoin.setImageResource(frames[currentFrame])
-                    val hasWonTheGame = frames[currentFrame] == R.drawable.coin_head
+                    hasWonTheGame = frames[currentFrame] == R.drawable.coin_head
 
                     Toast.makeText(context, "You've ${if (hasWonTheGame) "won" else "lost"} the game!", Toast.LENGTH_SHORT).show()
 
-                    val rewardedPoints: Int = if (hasWonTheGame) {
-                        viewModel.gamePoint.value!! * 2
-                    } else {
-                        viewModel.gamePoint.value!! / 2
-                    }
+                    val rewardedPoints: Int = gameCallback.onGameFinished(viewModel.gamePoint.value!!, if (hasWonTheGame) 1 else 0)
                     return finishGame(rewardedPoints)
                 }
             }
@@ -72,7 +73,7 @@ class CoinFlipFragment : BaseGameFragment() {
         }
     }
 
-    private fun startAnimation() {
+    override fun startGame() {
         handler.postDelayed(frameRunnable, frameDuration)
     }
 }

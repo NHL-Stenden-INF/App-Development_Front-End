@@ -31,7 +31,7 @@ class TaskPagerAdapter(
             is Question.MultipleChoiceQuestion -> MultipleChoiceFragment.newInstance(question)
             is Question.PressMistakeQuestion -> PressMistakesFragment.newInstance(question)
             is Question.FlipCardQuestion -> FlipCardFragment.newInstance(question)
-            // is Question.EditTextQuestion -> EditTextFragment.newInstance(question)
+            is Question.EditTextQuestion -> EditTextFragment.newInstance(question)
             else -> throw IllegalArgumentException("Unsupported question type: ${question::class.simpleName}")
         }
 

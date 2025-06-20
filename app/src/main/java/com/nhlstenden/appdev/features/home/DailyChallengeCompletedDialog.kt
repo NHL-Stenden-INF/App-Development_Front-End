@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.Space
 import android.widget.TextView
 import androidx.core.os.bundleOf
 import androidx.fragment.app.DialogFragment
@@ -48,12 +49,13 @@ class DailyChallengeCompletedDialog(val isSuccessful: Boolean = true) : DialogFr
         if (isSuccessful) {
             title.text = title.text.toString().format("Completed!")
             subtitle.text = subtitle.text.toString().format("completed")
-            playGameButton.visibility = View.GONE
+            playGameButton.visibility = View.VISIBLE
         } else {
             title.text = title.text.toString().format("Failed!")
             subtitle.text = subtitle.text.toString().format("failed")
             image.setImageResource(R.drawable.mascot_angry_animation)
-            playGameButton.visibility = View.VISIBLE
+            playGameButton.visibility = View.GONE
+            view.findViewById<Space>(R.id.button_spacer).visibility = View.GONE
         }
 
         return view

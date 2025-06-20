@@ -34,15 +34,3 @@ class SupabaseClient {
         }
     }
 }
-
-@kotlinx.parcelize.Parcelize
-data class User(
-    val authToken: String,
-    val id: java.util.UUID,
-    val username: String,
-    val email: String,
-    val points: Int,
-    val friends: java.util.ArrayList<java.util.UUID>,
-    val achievements: java.util.ArrayList<String>,
-    val profilePicture: String
-) : android.os.Parcelable 

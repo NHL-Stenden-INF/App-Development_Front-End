@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.casino.games
+package com.nhlstenden.appdev.features.casino.fragments
 
 import android.graphics.drawable.AnimationDrawable
 import android.os.Bundle
@@ -8,9 +8,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import com.nhlstenden.appdev.R
+import com.nhlstenden.appdev.features.casino.interfaces.GameCallback
+import com.nhlstenden.appdev.features.casino.interfaces.RaceManager
+import com.nhlstenden.appdev.features.casino.models.GuineaHorseHandler
 
 
-class HorseRaceFragment : BaseGameFragment(), RaceManager {
+class HorseRaceFragment(
+    gameCallback: GameCallback
+) : BaseGameFragment(gameCallback), RaceManager {
     var guineaHorseMap = HashMap<String, ImageView>(4)
     var guineaHorseHandlerList = ArrayList<GuineaHorseHandler>(4)
     private lateinit var finishLine: ImageView
@@ -42,16 +47,17 @@ class HorseRaceFragment : BaseGameFragment(), RaceManager {
             drawable.start()
 
             guineaHorse.setOnClickListener {
-                betterGuineaHorse = string
-                startRace()
                 guineaHorse.setOnClickListener(null)
+                betterGuineaHorse = string
+                startGame()
             }
 
             guineaHorseHandlerList.add(GuineaHorseHandler(guineaHorse, string, this as RaceManager))
         }
     }
 
-    fun startRace() {
+
+    override fun startGame() {
         guineaHorseHandlerList.forEach { guineaHorseHandler ->
             guineaHorseHandler.start()
         }
@@ -63,11 +69,7 @@ class HorseRaceFragment : BaseGameFragment(), RaceManager {
         }
         Log.d("HorseRaceFragment", "The winner is: $guineaHorseName")
 
-        val rewardedPoints = if (guineaHorseName == betterGuineaHorse) {
-            viewModel.gamePoint.value!! * 3
-        } else {
-            viewModel.gamePoint.value!! / 3
-        }
+        val rewardedPoints = gameCallback.onGameFinished(viewModel.gamePoint.value!!, if (guineaHorseName == betterGuineaHorse) 1 else 0)
 
         return finishGame(rewardedPoints)
     }
