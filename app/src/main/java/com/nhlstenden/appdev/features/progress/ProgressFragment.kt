@@ -15,7 +15,9 @@ import androidx.viewpager2.widget.ViewPager2
 import com.github.mikephil.charting.charts.PieChart
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.features.course.screens.CourseFragment
-import com.nhlstenden.appdev.features.progress.adapters.CourseProgressAdapter
+import com.nhlstenden.appdev.core.adapters.SharedCourseAdapter
+import com.nhlstenden.appdev.core.adapters.CourseItem
+import com.nhlstenden.appdev.core.utils.toCourseItem
 import com.nhlstenden.appdev.features.progress.utils.ChartHelper
 import com.nhlstenden.appdev.features.progress.viewmodels.ProgressViewModel
 import com.nhlstenden.appdev.core.utils.NavigationManager
@@ -29,7 +31,7 @@ class ProgressFragment : Fragment() {
     private lateinit var courseProgressList: RecyclerView
     private lateinit var overallProgressTitle: TextView
     private lateinit var overallProgressPercentage: TextView
-    private lateinit var adapter: CourseProgressAdapter
+    private lateinit var adapter: SharedCourseAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -60,7 +62,7 @@ class ProgressFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = CourseProgressAdapter { courseId ->
+        adapter = SharedCourseAdapter { courseId ->
             NavigationManager.navigateToCourseTasks(requireActivity(), courseId)
         }
         
@@ -83,14 +85,21 @@ class ProgressFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.courseProgressList.collect { courseList ->
-                adapter.submitList(courseList)
+                val courseItems = courseList.map { it.toCourseItem() }
+                adapter.submitList(courseItems)
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.uiState.collect { uiState ->
-                // Handle loading and error states here if needed
-                // For now, keeping it simple
+                if (uiState.error != null) {
+                    android.util.Log.e("ProgressFragment", "Error in UI state: ${uiState.error}")
+                    // Could show error message to user
+                }
+                
+                if (uiState.isLoading) {
+                    android.util.Log.d("ProgressFragment", "Loading progress data...")
+                }
             }
         }
         

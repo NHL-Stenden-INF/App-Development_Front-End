@@ -3,8 +3,8 @@ package com.nhlstenden.appdev.features.courses.repositories
 import android.app.Application
 import com.nhlstenden.appdev.core.models.User
 import com.nhlstenden.appdev.features.courses.model.Course
-import com.nhlstenden.appdev.features.course.utils.CourseParser
-import com.nhlstenden.appdev.features.course.utils.TaskParser
+import com.nhlstenden.appdev.features.course.utils.CourseParser as CourseParserImpl
+import com.nhlstenden.appdev.features.course.utils.TaskParser as TaskParserImpl
 import com.nhlstenden.appdev.core.utils.JwtHandler
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,8 +17,8 @@ import org.json.JSONArray
 @Singleton
 class CoursesRepositoryImpl @Inject constructor(
     private val application: Application,
-    private val courseParser: CourseParser,
-    private val taskParser: TaskParser,
+    private val courseParser: CourseParserImpl,
+    private val taskParser: TaskParserImpl,
     private val supabaseClient: SupabaseClient,
     private val jwtHandler: JwtHandler
 ) : CoursesRepository {

@@ -13,6 +13,8 @@ import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.core.utils.ProgressCalculator
 import com.nhlstenden.appdev.core.utils.DifficultyFormatter
+import com.nhlstenden.appdev.core.adapters.SharedCourseAdapter
+import com.nhlstenden.appdev.core.adapters.CourseItem
 
 class CourseAdapter(
     private val onClick: (Course) -> Unit
