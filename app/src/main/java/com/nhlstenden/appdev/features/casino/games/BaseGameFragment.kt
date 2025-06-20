@@ -26,4 +26,7 @@ abstract class BaseGameFragment : Fragment() {
         }
         handler.postDelayed(runnable, 1000)
     }
+
+    abstract fun startGame()
+    abstract fun calculateScore(score: Int): Int
 }
