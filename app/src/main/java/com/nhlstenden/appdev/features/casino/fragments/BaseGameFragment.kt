@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.nhlstenden.appdev.features.casino.interfaces.GameType
+import com.nhlstenden.appdev.features.casino.interfaces.ScoreCalculator
 import com.nhlstenden.appdev.features.casino.viewmodels.CasinoViewmodel
 import kotlin.getValue
 
