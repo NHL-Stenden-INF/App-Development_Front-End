@@ -222,13 +222,13 @@ class ProfileHeaderFragment : Fragment() {
                         })
                 } catch (e: Exception) {
                     Log.e("ProfileHeaderFragment", "Error loading base64 image: \\${e.message}")
-                    binding.profileImage.setImageResource(R.drawable.zorotlpf)
-                    binding.profileImage.background = null
+                    binding.profileImage.setImageResource(R.drawable.profile_mask_circle)
+                    binding.profileImage.background = resources.getDrawable(R.drawable.zorotlpf)
                 }
             }
         } else {
-            binding.profileImage.setImageResource(R.drawable.zorotlpf)
-            binding.profileImage.background = null
+            binding.profileImage.setImageResource(R.drawable.profile_mask_circle)
+            binding.profileImage.background = resources.getDrawable(R.drawable.zorotlpf)
         }
     }
 
