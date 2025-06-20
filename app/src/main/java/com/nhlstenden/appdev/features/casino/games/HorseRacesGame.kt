@@ -2,9 +2,13 @@ package com.nhlstenden.appdev.features.casino.games
 
 import androidx.fragment.app.Fragment
 import com.nhlstenden.appdev.features.casino.fragments.HorseRaceFragment
+import com.nhlstenden.appdev.features.casino.interfaces.GameCallback
+import com.nhlstenden.appdev.features.casino.interfaces.ScoreCalculator
 import com.nhlstenden.appdev.features.casino.models.GameData
 
-class HorseRacesGame: BaseGame() {
+class HorseRacesGame(
+    scoreCalculator: ScoreCalculator
+) : BaseGame(scoreCalculator), GameCallback {
     override fun createFragment(): Fragment {
         return HorseRaceFragment()
     }
@@ -16,11 +20,7 @@ class HorseRacesGame: BaseGame() {
         )
     }
 
-    override fun calculateScore(score: Int): Int {
-        return if (winnerGuineaHorse == betterGuineaHorse) {
-            (score * 3).toInt()
-        } else {
-            (score / 3).toInt()
-        }
+    override fun onGameFinished(score: Int, params: Int): Int {
+        return scoreCalculator.calculateScore(score, params)
     }
 }
