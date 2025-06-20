@@ -145,6 +145,12 @@ class HomeFragment : Fragment() {
                 profileViewModel.loadProfile()
             }
         }
+
+        parentFragmentManager.setFragmentResultListener("profile_mask_updated", viewLifecycleOwner) { _, bundle ->
+            if (bundle.getBoolean("updated", false)) {
+                profileViewModel.loadProfile()
+            }
+        }
     }
 
     override fun onResume() {
