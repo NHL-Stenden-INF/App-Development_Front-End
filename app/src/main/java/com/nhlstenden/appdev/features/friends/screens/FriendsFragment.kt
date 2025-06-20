@@ -21,7 +21,7 @@ import com.nhlstenden.appdev.features.friends.adapters.FriendAdapter
 import com.nhlstenden.appdev.features.friends.viewmodels.FriendsViewModel
 import com.nhlstenden.appdev.features.friends.dialogs.FriendDetailsDialog
 import com.nhlstenden.appdev.features.friends.models.Friend
-import com.nhlstenden.appdev.shared.ui.base.BaseFragment
+import com.nhlstenden.appdev.core.ui.base.BaseFragment
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream

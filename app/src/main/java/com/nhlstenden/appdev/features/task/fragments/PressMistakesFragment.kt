@@ -4,45 +4,90 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
-import com.google.android.material.button.MaterialButton
-import com.nhlstenden.appdev.R
+import com.nhlstenden.appdev.databinding.FragmentPressMistakesBinding
 import com.nhlstenden.appdev.features.task.models.Question
-import dagger.hilt.android.AndroidEntryPoint
+import com.google.android.flexbox.FlexboxLayoutManager
+import com.google.android.flexbox.FlexWrap
+import com.google.android.flexbox.JustifyContent
+import com.nhlstenden.appdev.features.task.adapters.WordAdapter
 
-@AndroidEntryPoint
 class PressMistakesFragment : BaseTaskFragment() {
-    private lateinit var questionText: TextView
-    private lateinit var submitButton: MaterialButton
-    private var mistakesCount = 0
+    private var _binding: FragmentPressMistakesBinding? = null
+    private val binding get() = _binding!!
+    private val pressMistakeQuestion: Question.PressMistakeQuestion
+        get() = question as? Question.PressMistakeQuestion
+            ?: throw IllegalStateException("Question must be of type PressMistakeQuestion")
+
+    private lateinit var adapter: WordAdapter
+    private val selectedPositions = mutableSetOf<Int>()
+
+    override fun onCreate(savedInstanceState: Bundle?){
+        super.onCreate(savedInstanceState)
+        if (question !is Question.PressMistakeQuestion)
+            throw IllegalArgumentException("Question must be of type PressMistakeQuestion")
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_press_mistakes, container, false)
+    ): View {
+        _binding = FragmentPressMistakesBinding.inflate(inflater, container, false)
+
+        val words = pressMistakeQuestion.displayedText.trim().split(" ")
+        adapter = WordAdapter(words, selectedPositions, pressMistakeQuestion.mistakes, getMistakeCount())
+
+        binding.recyclerView.adapter = adapter
+        val layoutManager = FlexboxLayoutManager(requireContext()).apply {
+            flexWrap = FlexWrap.WRAP
+            justifyContent = JustifyContent.FLEX_START
+        }
+        binding.recyclerView.layoutManager = layoutManager
+
+        return binding.root
     }
 
-    override fun setupViews(view: View) {
-        questionText = view.findViewById(R.id.questionText)
-        submitButton = view.findViewById(R.id.submitButton)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+    }
 
-        submitButton.setOnClickListener {
-            mistakesCount++
-            val isCorrect = mistakesCount == (question.mistakes ?: 0)
-            onTaskComplete(isCorrect)
+    override fun setupViews() {
+        binding.submitButton.setOnClickListener {
+            if (selectedPositions.size == getMistakeCount()) {
+                binding.submitButton.visibility = View.GONE
+                binding.nextButton.visibility = View.VISIBLE
+
+                adapter.showAnswer(isAnswerCorrect())
+            }
+        }
+
+        binding.nextButton.setOnClickListener {
+            this.onTaskComplete(isAnswerCorrect())
         }
     }
 
     override fun bindQuestion() {
-        questionText.text = question.text
-        mistakesCount = 0
+        binding.mistakesCounter.text = "Amount of mistakes in text: " + this.getMistakeCount().toString()
+        binding.submitButton.visibility = View.VISIBLE
+        binding.nextButton.visibility = View.GONE
+
+        adapter.reset()
+    }
+
+    fun isAnswerCorrect(): Boolean {
+        return pressMistakeQuestion.mistakes == selectedPositions
+    }
+
+    fun getMistakeCount(): Int {
+        return pressMistakeQuestion.mistakes.size
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     companion object {
-        private const val ARG_QUESTION = "question"
-
         fun newInstance(question: Question): PressMistakesFragment {
             return PressMistakesFragment().apply {
                 arguments = Bundle().apply {
@@ -51,4 +96,4 @@ class PressMistakesFragment : BaseTaskFragment() {
             }
         }
     }
-} 
+}

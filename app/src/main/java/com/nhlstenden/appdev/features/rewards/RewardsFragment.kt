@@ -16,46 +16,35 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.models.Reward
-import com.nhlstenden.appdev.rewards.manager.RewardsManager
+import com.nhlstenden.appdev.core.models.RewardType
+import com.nhlstenden.appdev.features.rewards.adapters.RewardShopAdapter
+import com.nhlstenden.appdev.features.rewards.components.ShakeDetector
+import com.nhlstenden.appdev.features.rewards.managers.RewardsManager
 import com.nhlstenden.appdev.features.rewards.viewmodels.RewardsViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import android.content.res.ColorStateList
 import androidx.core.content.ContextCompat
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.style.StrikethroughSpan
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
-import android.content.Context
-import android.widget.FrameLayout
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
-class RewardsFragment : Fragment(), SensorEventListener {
+class RewardsFragment : Fragment() {
+    
+    @Inject
+    lateinit var rewardsManager: RewardsManager
+    
     private lateinit var pointsValue: TextView
     private lateinit var timerText: TextView
     private lateinit var openChestButton: MaterialButton
     private lateinit var rewardShopList: RecyclerView
     private var countDownTimer: CountDownTimer? = null
     private lateinit var rewardShopAdapter: RewardShopAdapter
+    private lateinit var shakeDetector: ShakeDetector
+    
     private val viewModel: RewardsViewModel by viewModels()
-    
-
-    
-    private var sensorManager: SensorManager? = null
-    private var accelerometer: Sensor? = null
-    private var lastShakeTime: Long = 0
-    private var lastX = 0f
-    private var lastY = 0f
-    private var lastZ = 0f
-    private var shakeThreshold = 12f // Adjust as needed
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -78,49 +67,28 @@ class RewardsFragment : Fragment(), SensorEventListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRewardShop()
+        setupShakeDetector()
         observeViewModel()
-        sensorManager = requireContext().getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     }
 
     override fun onResume() {
         super.onResume()
         viewModel.refreshData()
-        accelerometer?.let {
-            sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
-        }
     }
 
-    override fun onPause() {
-        super.onPause()
-        sensorManager?.unregisterListener(this)
-    }
-
-    override fun onSensorChanged(event: SensorEvent?) {
-        if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
-            val x = event.values[0]
-            val y = event.values[1]
-            val z = event.values[2]
-            val now = System.currentTimeMillis()
-            if (lastX != 0f || lastY != 0f || lastZ != 0f) {
-                val deltaX = x - lastX
-                val deltaY = y - lastY
-                val deltaZ = z - lastZ
-                val delta = Math.sqrt((deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ).toDouble()).toFloat()
-                if (delta > shakeThreshold && now - lastShakeTime > 1000) { // 1s cooldown
-                    lastShakeTime = now
-                    if (openChestButton.isEnabled) {
-                        openChestButton.performClick()
-                    }
+    private fun setupShakeDetector() {
+        shakeDetector = ShakeDetector(
+            context = requireContext(),
+            onShakeDetected = {
+                if (::openChestButton.isInitialized && openChestButton.isEnabled) {
+                    openChestButton.performClick()
                 }
             }
-            lastX = x
-            lastY = y
-            lastZ = z
-        }
+        )
+        lifecycle.addObserver(shakeDetector)
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -200,120 +168,24 @@ class RewardsFragment : Fragment(), SensorEventListener {
 
 
     private fun setupRewardShop() {
-        val rewardsManager = RewardsManager(requireContext(), resources)
         val rewards = rewardsManager.loadRewards()
-        rewardShopAdapter = RewardShopAdapter(rewards.toMutableList(), { reward ->
-            if (reward.title == "Extra Life (Bell Pepper)") {
-                viewModel.purchaseBellPepper(reward.pointsCost)
-                Toast.makeText(context, "Unlocked: ${reward.title}!", Toast.LENGTH_SHORT).show()
-                true
-            } else {
-                viewModel.purchaseReward(reward.id, reward.pointsCost)
-                Toast.makeText(context, "Unlocked: ${reward.title}!", Toast.LENGTH_SHORT).show()
-                true
+        rewardShopAdapter = RewardShopAdapter(
+            rewards = rewards.toMutableList(),
+            onRewardPurchase = { reward, rewardType ->
+                handleRewardPurchase(reward, rewardType)
             }
-        }, 0, { _ ->
-            // Reward saving is now handled by the ViewModel
-        })
+        )
         rewardShopList.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = rewardShopAdapter
         }
     }
-
-
-
-    class RewardShopAdapter(
-        private val rewards: MutableList<Reward>,
-        private val onUnlockClick: (Reward) -> Boolean,
-        private var currentPoints: Int,
-        private val onSaveReward: (Int) -> Unit
-    ) : RecyclerView.Adapter<RewardShopAdapter.ViewHolder>() {
-        
-        private var unlockedRewardIds: Set<Int> = emptySet()
-        
-        fun updatePoints(newPoints: Int) {
-            currentPoints = newPoints
-            notifyDataSetChanged()
-        }
-        
-        fun updateUnlockedRewards(newUnlockedIds: Set<Int>) {
-            unlockedRewardIds = newUnlockedIds
-            updateRewardsUnlockedStatus()
-            notifyDataSetChanged()
-        }
-        
-        fun updateRewards(newRewards: MutableList<Reward>) {
-            rewards.clear()
-            rewards.addAll(newRewards)
-            updateRewardsUnlockedStatus()
-            notifyDataSetChanged()
-        }
-        
-        private fun updateRewardsUnlockedStatus() {
-            for (i in rewards.indices) {
-                rewards[i] = rewards[i].copy(unlocked = unlockedRewardIds.contains(rewards[i].id))
-            }
-        }
-        
-        private fun canAffordReward(cost: Int): Boolean {
-            return currentPoints >= cost
-        }
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_reward_shop, parent, false)
-            return ViewHolder(view)
-        }
-        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            holder.bind(rewards[position], position)
-        }
-        override fun getItemCount() = rewards.size
-        inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-            private val rewardIcon: ImageView = itemView.findViewById(R.id.rewardIcon)
-            private val rewardTitle: TextView = itemView.findViewById(R.id.rewardTitle)
-            private val rewardDescription: TextView = itemView.findViewById(R.id.rewardDescription)
-            private val unlockButton: MaterialButton = itemView.findViewById(R.id.unlockButton)
-            private val comingSoonSticker: FrameLayout = itemView.findViewById(R.id.comingSoonSticker)
-
-            fun bind(reward: Reward, position: Int) {
-                rewardIcon.setImageResource(reward.iconResId)
-                rewardTitle.text = reward.title
-                rewardDescription.text = reward.description
-
-                // Handle unlocked state
-                if (reward.unlocked) {
-                    val pointsText = "${reward.pointsCost} pts"
-                    val spannableString = SpannableString(pointsText)
-                    spannableString.setSpan(StrikethroughSpan(), 0, pointsText.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                    unlockButton.text = spannableString
-                    unlockButton.isEnabled = false
-                    unlockButton.alpha = 0.5f
-                    rewardIcon.alpha = 0.5f
-                    rewardTitle.alpha = 0.5f
-                    rewardDescription.alpha = 0.5f
-                } else {
-                    unlockButton.text = "${reward.pointsCost} pts"
-                    unlockButton.isEnabled = canAffordReward(reward.pointsCost)
-                    unlockButton.alpha = 1.0f
-                    rewardIcon.alpha = 1.0f
-                    rewardTitle.alpha = 1.0f
-                    rewardDescription.alpha = 1.0f
-                }
-
-                // Handle coming soon sticker
-                if (reward.id != 11) { // Not the course lobby music
-                    comingSoonSticker.visibility = View.VISIBLE
-                } else {
-                    comingSoonSticker.visibility = View.GONE
-                }
-
-                unlockButton.setOnClickListener {
-                    if (!reward.unlocked && onUnlockClick(reward)) {
-                        onSaveReward(reward.id)
-                        rewards[position] = reward.copy(unlocked = true)
-                        notifyItemChanged(position)
-                    }
-                }
-            }
-        }
+    
+    private fun handleRewardPurchase(reward: Reward, rewardType: RewardType) {
+        viewModel.purchaseRewardByType(rewardType, reward.id, reward.pointsCost)
+        Toast.makeText(context, "Unlocked: ${reward.title}!", Toast.LENGTH_SHORT).show()
     }
+
+
+
 } 

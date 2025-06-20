@@ -9,11 +9,10 @@ import com.nhlstenden.appdev.core.repositories.AchievementRepository
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.supabase.*
-import com.nhlstenden.appdev.features.courses.TaskParser
+import com.nhlstenden.appdev.features.course.utils.TaskParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
-import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -245,41 +244,64 @@ class AchievementRepositoryImpl @Inject constructor(
             withContext(Dispatchers.IO) {
                 val currentUser = authRepository.getCurrentUserSync() ?: return@withContext null
 
+                Log.d(TAG, "🎯 STREAK CHECK: Starting streak achievement check for user $userId")
+                
                 val streakResponseResult = supabaseClient.checkStreakAchievement(userId, currentUser.authToken)
 
                 if (streakResponseResult.isFailure) {
-                    Log.e(TAG, "Error while checking streak achievent")
+                    Log.e(TAG, "🎯 STREAK CHECK: Error while checking streak achievement: ${streakResponseResult.exceptionOrNull()?.message}")
                     return@withContext null
                 }
 
                 val streakResponse = streakResponseResult.getOrThrow()
 
+                Log.d(TAG, "🎯 STREAK CHECK: Response code: ${streakResponse.code}")
 
                 if (streakResponse.isSuccessful) {
                     val responseBody = streakResponse.body?.string() ?: ""
-                    Log.d(TAG, "Streak achievement response: $responseBody")
+                    Log.d(TAG, "🎯 STREAK CHECK: Streak achievement response: $responseBody")
                     
                     if (responseBody.trim().isNotEmpty() && responseBody.trim() != "[]") {
                         val jsonArray = JSONArray(responseBody)
+                        Log.d(TAG, "🎯 STREAK CHECK: Found ${jsonArray.length()} items in response")
+                        
                         for (i in 0 until jsonArray.length()) {
                             val achievementData = jsonArray.getJSONObject(i)
+                            Log.d(TAG, "🎯 STREAK CHECK: Achievement data $i: $achievementData")
+                            
                             val achievementId = achievementData.getInt("achievement_id")
                             val title = achievementData.getString("achievement_title")
                             val newlyUnlockedFlag = achievementData.getBoolean("newly_unlocked")
                             
+                            Log.d(TAG, "🎯 STREAK CHECK: ID=$achievementId, title='$title', newly_unlocked=$newlyUnlockedFlag")
+                            
                             if (newlyUnlockedFlag) {
-                                Log.d(TAG, "Streak achievement unlocked: $title (ID: $achievementId)")
+                                Log.d(TAG, "🎯 STREAK CHECK: ✅ Streak achievement unlocked: $title (ID: $achievementId)")
                                 return@withContext createAchievement(achievementId, title, getDescriptionForAchievement(achievementId), getIconForAchievement(achievementId))
+                            } else {
+                                Log.d(TAG, "🎯 STREAK CHECK: ⚠️ Streak achievement $title already unlocked")
                             }
                         }
+                        Log.d(TAG, "🎯 STREAK CHECK: No newly unlocked achievements found")
+                    } else {
+                        Log.d(TAG, "🎯 STREAK CHECK: Empty response - no streak achievements to unlock")
                     }
                 } else {
-                    Log.e(TAG, "Failed to check streak achievement: ${streakResponse.code}")
+                    val errorBody = streakResponse.body?.string() ?: "No error details"
+                    Log.e(TAG, "🎯 STREAK CHECK: Failed to check streak achievement: ${streakResponse.code}")
+                    Log.e(TAG, "🎯 STREAK CHECK: Error details: $errorBody")
+                    
+                    // Check if this is the ambiguous column reference error
+                    if (errorBody.contains("ambiguous") || errorBody.contains("42702")) {
+                        Log.e(TAG, "🎯 STREAK CHECK: ❌ DETECTED AMBIGUOUS COLUMN REFERENCE ERROR")
+                        Log.e(TAG, "🎯 STREAK CHECK: This is a database function issue that needs to be fixed in Supabase")
+                        Log.e(TAG, "🎯 STREAK CHECK: The check_streak_achievement function has ambiguous column references")
+                    }
                 }
                 null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error checking streak achievement", e)
+            Log.e(TAG, "🎯 STREAK CHECK: Exception during streak achievement check", e)
             null
         }
     }
@@ -385,7 +407,7 @@ class AchievementRepositoryImpl @Inject constructor(
 
     private fun getTotalTasksForCourse(courseId: String): Int {
         return try {
-            val tasks = taskParser.loadAllCoursesOfTask(courseId)
+            val tasks = taskParser.loadAllTasksOfCourse(courseId)
             Log.d(TAG, "Course $courseId has ${tasks.size} total tasks")
             tasks.size
         } catch (e: Exception) {

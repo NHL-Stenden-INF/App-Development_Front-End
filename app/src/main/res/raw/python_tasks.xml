@@ -12,7 +12,7 @@
         <description>Master Python lists, dictionaries, tuples, and sets</description>
     </task>
     <task>
-        <title>Object Oriented Programming</title>
+        <title>Python OOP</title>
         <difficulty>Intermediate</difficulty>
         <description>Learn classes, objects, inheritance, and encapsulation in Python</description>
     </task>

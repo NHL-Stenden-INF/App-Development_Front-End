@@ -13,6 +13,7 @@ import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import com.nhlstenden.appdev.core.utils.UserManager
+import com.nhlstenden.appdev.core.utils.TaskToCourseMapper
 import java.time.LocalDate
 
 private val TAG = "SupabaseProgress"
@@ -108,11 +109,14 @@ suspend fun SupabaseClient.getUserProgress(userId: String, authToken: String): R
 }
 
 fun SupabaseClient.updateUserProgress(userId: String, taskId: String, newProgress: Int, authToken: String): Result<Response> {
-    val courseId = taskId.substringBefore("_")
+    val courseId = TaskToCourseMapper.mapTaskIdToCourseId(taskId)
+    Log.d(TAG, "updateUserProgress: taskId='$taskId' mapped to courseId='$courseId', progress=$newProgress")
     val json = """{"progress": $newProgress}"""
     val requestBody = json.toRequestBody("application/json".toMediaType())
+    val url = "$supabaseUrl/rest/v1/user_progress?user_id=eq.$userId&course_id=eq.$courseId"
+    Log.d(TAG, "updateUserProgress: URL=$url, JSON=$json")
     val request = Request.Builder()
-        .url("$supabaseUrl/rest/v1/user_progress?user_id=eq.$userId&course_id=eq.$courseId")
+        .url(url)
         .patch(requestBody)
         .addHeader("apikey", supabaseKey)
         .addHeader("Authorization", "Bearer $authToken")
@@ -122,10 +126,13 @@ fun SupabaseClient.updateUserProgress(userId: String, taskId: String, newProgres
 
     return try {
         val response = client.newCall(request).execute()
+        val responseBody = response.body?.string()
+        Log.d(TAG, "updateUserProgress: response code=${response.code}, body=$responseBody")
 
         if (response.isSuccessful) {
             Result.success(response)
         } else {
+            Log.e(TAG, "updateUserProgress failed: code=${response.code}, message=${response.message}, body=$responseBody")
             Result.failure(Exception("Failed to update user progress: ${response.message}"))
         }
     } catch (e: Exception) {

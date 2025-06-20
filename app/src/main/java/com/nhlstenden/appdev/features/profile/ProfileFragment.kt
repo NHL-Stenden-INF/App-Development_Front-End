@@ -2,6 +2,8 @@ package com.nhlstenden.appdev.features.profile
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
@@ -12,32 +14,41 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.GridLayoutManager
 import com.bumptech.glide.Glide
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.FragmentProfileBinding
 import com.nhlstenden.appdev.features.login.screens.LoginActivity
 import com.nhlstenden.appdev.features.profile.adapters.AchievementAdapter
+import com.nhlstenden.appdev.core.models.Profile
+import com.nhlstenden.appdev.features.profile.repositories.ProfileRepositoryImpl
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel
 import com.nhlstenden.appdev.features.profile.viewmodels.ProfileViewModel.ProfileState
+import com.nhlstenden.appdev.shared.components.ImageCropActivity
 import com.nhlstenden.appdev.core.repositories.AuthRepository
-import com.nhlstenden.appdev.shared.ui.base.BaseFragment
+import com.nhlstenden.appdev.core.ui.base.BaseFragment
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import android.app.AlertDialog
 import android.widget.EditText
 import com.yalantis.ucrop.UCrop
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
 import javax.inject.Inject
 import com.google.android.material.switchmaterial.SwitchMaterial
 import android.widget.TextView
+import android.widget.ProgressBar
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.widget.RadioButton
 import android.widget.RadioGroup
@@ -50,8 +61,6 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.content.Context
 import android.util.Log
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.core.repositories.SettingsRepository
@@ -60,14 +69,6 @@ import com.nhlstenden.appdev.shared.components.CameraActivity
 import com.nhlstenden.appdev.utils.LevelCalculator
 import com.nhlstenden.appdev.utils.RewardChecker
 import com.nhlstenden.appdev.core.repositories.AchievementRepository
-import com.nhlstenden.appdev.supabase.SupabaseClient
-import com.nhlstenden.appdev.supabase.updateUserFriendMask
-import com.nhlstenden.appdev.supabase.updateUserOpenedDaily
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import kotlin.coroutines.CoroutineContext
 
 @AndroidEntryPoint
 class ProfileFragment : BaseFragment(), SensorEventListener {
@@ -106,6 +107,16 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     private var gyroSensor: Sensor? = null
     private var profileCard: View? = null
 
+    // Gyro smoothing and animation parameters
+    private val maxShift = 60f // px, tweak for more/less movement
+    private val maxTilt = 15f // degrees, tweak for more/less tilt
+    private val cardTiltFactor = 0.4f // how much the card tilts compared to bg
+    private val smoothing = 0.15f // 0..1, higher = snappier, lower = smoother
+    private var lastShiftX = 0f
+    private var lastShiftY = 0f
+    private var lastPitch = 0f
+    private var lastRoll = 0f
+
     private fun setupViews() {
         binding.editProfileButton.setOnClickListener {
             showEditProfileDialog()
@@ -132,11 +143,17 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         val isMusicLobbyEnabled = settingsRepository.hasValue(SettingsConstants.COURSE_LOBBY_MUSIC)
         musicLobbySwitch.isChecked = isMusicLobbyEnabled
         musicLobbySwitch.setOnCheckedChangeListener { _, isChecked ->
-            // Use RewardChecker to properly validate and update music lobby preference
             lifecycleScope.launch {
                 val success = rewardChecker.setMusicLobbyEnabled(requireContext(), isChecked)
-                settingsRepository.addValue(SettingsConstants.COURSE_LOBBY_MUSIC)
-                if (!success && isChecked) {
+                if (success) {
+                    if (isChecked) {
+                        settingsRepository.addValue(SettingsConstants.COURSE_LOBBY_MUSIC)
+                        Toast.makeText(requireContext(), "Course lobby music enabled", Toast.LENGTH_SHORT).show()
+                    } else {
+                        settingsRepository.removeValue(SettingsConstants.COURSE_LOBBY_MUSIC)
+                        Toast.makeText(requireContext(), "Course lobby music disabled", Toast.LENGTH_SHORT).show()
+                    }
+                } else if (isChecked) {
                     // If trying to enable but not unlocked, revert the switch
                     musicLobbySwitch.isChecked = false
                     Toast.makeText(requireContext(), "Music lobby reward not unlocked", Toast.LENGTH_SHORT).show()
@@ -266,24 +283,38 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
             SensorManager.getOrientation(rotationMatrix, orientation)
             val roll = Math.toDegrees(orientation[2].toDouble()).toFloat()   // sideways
             val pitch = Math.toDegrees(orientation[1].toDouble()).toFloat() // up/down
-            val maxShift = 60f // px, more movement for larger bg
-            val maxTilt = 15f
             val clampedRoll = roll.coerceIn(-maxTilt, maxTilt)
             val clampedPitch = pitch.coerceIn(-maxTilt, maxTilt)
             val shiftX = -clampedRoll / maxTilt * maxShift
             val shiftY = clampedPitch / maxTilt * maxShift
+
+            // Low-pass filter for smoothing
+            lastShiftX += (shiftX - lastShiftX) * smoothing
+            lastShiftY += (shiftY - lastShiftY) * smoothing
+            lastPitch += (clampedPitch - lastPitch) * smoothing
+            lastRoll += (clampedRoll - lastRoll) * smoothing
+
             val bgView = view?.findViewById<View>(R.id.holoCardBg)
             val cardView = profileCard
             if (bgView != null && cardView != null) {
                 val maxX = ((bgView.width - cardView.width) / 2).toFloat().coerceAtLeast(0f)
                 val maxY = ((bgView.height - cardView.height) / 2).toFloat().coerceAtLeast(0f)
-                bgView.translationX = shiftX.coerceIn(-maxX, maxX)
-                bgView.translationY = shiftY.coerceIn(-maxY, maxY)
-                // 3D tilt for extra holo effect
-                bgView.rotationX = clampedPitch
-                bgView.rotationY = -clampedRoll
+                // Animate background
+                bgView.animate()
+                    .translationX(lastShiftX.coerceIn(-maxX, maxX))
+                    .translationY(lastShiftY.coerceIn(-maxY, maxY))
+                    .rotationX(lastPitch)
+                    .rotationY(-lastRoll)
+                    .setDuration(80)
+                    .start()
+                // Animate card for subtle tilt
+                cardView.animate()
+                    .rotationX(lastPitch * cardTiltFactor)
+                    .rotationY(-lastRoll * cardTiltFactor)
+                    .setDuration(80)
+                    .start()
                 // Debug log
-//                Log.d("HoloGyro", "shiftX=$shiftX shiftY=$shiftY rotX=$clampedPitch rotY=$clampedRoll maxX=$maxX maxY=$maxY")
+                Log.d("HoloGyro", "shiftX=$lastShiftX shiftY=$lastShiftY rotX=$lastPitch rotY=$lastRoll maxX=$maxX maxY=$maxY")
             }
         }
     }
@@ -630,24 +661,31 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
 
         // Set up switch listeners
         biometricSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsRepository.toggleValue(SettingsConstants.BIOMETRICS)
+            lifecycleScope.launch {
+                settingsRepository.toggleValue(SettingsConstants.BIOMETRICS)
+            }
         }
 
         achievementNotificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsRepository.toggleValue(SettingsConstants.ACHIEVEMENTS_NOTIFICATIONS)
+            lifecycleScope.launch {
+                settingsRepository.toggleValue(SettingsConstants.ACHIEVEMENTS_NOTIFICATIONS)
+            }
         }
 
         progressNotificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsRepository.toggleValue(SettingsConstants.PROGRESS_NOTIFICATIONS)
+            lifecycleScope.launch {
+                settingsRepository.toggleValue(SettingsConstants.PROGRESS_NOTIFICATIONS)
+            }
         }
 
         friendActivitySwitch.setOnCheckedChangeListener { _, isChecked ->
-            settingsRepository.toggleValue(SettingsConstants.FRIENDS_ACTIVITY)
+            lifecycleScope.launch {
+                settingsRepository.toggleValue(SettingsConstants.FRIENDS_ACTIVITY)
+            }
         }
 
         // Set up button listeners
         exportDataButton.setOnClickListener {
-            // TODO: Implement data export functionality
             Toast.makeText(requireContext(), "Data export functionality coming soon!", Toast.LENGTH_SHORT).show()
         }
 
@@ -656,7 +694,6 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                 .setTitle("Delete Account")
                 .setMessage("Are you sure you want to delete your account? This action cannot be undone.")
                 .setPositiveButton("Delete") { _, _ ->
-                    // TODO: Implement account deletion
                     Toast.makeText(requireContext(), "Account deletion functionality coming soon!", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("Cancel", null)

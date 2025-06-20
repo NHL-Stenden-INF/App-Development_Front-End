@@ -22,7 +22,7 @@ import com.nhlstenden.appdev.features.progress.ProgressFragment
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.rewards.ui.RewardsFragment
 import com.nhlstenden.appdev.core.models.User
-import com.nhlstenden.appdev.features.courses.CoursesFragment
+import com.nhlstenden.appdev.features.courses.screens.CoursesFragment
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.shared.ProfileHeaderFragment
 import dagger.hilt.android.AndroidEntryPoint
@@ -271,6 +271,11 @@ class MainActivity : AppCompatActivity() {
                 }, 500) // 500ms later as final check
             }, 100)
         }
+        
+        // Refresh profile header when returning to the app (fallback mechanism)
+        // This ensures bell pepper count is always up-to-date when user returns
+        Log.d(TAG, "onResume: Refreshing profile data as fallback mechanism")
+        refreshProfileData()
     }
 
     // Update method to more reliably refresh UI

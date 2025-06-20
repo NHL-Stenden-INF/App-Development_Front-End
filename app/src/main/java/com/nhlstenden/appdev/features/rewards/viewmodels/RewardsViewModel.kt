@@ -3,9 +3,12 @@ package com.nhlstenden.appdev.features.rewards.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nhlstenden.appdev.core.models.RewardType
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.RewardsRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
+import com.nhlstenden.appdev.core.utils.ErrorHandler
+import com.nhlstenden.appdev.features.rewards.handlers.PurchaseResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,41 +39,38 @@ class RewardsViewModel @Inject constructor(
             try {
                 val currentUser = authRepository.getCurrentUserSync()
                 if (currentUser == null) {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = "User not authenticated"
-                    )
+                    updateErrorState("User not authenticated")
                     return@launch
                 }
 
-                _uiState.value = _uiState.value.copy(isLoading = true)
+                updateLoadingState(true)
 
                 val userAttributesResult = userRepository.getUserAttributes(currentUser.id)
-                if (userAttributesResult.isSuccess) {
-                    val attributes = userAttributesResult.getOrThrow()
-                    val points = attributes.optInt("points", 0)
-                    val bellPeppers = attributes.optInt("bell_peppers", 0)
-                    val openedDailyAt = attributes.optString("opened_daily_at", null)
+                
+                ErrorHandler.handleResult(
+                    result = userAttributesResult,
+                    tag = TAG,
+                    operation = "loading user data",
+                    onSuccess = { attributes ->
+                        val points = attributes.optInt("points", 0)
+                        val bellPeppers = attributes.optInt("bell_peppers", 0)
+                        val openedDailyAt = attributes.optString("opened_daily_at", null)
 
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        points = points,
-                        bellPeppers = bellPeppers,
-                        openedDailyAt = if (openedDailyAt == "null") null else openedDailyAt,
-                        error = null
-                    )
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = userAttributesResult.exceptionOrNull()?.message ?: "Failed to load user data"
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error loading user data", e)
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Error loading user data: ${e.message}"
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            points = points,
+                            bellPeppers = bellPeppers,
+                            openedDailyAt = if (openedDailyAt == "null") null else openedDailyAt,
+                            error = null
+                        )
+                    },
+                    onFailure = { errorMessage ->
+                        updateErrorState(errorMessage)
+                    }
                 )
+            } catch (e: Exception) {
+                val errorMessage = ErrorHandler.createErrorMessage("loading user data", e)
+                updateErrorState(errorMessage)
             }
         }
     }
@@ -234,6 +234,27 @@ class RewardsViewModel @Inject constructor(
     fun refreshData() {
         loadUserData()
         loadUnlockedRewards()
+    }
+    
+    fun purchaseRewardByType(rewardType: RewardType, rewardId: Int, cost: Int) {
+        viewModelScope.launch {
+            when (rewardType) {
+                is RewardType.BellPepper -> purchaseBellPepper(cost)
+                is RewardType.StandardUnlock -> purchaseReward(rewardId, cost)
+                is RewardType.Special -> purchaseReward(rewardId, cost) // Handle special rewards through standard flow for now
+            }
+        }
+    }
+    
+    private fun updateLoadingState(isLoading: Boolean) {
+        _uiState.value = _uiState.value.copy(isLoading = isLoading)
+    }
+    
+    private fun updateErrorState(errorMessage: String) {
+        _uiState.value = _uiState.value.copy(
+            isLoading = false,
+            error = errorMessage
+        )
     }
 }
 
