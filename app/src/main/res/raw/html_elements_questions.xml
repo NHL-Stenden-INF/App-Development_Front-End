@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <questions>
+    <edit_text_question>
+        <question_text>Fix the spelling mistake</question_text>
+        <displayed_text>This is the displayd text</displayed_text>
+        <correct_text>This is the displayed text</correct_text>
+    </edit_text_question>>
+
     <multiple_choice_question>
         <question_text>Which HTML element is used to define an image?</question_text>
         <option correct="true">&lt;img&gt;</option>
