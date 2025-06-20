@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.courses.screens
+package com.nhlstenden.appdev.features.courses.adapters
 
 import android.view.LayoutInflater
 import android.view.View
@@ -12,6 +12,9 @@ import com.daimajia.numberprogressbar.NumberProgressBar
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.core.utils.ProgressCalculator
+import com.nhlstenden.appdev.core.utils.DifficultyFormatter
+import com.nhlstenden.appdev.core.adapters.SharedCourseAdapter
+import com.nhlstenden.appdev.core.adapters.CourseItem
 
 class CourseAdapter(
     private val onClick: (Course) -> Unit
@@ -37,8 +40,7 @@ class CourseAdapter(
         fun bind(course: Course) {
             courseTitle.text = course.title
             courseDescription.text = course.description
-            val stars = "★".repeat(course.difficulty) + "☆".repeat(5 - course.difficulty)
-            difficultyLevel.text = stars
+            difficultyLevel.text = DifficultyFormatter.formatStars(course.difficulty)
             courseImage.setImageResource(course.imageResId)
             progressBar.progress = ProgressCalculator.calculatePercentage(course.progress, course.totalTasks)
             itemView.setOnClickListener { onClick(course) }

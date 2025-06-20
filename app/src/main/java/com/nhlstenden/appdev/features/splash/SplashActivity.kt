@@ -17,6 +17,7 @@ import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.core.repositories.ProfileRepository
 import com.nhlstenden.appdev.core.repositories.SettingsRepository
 import com.nhlstenden.appdev.features.login.screens.LoginActivity
+import com.nhlstenden.appdev.features.rewards.AchievementManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -24,6 +25,8 @@ import javax.inject.Inject
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /**
  * SplashActivity handles the initial app launch by checking for active user sessions.
@@ -43,6 +46,9 @@ class SplashActivity : AppCompatActivity() {
 
     @Inject
     lateinit var profileRepository: ProfileRepository
+    
+    @Inject
+    lateinit var achievementManager: AchievementManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,6 +84,14 @@ class SplashActivity : AppCompatActivity() {
                         
                         val validationResult = userRepository.getUserAttributes(currentUser.id)
                         if (validationResult.isSuccess) {
+                            // Update streak if needed when app starts with existing session
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                updateStreakIfNeeded(currentUser)
+                            }
+                            
+                            // Check existing achievements (both course completion and streak)
+                            checkExistingAchievements(currentUser)
+                            
                             // Fetch full profile for header
                             val profileResult = profileRepository.getProfile()
                             if (profileResult.isSuccess) {
@@ -182,5 +196,85 @@ class SplashActivity : AppCompatActivity() {
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
+    }
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun updateStreakIfNeeded(user: com.nhlstenden.appdev.core.models.User) {
+        try {
+            Log.d("SplashActivity", "🎯 === SPLASH STREAK CHECK for user: ${user.id} ===")
+            
+            val attributesResult = userRepository.getUserAttributes(user.id)
+            if (attributesResult.isSuccess) {
+                val attributes = attributesResult.getOrThrow()
+                
+                val currentStreak = attributes.optInt("streak", 0)
+                val lastTaskDateStr = attributes.optString("last_task_date", "")
+                Log.d("SplashActivity", "🎯 Current streak from DB: $currentStreak")
+                Log.d("SplashActivity", "🎯 Last task date from DB: $lastTaskDateStr")
+                
+                val lastTaskDate = if (lastTaskDateStr.isNotEmpty() && lastTaskDateStr != "null") {
+                    try {
+                        LocalDate.parse(lastTaskDateStr)
+                    } catch (e: Exception) {
+                        Log.e("SplashActivity", "🎯 Error parsing last task date: ${e.message}")
+                        null
+                    }
+                } else null
+
+                val today = LocalDate.now()
+                Log.d("SplashActivity", "🎯 Today's date: $today")
+                
+                val newStreak = if (lastTaskDate != null) {
+                    val daysBetween = ChronoUnit.DAYS.between(lastTaskDate, today)
+                    Log.d("SplashActivity", "🎯 Days between last task and today: $daysBetween")
+                    
+                    when {
+                        daysBetween == 0L -> {
+                            Log.d("SplashActivity", "🎯 Same day as last task, keeping streak at $currentStreak")
+                            currentStreak
+                        }
+                        daysBetween == 1L -> {
+                            Log.d("SplashActivity", "🎯 Next day after last task, keeping streak at $currentStreak")
+                            currentStreak
+                        }
+                        else -> {
+                            Log.d("SplashActivity", "🎯 More than one day has passed ($daysBetween days), resetting streak from $currentStreak to 0")
+                            0
+                        }
+                    }
+                } else {
+                    Log.d("SplashActivity", "🎯 No last task date found, starting with streak 0")
+                    0
+                }
+
+                // Update streak in database if it changed
+                if (newStreak != currentStreak) {
+                    Log.d("SplashActivity", "🎯 Updating streak in database from $currentStreak to $newStreak")
+                    userRepository.updateUserStreak(user.id, newStreak)
+                } else {
+                    Log.d("SplashActivity", "🎯 No streak update needed, keeping streak at $currentStreak")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("SplashActivity", "🎯 Error updating streak", e)
+        }
+    }
+    
+    private fun checkExistingAchievements(user: com.nhlstenden.appdev.core.models.User) {
+        try {
+            Log.d("SplashActivity", "🎯 === STARTING SPLASH ACHIEVEMENT CHECK for user: ${user.id} ===")
+            
+            Log.d("SplashActivity", "🎯 Calling achievementManager.checkAchievementsAfterTaskCompletion() for splash")
+            // Check course completion achievements
+            achievementManager.checkAchievementsAfterTaskCompletion(user.id.toString(), "all")
+            
+            Log.d("SplashActivity", "🎯 Calling achievementManager.checkStreakAchievement() for splash")
+            // Check streak achievement
+            achievementManager.checkStreakAchievement(user.id.toString())
+            
+            Log.d("SplashActivity", "🎯 === SPLASH ACHIEVEMENT CHECK COMPLETED ===")
+        } catch (e: Exception) {
+            Log.e("SplashActivity", "🎯 Error checking existing achievements on splash", e)
+        }
     }
 } 

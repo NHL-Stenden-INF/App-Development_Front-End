@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.courses
+package com.nhlstenden.appdev.features.courses.screens
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -15,23 +15,23 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.nhlstenden.appdev.R
-import com.nhlstenden.appdev.features.courses.screens.CourseAdapter
+import com.nhlstenden.appdev.core.adapters.SharedCourseAdapter
 import com.nhlstenden.appdev.core.utils.NavigationManager
 import com.nhlstenden.appdev.features.courses.model.Course
-import com.nhlstenden.appdev.shared.ui.base.BaseFragment
+import com.nhlstenden.appdev.core.ui.base.BaseFragment
+import com.nhlstenden.appdev.features.courses.viewmodels.CoursesViewModel
+import com.nhlstenden.appdev.core.utils.DifficultyFormatter
+import com.nhlstenden.appdev.core.utils.toCourseItem
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
-import com.nhlstenden.appdev.core.repositories.AuthRepository
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class CoursesFragment : BaseFragment() {
-    @Inject lateinit var authRepository: AuthRepository
-    private val viewModel: CourseViewModel by viewModels()
+    private val viewModel: CoursesViewModel by viewModels()
     private lateinit var coursesList: RecyclerView
     private lateinit var searchEditText: TextInputEditText
     private lateinit var filterButton: MaterialButton
-    private lateinit var adapter: CourseAdapter
+    private lateinit var adapter: SharedCourseAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -56,16 +56,13 @@ class CoursesFragment : BaseFragment() {
 
     override fun onResume() {
         super.onResume()
-        val currentUser = authRepository.getCurrentUserSync()
-        if (currentUser != null) {
-            viewModel.loadCoursesWithProgress(currentUser)
-        }
+        viewModel.loadCoursesWithProgress()
     }
 
     private fun setupCoursesList() {
         coursesList.layoutManager = LinearLayoutManager(context)
-        adapter = CourseAdapter { course ->
-            NavigationManager.navigateToCourseTasks(requireActivity(), course.id)
+        adapter = SharedCourseAdapter { courseId ->
+            NavigationManager.navigateToCourseTasks(requireActivity(), courseId)
         }
         coursesList.adapter = adapter
     }
@@ -83,7 +80,7 @@ class CoursesFragment : BaseFragment() {
     }
 
     private fun showFilterDialog() {
-        val starOptions = arrayOf("★☆☆☆☆", "★★☆☆☆", "★★★☆☆", "★★★★☆", "★★★★★")
+        val starOptions = DifficultyFormatter.getStarOptions()
         val currentStars = viewModel.selectedStars.value
         val checkedItem = if (currentStars != null) currentStars - 1 else -1
 
@@ -106,17 +103,35 @@ class CoursesFragment : BaseFragment() {
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.filteredCourses.collect { courses ->
-                    adapter.submitList(courses)
+                launch {
+                    viewModel.filteredCourses.collect { courses ->
+                        val courseItems = courses.map { course -> 
+                            course.toCourseItem(showDescription = true)
+                        }
+                        adapter.submitList(courseItems)
+                    }
+                }
+                
+                launch {
+                    viewModel.error.collect { error ->
+                        error?.let {
+                            // Handle error display - could show toast or snackbar
+                            handleError(Exception(it))
+                        }
+                    }
+                }
+                
+                launch {
+                    viewModel.isLoading.collect { isLoading ->
+                        // Handle loading state - could show/hide progress indicator
+                        // filterButton.isEnabled = !isLoading
+                    }
                 }
             }
         }
     }
 
     fun refreshCourses() {
-        val currentUser = authRepository.getCurrentUserSync()
-        if (currentUser != null) {
-            viewModel.loadCoursesWithProgress(currentUser)
-        }
+        viewModel.refreshCourses()
     }
 } 

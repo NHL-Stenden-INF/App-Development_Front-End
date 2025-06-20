@@ -1,34 +1,38 @@
-package com.nhlstenden.appdev.features.courses
+package com.nhlstenden.appdev.features.course.utils
 
 import android.content.Context
 import android.util.Log
 import com.nhlstenden.appdev.features.courses.model.Task
+import com.nhlstenden.appdev.core.parsers.TaskParser as TaskParserInterface
 import org.w3c.dom.Element
 import java.io.InputStream
 import javax.xml.parsers.DocumentBuilderFactory
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class TaskParser(private val context: Context) {
-    fun loadAllTasksOfCourse(courseTitle: String): List<Task> {
+@Singleton
+class TaskParser @Inject constructor(private val context: Context) : TaskParserInterface {
+    override fun loadAllTasksOfCourse(courseTitle: String): List<Task> {
         val courseIdentifier: String = courseTitle
             .lowercase()
             .trim()
         val resourceId = context.resources.getIdentifier("${courseIdentifier}_tasks", "raw", context.packageName)
 
         if (resourceId == 0) {
-            Log.e("CourseParser", "No ${courseIdentifier}_tasks.xml resource found")
+            Log.e("TaskParser", "No ${courseIdentifier}_tasks.xml resource found")
             return emptyList()
         }
 
         return try {
             val inputStream = context.resources.openRawResource(resourceId)
-            parseCoursesXml(inputStream)
+            parseTasksXml(inputStream)
         } catch (e: Exception) {
-            Log.e("CourseParser", "Error loading courses", e)
+            Log.e("TaskParser", "Error loading tasks", e)
             emptyList()
         }
     }
 
-    private fun parseCoursesXml(inputStream: InputStream): List<Task> {
+    private fun parseTasksXml(inputStream: InputStream): List<Task> {
         val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream)
         val tasksElement = document.documentElement
         val taskElements = tasksElement.getElementsByTagName("task")
@@ -58,12 +62,21 @@ class TaskParser(private val context: Context) {
             else -> 1
         }
 
+        // Get question count from task element
+        val questionCount = try {
+            val questionCountText = taskElement.getElementsByTagName("questionCount")?.item(0)?.textContent
+            questionCountText?.toIntOrNull() ?: 0
+        } catch (e: Exception) {
+            0
+        }
+
         return Task(
             id = id,
             title = title,
             description = description,
             difficulty = difficulty,
-            index = index
+            index = index,
+            questionCount = questionCount
         )
     }
-}
+} 

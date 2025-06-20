@@ -2,6 +2,7 @@ package com.nhlstenden.appdev.features.task.screens
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -16,7 +17,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.databinding.ActivityTaskBinding
-import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
+import com.nhlstenden.appdev.features.course.repositories.CourseRepository
 import com.nhlstenden.appdev.features.task.TaskCompleteListener
 import com.nhlstenden.appdev.features.task.TaskFailureDialogFragment
 import com.nhlstenden.appdev.features.task.adapters.TaskPagerAdapter
@@ -25,6 +26,7 @@ import com.nhlstenden.appdev.features.task.viewmodels.TaskViewModel
 import com.nhlstenden.appdev.features.home.repositories.StreakRepository
 import com.nhlstenden.appdev.features.home.StreakManager
 import com.nhlstenden.appdev.features.rewards.AchievementManager
+import com.nhlstenden.appdev.core.utils.TaskToCourseMapper
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -38,7 +40,7 @@ class TaskActivity : AppCompatActivity() {
     @Inject lateinit var authRepository: AuthRepository
     @Inject lateinit var userRepository: UserRepository
     @Inject lateinit var streakRepository: StreakRepository
-    @Inject lateinit var courseRepository: CourseRepositoryImpl
+    @Inject lateinit var courseRepository: CourseRepository
 
     @Inject lateinit var achievementManager: AchievementManager
 
@@ -136,6 +138,19 @@ class TaskActivity : AppCompatActivity() {
         }
     }
 
+    override fun finish() {
+        Log.d("TaskActivity", "TaskActivity finishing - triggering profile refresh")
+        
+        // Always set result with profile refresh flag when TaskActivity finishes
+        // This ensures profile is refreshed whether task completed, failed, or user exited
+        val resultIntent = Intent().apply {
+            putExtra("REFRESH_PROFILE", true)
+        }
+        setResult(RESULT_OK, resultIntent)
+        
+        super.finish()
+    }
+
     private fun observeTaskState() {
         viewModel.taskState.observe(this) { state ->
             when (state) {
@@ -171,7 +186,9 @@ class TaskActivity : AppCompatActivity() {
                     val taskId = intent.getStringExtra(EXTRA_TASK_ID)
                     Log.d("TaskActivity", "Calling updateTaskProgress for userId=${currentUser?.id}, taskId=$taskId")
                     if (currentUser != null && taskId != null) {
-                        val courseId = taskId.substringBefore("_")
+                        // Map task ID to correct course ID using centralized mapper
+                        val courseId = TaskToCourseMapper.mapTaskIdToCourseId(taskId)
+                        
                         lifecycleScope.launch(Dispatchers.IO) {
                             try {
                                 // Update progress using repository
@@ -182,6 +199,68 @@ class TaskActivity : AppCompatActivity() {
                                 )
 
                                 if (progressUpdated) {
+                                    // Update last task date and streak for streak tracking
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        val today = java.time.LocalDate.now()
+                                        
+                                        // Get current streak and last task date from database
+                                        val currentStreak = streakRepository.getCurrentStreak(
+                                            currentUser.id.toString(),
+                                            currentUser.authToken
+                                        )
+                                        val lastTaskDate = streakRepository.getLastTaskDate(
+                                            currentUser.id.toString(),
+                                            currentUser.authToken
+                                        )
+                                        
+                                        Log.d("TaskActivity", "Current streak from DB: $currentStreak")
+                                        Log.d("TaskActivity", "Last task date from DB: $lastTaskDate")
+                                        
+                                        // Calculate new streak
+                                        val newStreak = if (lastTaskDate == null) {
+                                            // First task ever
+                                            1
+                                        } else {
+                                            val daysBetween = java.time.temporal.ChronoUnit.DAYS.between(lastTaskDate, today)
+                                            when {
+                                                daysBetween == 0L -> {
+                                                    // Same day, keep current streak
+                                                    currentStreak
+                                                }
+                                                daysBetween == 1L -> {
+                                                    // Next day, increment streak
+                                                    currentStreak + 1
+                                                }
+                                                else -> {
+                                                    // More than one day has passed, reset to 1
+                                                    1
+                                                }
+                                            }
+                                        }
+                                        
+                                        Log.d("TaskActivity", "Calculated new streak: $newStreak (was $currentStreak)")
+                                        
+                                        // Update last task date
+                                        val lastTaskDateUpdated = streakRepository.updateLastTaskDate(
+                                            currentUser.id.toString(),
+                                            today,
+                                            currentUser.authToken
+                                        )
+                                        Log.d("TaskActivity", "Last task date update result: $lastTaskDateUpdated")
+                                        
+                                        // Update streak if it changed
+                                        if (newStreak != currentStreak) {
+                                            val streakUpdated = streakRepository.updateStreak(
+                                                currentUser.id.toString(),
+                                                newStreak,
+                                                currentUser.authToken
+                                            )
+                                            Log.d("TaskActivity", "Streak update result: $streakUpdated (from $currentStreak to $newStreak)")
+                                        } else {
+                                            Log.d("TaskActivity", "Streak unchanged, no update needed")
+                                        }
+                                    }
+                                    
                                     // Check for achievements after successful task completion
                                     achievementManager.checkAchievementsAfterTaskCompletion(
                                         currentUser.id.toString(),
@@ -196,7 +275,6 @@ class TaskActivity : AppCompatActivity() {
                         }
                     }
                     Toast.makeText(this, "Task completed! You earned $pointsEarned points!", Toast.LENGTH_SHORT).show()
-                    setResult(RESULT_OK)
                     finish()
                 }
             }
@@ -266,9 +344,11 @@ class TaskActivity : AppCompatActivity() {
     }
 
     private fun loadTasks() {
-        val courseId = taskId?.substringBefore("_") ?: return
-        binding.taskName.text = getTaskTitle(this, courseId, taskId ?: "")
-        viewModel.loadTasks(taskId ?: "")
+        val taskIdValue = taskId ?: return
+        // Map task ID to correct course ID using centralized mapper
+        val courseId = TaskToCourseMapper.mapTaskIdToCourseId(taskIdValue)
+        binding.taskName.text = getTaskTitle(this, courseId, taskIdValue)
+        viewModel.loadTasks(taskIdValue)
     }
 
     private fun updateQuestionNumber() {
@@ -485,7 +565,7 @@ class TaskActivity : AppCompatActivity() {
     }
 
     private fun getTaskTitle(context: Context, courseId: String, taskId: String): String {
-        val taskParser = com.nhlstenden.appdev.features.courses.TaskParser(context)
+        val taskParser = com.nhlstenden.appdev.features.course.utils.TaskParser(context)
         val task = taskParser.loadAllTasksOfCourse(courseId).find { it.id == taskId }
         return task?.title ?: "Task"
     }

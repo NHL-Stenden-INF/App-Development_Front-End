@@ -3,7 +3,7 @@ package com.nhlstenden.appdev.features.task.repositories
 import android.app.Application
 import com.nhlstenden.appdev.features.task.models.Question
 import com.nhlstenden.appdev.core.repositories.TaskRepository
-import com.nhlstenden.appdev.features.courses.CourseRepository
+import com.nhlstenden.appdev.features.course.repositories.CourseRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 

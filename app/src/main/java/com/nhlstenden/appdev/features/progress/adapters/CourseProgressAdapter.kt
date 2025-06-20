@@ -20,6 +20,7 @@ class CourseProgressAdapter(
         val courseImage: ImageView = view.findViewById(R.id.courseImage)
         val courseTitle: TextView = view.findViewById(R.id.courseTitle)
         val difficultyLevel: TextView = view.findViewById(R.id.difficultyLevel)
+        val courseDescription: TextView = view.findViewById(R.id.courseDescription)
         val progressBar: NumberProgressBar = view.findViewById(R.id.progressBar)
         val root: View = view
     }
@@ -36,6 +37,13 @@ class CourseProgressAdapter(
         holder.difficultyLevel.text = course.completionStatus
         holder.progressBar.progress = course.progressPercentage
         holder.courseImage.setImageResource(course.imageResId)
+        
+        // Hide description to match home screen layout (DRY principle)
+        holder.courseDescription.visibility = View.GONE
+        
+        // Debug logging
+        android.util.Log.d("CourseProgressAdapter", 
+            "Setting progress for ${course.title}: ${course.progressPercentage}% (${course.completionStatus})")
 
         holder.root.setOnClickListener {
             onCourseClick(course.id)

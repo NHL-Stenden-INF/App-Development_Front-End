@@ -3,27 +3,27 @@ package com.nhlstenden.appdev.features.courses.repositories
 import android.app.Application
 import com.nhlstenden.appdev.core.models.User
 import com.nhlstenden.appdev.features.courses.model.Course
-import com.nhlstenden.appdev.features.courses.repositories.CoursesRepository
+import com.nhlstenden.appdev.features.course.utils.CourseParser as CourseParserImpl
+import com.nhlstenden.appdev.features.course.utils.TaskParser as TaskParserImpl
+import com.nhlstenden.appdev.core.utils.JwtHandler
 import javax.inject.Inject
 import javax.inject.Singleton
 import android.util.Log
-import com.nhlstenden.appdev.core.repositories.AuthRepository
-import com.nhlstenden.appdev.core.repositories.BaseRepository
 import com.nhlstenden.appdev.supabase.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 
 @Singleton
-class CourseRepositoryImpl @Inject constructor(
+class CoursesRepositoryImpl @Inject constructor(
     private val application: Application,
-    private val authRepository: AuthRepository,
-    private val courseParser: com.nhlstenden.appdev.core.parsers.CourseParser,
-    private val taskParser: com.nhlstenden.appdev.core.parsers.TaskParser,
-    private val supabaseClient: SupabaseClient
-) : BaseRepository(), CoursesRepository {
+    private val courseParser: CourseParserImpl,
+    private val taskParser: TaskParserImpl,
+    private val supabaseClient: SupabaseClient,
+    private val jwtHandler: JwtHandler
+) : CoursesRepository {
 
-    private val TAG = "CourseRepositoryImpl"
+    private val TAG = "CoursesRepositoryImpl"
 
     private suspend fun getUserProgressSafely(userId: String, authToken: String): JSONArray? {
         return try {
@@ -33,26 +33,28 @@ class CourseRepositoryImpl @Inject constructor(
 
             if (result.isFailure) {
                 Log.e(TAG, "Error getting user progress", result.exceptionOrNull())
-                return null
             }
 
             val response = result.getOrNull() ?: return null
-            var resultArray: JSONArray? = null
             
-            handleApiResponse(
-                response = response,
-                authRepository = authRepository,
-                onSuccess = { body ->
-                    parseJsonArraySafely(
-                        jsonString = body,
-                        onSuccess = { jsonArray -> resultArray = jsonArray }
-                    )
+            if (response.isSuccessful) {
+                val body = response.body?.string()
+                if (!body.isNullOrEmpty()) {
+                    JSONArray(body)
+                } else {
+                    null
                 }
-            )
-            
-            resultArray
+            } else {
+                if (jwtHandler.handleJwtResponse(response)) {
+                    throw jwtHandler.createSessionExpiredException()
+                } else {
+                    Log.e(TAG, "Failed to get user progress: ${response.code}")
+                    null
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting user progress", e)
+            // Re-throw JWT expiration exceptions
             if (e.message?.contains("Session expired") == true) {
                 throw e
             }
@@ -109,7 +111,6 @@ class CourseRepositoryImpl @Inject constructor(
         return courses
     }
 
-    // Helper method for getting total tasks count
     private suspend fun getTotalTaskOfCourse(courseId: String): Int {
         return taskParser.loadAllTasksOfCourse(courseId).size
     }

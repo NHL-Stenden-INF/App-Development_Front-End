@@ -1,7 +1,7 @@
 package com.nhlstenden.appdev.core.utils
 
 import android.app.Activity
-import com.nhlstenden.appdev.features.courses.CourseFragment
+import com.nhlstenden.appdev.features.course.screens.CourseFragment
 import com.nhlstenden.appdev.MainActivity
 
 object NavigationManager {

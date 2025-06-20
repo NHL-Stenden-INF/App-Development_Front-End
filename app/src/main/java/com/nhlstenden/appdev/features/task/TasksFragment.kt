@@ -15,9 +15,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.utils.NavigationManager
-import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
+import com.nhlstenden.appdev.features.courses.repositories.CoursesRepositoryImpl
 import dagger.hilt.android.AndroidEntryPoint
-import com.nhlstenden.appdev.features.courses.screens.CourseAdapter
+import com.nhlstenden.appdev.features.courses.adapters.CourseAdapter
 import kotlinx.coroutines.runBlocking
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -25,7 +25,7 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class TasksFragment : Fragment() {
-    @Inject lateinit var courseRepository: CourseRepositoryImpl
+    @Inject lateinit var coursesRepository: CoursesRepositoryImpl
     private lateinit var tasksList: RecyclerView
     private lateinit var searchEditText: TextInputEditText
     private lateinit var filterButton: MaterialButton
@@ -60,7 +60,7 @@ class TasksFragment : Fragment() {
 
     private fun setupTasksList() {
         lifecycleScope.launch {
-            val courses = courseRepository.getCoursesWithoutProgress()
+            val courses = coursesRepository.getCoursesWithoutProgress()
             adapter.submitList(courses)
         }
     }

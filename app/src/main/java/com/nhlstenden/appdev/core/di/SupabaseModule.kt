@@ -3,10 +3,15 @@ package com.nhlstenden.appdev.core.di
 import android.content.Context
 import com.nhlstenden.appdev.core.repositories.ProfileRepository
 import com.nhlstenden.appdev.features.profile.repositories.ProfileRepositoryImpl
-import com.nhlstenden.appdev.features.courses.CourseRepository
-import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl
-import com.nhlstenden.appdev.features.courses.CourseParser
-import com.nhlstenden.appdev.features.courses.TaskParser
+import com.nhlstenden.appdev.features.course.repositories.CourseRepository
+import com.nhlstenden.appdev.features.course.repositories.CourseRepositoryImpl as CourseRepoImpl
+import com.nhlstenden.appdev.features.courses.repositories.CourseRepositoryImpl as CoursesRepoImpl
+import com.nhlstenden.appdev.features.courses.repositories.CoursesRepository
+import com.nhlstenden.appdev.features.course.utils.CourseParser as CourseParserImpl
+import com.nhlstenden.appdev.features.course.utils.TaskParser as TaskParserImpl
+import com.nhlstenden.appdev.core.parsers.CourseParser
+import com.nhlstenden.appdev.core.parsers.TaskParser
+import com.nhlstenden.appdev.features.course.utils.QuestionParser
 import com.nhlstenden.appdev.core.repositories.TaskRepository
 import com.nhlstenden.appdev.features.task.repositories.TaskRepositoryImpl
 import com.nhlstenden.appdev.core.repositories.FriendsRepository
@@ -22,6 +27,10 @@ import com.nhlstenden.appdev.features.rewards.repositories.RewardsRepositoryImpl
 import com.nhlstenden.appdev.core.repositories.AchievementRepository
 import com.nhlstenden.appdev.features.rewards.repositories.AchievementRepositoryImpl
 import com.nhlstenden.appdev.supabase.*
+import com.nhlstenden.appdev.core.services.MusicService
+import com.nhlstenden.appdev.core.services.MusicServiceImpl
+import com.nhlstenden.appdev.core.services.MusicManager
+import com.nhlstenden.appdev.core.services.MusicManagerImpl
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -46,7 +55,10 @@ abstract class RepositoryModule {
     abstract fun bindProfileRepository(impl: ProfileRepositoryImpl): ProfileRepository
 
     @Binds
-    abstract fun bindCourseRepository(impl: CourseRepositoryImpl): CourseRepository
+    abstract fun bindCourseRepository(impl: CourseRepoImpl): CourseRepository
+
+    @Binds
+    abstract fun bindCoursesRepository(impl: CoursesRepoImpl): CoursesRepository
 
     @Binds
     abstract fun bindTaskRepository(impl: TaskRepositoryImpl): TaskRepository
@@ -59,6 +71,18 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
+
+    @Binds
+    abstract fun bindMusicService(impl: MusicServiceImpl): MusicService
+
+    @Binds
+    abstract fun bindMusicManager(impl: MusicManagerImpl): MusicManager
+
+    @Binds
+    abstract fun bindCourseParser(impl: CourseParserImpl): CourseParser
+
+    @Binds
+    abstract fun bindTaskParser(impl: TaskParserImpl): TaskParser
 }
 
 @Module
@@ -82,11 +106,15 @@ object SupabaseModule {
 
     @Provides
     @Singleton
-    fun provideCourseParser(@ApplicationContext context: Context): CourseParser = CourseParser(context)
+    fun provideQuestionParser(@ApplicationContext context: Context): QuestionParser = QuestionParser(context)
 
     @Provides
     @Singleton
-    fun provideTaskParser(@ApplicationContext context: Context): TaskParser = TaskParser(context)
+    fun provideCourseParserImpl(@ApplicationContext context: Context): CourseParserImpl = CourseParserImpl(context)
+
+    @Provides
+    @Singleton
+    fun provideTaskParserImpl(@ApplicationContext context: Context): TaskParserImpl = TaskParserImpl(context)
 
     @Provides
     @Singleton
