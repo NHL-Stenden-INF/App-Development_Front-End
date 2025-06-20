@@ -8,13 +8,6 @@ fun Course.toCourseItem(showDescription: Boolean = true): CourseItem {
     val progressPercentage = ProgressCalculator.calculatePercentage(this.progress, this.totalTasks)
     val isCompleted = CourseItem.isProgressComplete(progressPercentage)
     
-    // TEMPORARY: Force first course to be completed for testing
-    val testCompleted = isCompleted || this.title.contains("HTML", ignoreCase = true)
-    
-    // Debug logging to check completion detection
-    android.util.Log.d("CourseExtensions", 
-        "Course: ${this.title}, Progress: ${this.progress}/${this.totalTasks} = ${progressPercentage}%, Completed: $testCompleted (original: $isCompleted)")
-    
     return CourseItem(
         id = this.id,
         title = this.title,
@@ -25,7 +18,7 @@ fun Course.toCourseItem(showDescription: Boolean = true): CourseItem {
         showDescription = showDescription,
         showDifficultyStars = true,
         difficulty = this.difficulty,
-        isCompleted = testCompleted,
+        isCompleted = isCompleted,
         isLocked = false // Courses are generally not locked, but can be customized
     )
 }
