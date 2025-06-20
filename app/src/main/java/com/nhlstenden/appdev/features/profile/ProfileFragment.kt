@@ -16,6 +16,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -61,6 +62,8 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.content.Context
 import android.util.Log
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.core.repositories.SettingsRepository
@@ -69,6 +72,12 @@ import com.nhlstenden.appdev.shared.components.CameraActivity
 import com.nhlstenden.appdev.utils.LevelCalculator
 import com.nhlstenden.appdev.utils.RewardChecker
 import com.nhlstenden.appdev.core.repositories.AchievementRepository
+import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.supabase.updateUserFriendMask
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.nhlstenden.appdev.features.rewards.dialogs.ThemeCustomizationDialog
+import com.nhlstenden.appdev.core.theme.ThemeManager
 
 @AndroidEntryPoint
 class ProfileFragment : BaseFragment(), SensorEventListener {
@@ -77,7 +86,7 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
 
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: ProfileViewModel by viewModels()
+    private val viewModel: ProfileViewModel by activityViewModels()
     private lateinit var achievementAdapter: AchievementAdapter
     private lateinit var musicLobbySwitch: SwitchMaterial
     private val MUSIC_LOBBY_REWARD_ID = 11
@@ -91,7 +100,13 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     
     @Inject
     lateinit var achievementRepository: AchievementRepository
-    
+
+    @Inject
+    lateinit var supabaseClient: SupabaseClient
+
+    @Inject
+    lateinit var themeManager: ThemeManager
+
     private val PROFILE_IMAGE_SIZE = 120
     private val MAX_BIO_LENGTH = 128
     private val MAX_NAME_LENGTH = 32
@@ -161,6 +176,88 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
 
         binding.root.findViewById<ImageView>(R.id.cameraOverlay).setOnClickListener {
             showImageSourceDialog()
+        }
+
+        // Setup theme customization button
+        val themeCustomizationButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.themeCustomizationButton)
+        lifecycleScope.launch {
+            val hasThemeReward = withContext(Dispatchers.IO) {
+                rewardChecker.isRewardUnlocked(2) // Theme customization reward ID
+            }
+            themeCustomizationButton.isEnabled = hasThemeReward
+            if (hasThemeReward) {
+                themeCustomizationButton.setOnClickListener {
+                    showThemeCustomizationDialog()
+                }
+            } else {
+                themeCustomizationButton.setOnClickListener {
+                    Toast.makeText(requireContext(), "Unlock 'Code Editor Themes Pack' reward first!", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        // 4 is the ID of the profile frames
+        lifecycleScope.launch {
+            val canChangeProfileMask = withContext(Dispatchers.IO) {
+                rewardChecker.isRewardUnlocked(4)
+            }
+            val profileMaskSelector = binding.profileMaskSelector
+            if (canChangeProfileMask) {
+                ArrayAdapter.createFromResource(
+                    requireContext(),
+                    R.array.mask_types,
+                    android.R.layout.simple_spinner_item
+                ).also { adapter ->
+                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                    profileMaskSelector.adapter = adapter
+                }
+
+                profileMaskSelector.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                    var isSelected = false
+
+                    override fun onItemSelected(
+                        parent: AdapterView<*>?,
+                        view: View?,
+                        position: Int,
+                        id: Long
+                    ) {
+                        if (!isSelected) {
+                            isSelected = true
+
+                            return
+                        }
+                        val selectedItem = parent?.getItemAtPosition(position).toString()
+                        Log.d("ProfileFragment", "Selected: $selectedItem")
+                        val user = authRepository.getCurrentUserSync()!!
+                        lifecycleScope.launch {
+                            val result = withContext(Dispatchers.IO) {
+                                supabaseClient.updateUserFriendMask(user.id, selectedItem, user.authToken)
+                            }
+                            result.fold(
+                                onSuccess = {
+                                    // Notify HomeFragment and others that mask changed
+                                    parentFragmentManager.setFragmentResult(
+                                        "profile_mask_updated",
+                                        android.os.Bundle().apply { putBoolean("updated", true) }
+                                    )
+
+                                    // Also refresh header immediately via activity
+                                    (activity as? com.nhlstenden.appdev.MainActivity)?.refreshProfileData()
+                                },
+                                onFailure = { error ->
+                                    Log.d("ProfileFragment", error.message.toString(), error)
+                                }
+                            )
+                        }
+                    }
+
+                    override fun onNothingSelected(parent: AdapterView<*>?) {
+                        return
+                    }
+                }
+            } else {
+                profileMaskSelector.isEnabled = false
+            }
         }
     }
     
@@ -441,6 +538,14 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                 }
                 Log.d("ProfileFragment", "Updated displayname/ bio")
                 viewModel.updateProfile(newName, newBio, null)
+                
+                // Notify other fragments of profile update
+                parentFragmentManager.setFragmentResult(
+                    "profile_updated",
+                    Bundle().apply {
+                        putBoolean("updated", true)
+                    }
+                )
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -548,9 +653,9 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                         base64Image
                     )
                     
-                    // Notify HomeFragment of profile picture update
+                    // Notify other fragments of profile update
                     parentFragmentManager.setFragmentResult(
-                        "profile_picture_updated",
+                        "profile_updated",
                         Bundle().apply {
                             putBoolean("updated", true)
                         }
@@ -646,6 +751,30 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
         }
 
         dialog.show()
+    }
+
+    private fun showThemeCustomizationDialog() {
+        val dialog = ThemeCustomizationDialog.newInstance()
+        dialog.setOnThemeAppliedListener { colorValue ->
+            applyCustomTheme(colorValue)
+        }
+        dialog.show(parentFragmentManager, "theme_customization_dialog")
+    }
+
+    private fun applyCustomTheme(colorValue: String) {
+        // Use ThemeManager to apply the theme
+        themeManager.clearCustomTheme() // Clear any existing theme first
+        
+        try {
+            // Validate and apply the color
+            android.graphics.Color.parseColor(colorValue)
+            val sharedPreferences = requireContext().getSharedPreferences("theme_prefs", android.content.Context.MODE_PRIVATE)
+            sharedPreferences.edit().putString("custom_theme_color", colorValue).apply()
+            
+            Toast.makeText(requireContext(), "Theme color saved: $colorValue. Restart app to see changes.", Toast.LENGTH_LONG).show()
+        } catch (e: IllegalArgumentException) {
+            Toast.makeText(requireContext(), "Invalid color format. Use #RRGGBB or rgb(r,g,b)", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onCreateView(

@@ -1,5 +1,7 @@
 package com.nhlstenden.appdev.features.rewards.viewmodels
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,7 +11,9 @@ import com.nhlstenden.appdev.core.repositories.RewardsRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.core.utils.ErrorHandler
 import com.nhlstenden.appdev.features.rewards.handlers.PurchaseResult
+import com.nhlstenden.appdev.features.rewards.dialogs.ThemeCustomizationDialog
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,13 +25,17 @@ import javax.inject.Inject
 class RewardsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-    private val rewardsRepository: RewardsRepository
+    private val rewardsRepository: RewardsRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val TAG = "RewardsViewModel"
 
     private val _uiState = MutableStateFlow(RewardsUiState())
     val uiState: StateFlow<RewardsUiState> = _uiState.asStateFlow()
+
+    private val sharedPreferences: SharedPreferences = context.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
+    private val THEME_COLOR_KEY = "custom_theme_color"
 
     init {
         loadUserData()
@@ -240,6 +248,7 @@ class RewardsViewModel @Inject constructor(
         viewModelScope.launch {
             when (rewardType) {
                 is RewardType.BellPepper -> purchaseBellPepper(cost)
+                is RewardType.ThemeCustomization -> purchaseThemeCustomization(rewardId, cost)
                 is RewardType.StandardUnlock -> purchaseReward(rewardId, cost)
                 is RewardType.Special -> purchaseReward(rewardId, cost) // Handle special rewards through standard flow for now
             }
@@ -256,6 +265,95 @@ class RewardsViewModel @Inject constructor(
             error = errorMessage
         )
     }
+
+    private fun purchaseThemeCustomization(rewardId: Int, cost: Int) {
+        viewModelScope.launch {
+            try {
+                val currentUser = authRepository.getCurrentUserSync() ?: return@launch
+                
+                if (_uiState.value.points < cost) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Not enough points!"
+                    )
+                    return@launch
+                }
+                
+                val newPoints = _uiState.value.points - cost
+                val updatePointsResult = userRepository.updateUserPoints(currentUser.id, newPoints)
+                
+                if (updatePointsResult.isSuccess) {
+                    val unlockResult = rewardsRepository.unlockReward(rewardId)
+                    
+                    if (unlockResult.isSuccess) {
+                        _uiState.value = _uiState.value.copy(
+                            points = newPoints,
+                            error = null
+                        )
+                        
+                        // Show theme customization dialog
+                        showThemeCustomizationDialog()
+                    } else {
+                        // Rollback points if unlocking failed
+                        userRepository.updateUserPoints(currentUser.id, _uiState.value.points)
+                        _uiState.value = _uiState.value.copy(
+                            error = "Failed to unlock theme customization"
+                        )
+                    }
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Failed to update points"
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error purchasing theme customization", e)
+                _uiState.value = _uiState.value.copy(
+                    error = "Error purchasing theme customization: ${e.message}"
+                )
+            }
+        }
+    }
+
+    private fun showThemeCustomizationDialog() {
+        // Show the theme customization dialog
+        val dialog = ThemeCustomizationDialog.newInstance()
+        dialog.setOnThemeAppliedListener { colorValue ->
+            // Handle the applied theme color
+            applyCustomTheme(colorValue)
+        }
+        
+        // Show the dialog handled by the fragment observing the state
+        _uiState.value = _uiState.value.copy(
+            showThemeDialog = true
+        )
+    }
+
+    fun applyCustomTheme(colorValue: String) {
+        // Save the custom color to SharedPreferences
+        sharedPreferences.edit().putString(THEME_COLOR_KEY, colorValue).apply()
+        
+        _uiState.value = _uiState.value.copy(
+            error = "Theme color saved: $colorValue. Restart app to see changes."
+        )
+        
+        Log.d(TAG, "Custom theme color saved: $colorValue")
+    }
+
+    fun getCustomThemeColor(): String? {
+        return sharedPreferences.getString(THEME_COLOR_KEY, null)
+    }
+
+    fun clearCustomTheme() {
+        sharedPreferences.edit().remove(THEME_COLOR_KEY).apply()
+        _uiState.value = _uiState.value.copy(
+            error = "Theme reset to default"
+        )
+    }
+
+    fun clearThemeDialog() {
+        _uiState.value = _uiState.value.copy(
+            showThemeDialog = false
+        )
+    }
 }
 
 data class RewardsUiState(
@@ -266,7 +364,8 @@ data class RewardsUiState(
     val openedDailyAt: String? = null,
     val lastRewardAmount: Int = 0,
     val unlockedRewardIds: Set<Int> = emptySet(),
-    val error: String? = null
+    val error: String? = null,
+    val showThemeDialog: Boolean = false
 ) {
     val canCollectDailyReward: Boolean
         get() = openedDailyAt != LocalDate.now().toString()

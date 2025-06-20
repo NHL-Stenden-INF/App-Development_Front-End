@@ -129,6 +129,200 @@ A modern Android learning application built with Kotlin, featuring course manage
 - [🎨 Code Conventions](docs/CODE_CONVENTIONS.md) - Coding standards and naming
 - [🤝 Contributing Guide](docs/CONTRIBUTING.md) - Development workflow
 
+## 🏗️ SOLID Principles & Loose Coupling Examples
+
+This project demonstrates excellent adherence to SOLID principles and loose coupling patterns. Below are real examples from our codebase:
+
+### 🔧 Dependency Injection (Loose Coupling)
+
+**Hilt Dependency Injection with Interface Binding:**
+```kotlin
+// core/di/SupabaseModule.kt
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class RepositoryModule {
+    @Binds
+    abstract fun bindProfileRepository(impl: ProfileRepositoryImpl): ProfileRepository
+    
+    @Binds
+    abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+    
+    @Binds
+    abstract fun bindCoursesRepository(impl: CoursesRepositoryImpl): CoursesRepository
+}
+```
+
+**ViewModel with Injected Dependencies:**
+```kotlin
+// features/profile/viewmodels/ProfileViewModel.kt
+@HiltViewModel
+class ProfileViewModel @Inject constructor(
+    private val profileRepository: ProfileRepository,
+    private val authRepository: AuthRepository
+) : ViewModel() {
+    // ViewModel depends on abstractions, not concrete implementations
+    private val _profileState = MutableStateFlow<ProfileState>(ProfileState.Loading)
+    val profileState: StateFlow<ProfileState> = _profileState.asStateFlow()
+}
+```
+
+### Single Responsibility Principle (SRP)
+
+**Repository handling only data operations:**
+```kotlin
+// features/profile/repositories/ProfileRepositoryImpl.kt
+@Singleton
+class ProfileRepositoryImpl @Inject constructor(
+    private val supabaseClient: SupabaseClient,
+    private val authRepository: AuthRepository
+) : ProfileRepository {
+    
+    override suspend fun getProfile(): Result<Profile> {
+        // Only responsible for profile data management
+        // JWT handling delegated to authRepository
+        // API calls delegated to supabaseClient
+    }
+}
+```
+
+### Open/Closed Principle (OCP)
+
+**Base classes enabling extension without modification:**
+```kotlin
+// core/ui/base/BaseViewModel.kt
+open class BaseViewModel(application: Application) : AndroidViewModel(application) {
+    protected fun launchWithLoading(block: suspend CoroutineScope.() -> Unit): Job {
+        return viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                block()
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Unknown error"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+}
+
+// Extended without modifying base class
+class ProfileViewModel @Inject constructor(...) : ViewModel() {
+    // Extends base functionality while adding profile-specific logic
+}
+```
+
+### Interface Segregation Principle (ISP)
+
+**Focused, specific repository interfaces:**
+```kotlin
+// core/repositories/ProfileRepository.kt
+interface ProfileRepository {
+    suspend fun getProfile(): Result<Profile>
+    suspend fun updateProfile(displayName: String, bio: String?, profilePicture: String?): Result<Profile>
+    suspend fun updateProfilePicture(imagePath: String): Result<Profile>
+    suspend fun logout(): Result<Unit>
+}
+
+// core/repositories/AuthRepository.kt  
+interface AuthRepository {
+    fun getCurrentUser(): Flow<User?>
+    suspend fun login(email: String, password: String): Result<User>
+    suspend fun register(email: String, password: String, displayName: String): Result<User>
+    suspend fun logout(): Result<Unit>
+    suspend fun handleJWTExpiration()
+}
+```
+
+### Dependency Inversion Principle (DIP)
+
+**High-level modules depending on abstractions:**
+```kotlin
+// features/courses/viewmodels/CoursesViewModel.kt
+@HiltViewModel
+class CoursesViewModel @Inject constructor(
+    private val coursesRepository: CoursesRepository,  // Interface, not implementation
+    private val authRepository: AuthRepository         // Interface, not implementation
+) : ViewModel() {
+    
+    fun loadCoursesWithProgress() {
+        viewModelScope.launch {
+            try {
+                val currentUser = authRepository.getCurrentUserSync()
+                if (currentUser != null) {
+                    _courses.value = coursesRepository.getCourses(currentUser) ?: emptyList()
+                }
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Failed to load courses"
+            }
+        }
+    }
+}
+```
+
+### Reactive State Management (Loose Coupling)
+
+**StateFlow for decoupled UI updates:**
+```kotlin
+// features/courses/viewmodels/CoursesViewModel.kt
+class CoursesViewModel @Inject constructor(...) : ViewModel() {
+    private val _courses = MutableStateFlow<List<Course>>(emptyList())
+    val courses: StateFlow<List<Course>> = _courses.asStateFlow()
+    
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    
+    init {
+        viewModelScope.launch {
+            // Reactive combination of multiple state streams
+            kotlinx.coroutines.flow.combine(
+                _courses,
+                _searchQuery,
+                _selectedStars
+            ) { courses, query, stars ->
+                courses.filter { course ->
+                    val matchesSearch = query.isEmpty() || 
+                        course.title.contains(query, ignoreCase = true)
+                    val matchesStars = stars == null || course.difficulty == stars
+                    matchesSearch && matchesStars
+                }
+            }.collect { filtered ->
+                _filteredCourses.value = filtered
+            }
+        }
+    }
+}
+```
+
+### Error Handling with Result Pattern
+
+**Consistent error handling promoting loose coupling:**
+```kotlin
+// core/utils/ErrorHandler.kt
+object ErrorHandler {
+    fun <T> handleResult(
+        result: Result<T>,
+        tag: String,
+        operation: String,
+        onSuccess: (T) -> Unit = {},
+        onFailure: (String) -> Unit = {}
+    ) {
+        result.fold(
+            onSuccess = { data ->
+                Log.d(tag, "$operation completed successfully")
+                onSuccess(data)
+            },
+            onFailure = { exception ->
+                val errorMessage = exception.message ?: "Unknown error occurred"
+                Log.e(tag, "$operation failed: $errorMessage", exception)
+                onFailure(errorMessage)
+            }
+        )
+    }
+}
+```
+
+These examples demonstrate how our architecture promotes **maintainability**, **testability**, and **flexibility** through proper application of SOLID principles and loose coupling patterns.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

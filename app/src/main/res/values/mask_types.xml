@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="mask_types">
+        <item>circle</item>
+        <item>square</item>
+        <item>triangle</item>
+        <item>cross</item>
+    </string-array>
+</resources>

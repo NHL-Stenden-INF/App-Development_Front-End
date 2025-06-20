@@ -12,9 +12,11 @@ import androidx.fragment.app.Fragment
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
-import com.nhlstenden.appdev.features.casino.games.CoinFlipFragment
-import com.nhlstenden.appdev.features.casino.games.HorseRaceFragment
-import com.nhlstenden.appdev.features.casino.games.WheelOfFortuneFragment
+import com.nhlstenden.appdev.features.casino.GameTypeFactory
+import com.nhlstenden.appdev.features.casino.fragments.CoinFlipFragment
+import com.nhlstenden.appdev.features.casino.fragments.HorseRaceFragment
+import com.nhlstenden.appdev.features.casino.fragments.WheelOfFortuneFragment
+import com.nhlstenden.appdev.features.casino.models.GameData
 import com.nhlstenden.appdev.features.casino.viewmodels.CasinoViewmodel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -32,6 +34,8 @@ class CasinoActivity : AppCompatActivity() {
     @Inject
     lateinit var authRepository: AuthRepository
 
+    val gameTypeFactory = GameTypeFactory
+
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,27 +45,12 @@ class CasinoActivity : AppCompatActivity() {
         val subtitle = findViewById<TextView>(R.id.Subtitle)
 
         val game = intent.extras?.getSerializable("game", CasinoTypes::class.java)
-        lateinit var fragment: Fragment
         Log.d("CasinoActivity", "Started the casino for game: ${game.toString()}")
 
-         when (game) {
-            CasinoTypes.COINFLIP -> {
-                title.text = String.format(title.text.toString(), "Coinflip")
-                subtitle.text = String.format(subtitle.text.toString(), "Click the coin to flip a coin! if it lands on the happy guinea pig, you get double your points. If it lands on the angry guinea pig, you lose half your points.")
-                 fragment = CoinFlipFragment()
-            }
-            CasinoTypes.HORSE_RACES -> {
-                title.text = String.format(title.text.toString(), "Horse Races")
-                subtitle.text = String.format(subtitle.text.toString(), "Click on the Guinea-Horse you think is going to win! If your horse wins, you get 3x the amount of points you put in. But if you pick wrong, you lose 2/3 points.")
-                fragment = HorseRaceFragment()
-            }
-            CasinoTypes.WHEEL_OF_FORTUNE -> {
-                title.text = String.format(title.text.toString(), "Wheel of Fortune")
-                subtitle.text = String.format(subtitle.text.toString(), "Spin the wheel to get your points! The bigger the pile, the bigger the win. But watch out for the Evil Guinea Pig, he'll leave you with none left for yourself!")
-                fragment = WheelOfFortuneFragment()
-            }
-            else -> throw Exception("Casino type $game does not exist")
-        }
+        val gameData = gameTypeFactory.createGameType(game)
+        title.text = String.format(title.text.toString(), gameData.getGameData().titleText)
+        subtitle.text = String.format(subtitle.text.toString(), gameData.getGameData().subtitleText)
+        val fragment = gameData.createFragment()
 
         val points = intent.getIntExtra("points", 100)
         viewModel.setGamePoints(points)

@@ -48,35 +48,37 @@ suspend fun SupabaseClient.login(email: String, password: String): Result<String
 }
 
 suspend fun SupabaseClient.register(email: String, password: String, displayName: String): Result<String> {
-    val json = """{"email": "$email", "password": "$password", "data": { "display_name": "$displayName" } }"""
-    val requestBody = json.toRequestBody("application/json".toMediaType())
-    val request = Request.Builder()
-        .url("$supabaseUrl/auth/v1/signup")
-        .post(requestBody)
-        .addHeader("apikey", supabaseKey)
-        .addHeader("Content-Type", "application/json")
-        .build()
+    return withContext(Dispatchers.IO) {
+        val json = """{"email": "$email", "password": "$password", "data": { "display_name": "$displayName" } }"""
+        val requestBody = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$supabaseUrl/auth/v1/signup")
+            .post(requestBody)
+            .addHeader("apikey", supabaseKey)
+            .addHeader("Content-Type", "application/json")
+            .build()
 
-    return try {
-        val response = client.newCall(request).execute()
+        try {
+            val response = client.newCall(request).execute()
 
-        if (!response.isSuccessful) {
-            return Result.failure(Exception("Failed to register user: ${response.message}"))
+            if (!response.isSuccessful) {
+                return@withContext Result.failure(Exception("Failed to register user: ${response.message}"))
+            }
+
+            val body = response.body?.string()
+                ?: return@withContext Result.failure(Exception("No response body"))
+
+            val jsonObj = JSONObject(body)
+            val accessToken = jsonObj.optString("access_token", "")
+
+            if (accessToken.isEmpty()) {
+                return@withContext Result.failure(Exception("Access token not found in response"))
+            }
+
+            return@withContext Result.success(accessToken)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in registering user", e)
+            return@withContext Result.failure(e)
         }
-
-        val body = response.body?.string()
-            ?: return Result.failure(Exception("No response body"))
-
-        val jsonObj = JSONObject(body)
-        val accessToken = jsonObj.optString("access_token", "")
-
-        if (accessToken.isEmpty()) {
-            return Result.failure(Exception("Access token not found in response"))
-        }
-
-        return Result.success(accessToken)
-    } catch (e: Exception) {
-        Log.e(TAG, "Error in registering user", e)
-        Result.failure(e)
     }
 }
