@@ -54,7 +54,7 @@ class RewardsManager @Inject constructor(
     fun loadRewards(): List<Reward> {
         val arrays = loadRewardArrays()
         
-        val implementedIds = setOf(4, 11)
+        val implementedIds = setOf(2, 4, 11)
         val list = (0 until arrays.size).map { index ->
             createReward(arrays, index)
         }

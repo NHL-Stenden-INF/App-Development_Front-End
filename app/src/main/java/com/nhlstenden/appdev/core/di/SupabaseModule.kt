@@ -31,6 +31,7 @@ import com.nhlstenden.appdev.core.services.MusicService
 import com.nhlstenden.appdev.core.services.MusicServiceImpl
 import com.nhlstenden.appdev.core.services.MusicManager
 import com.nhlstenden.appdev.core.services.MusicManagerImpl
+import com.nhlstenden.appdev.core.theme.ThemeManager
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -119,4 +120,8 @@ object SupabaseModule {
     @Provides
     @Singleton
     fun provideStreakManager(): com.nhlstenden.appdev.features.home.StreakManager = com.nhlstenden.appdev.features.home.StreakManager()
+
+    @Provides
+    @Singleton
+    fun provideThemeManager(@ApplicationContext context: Context): ThemeManager = ThemeManager(context)
 } 

@@ -29,6 +29,7 @@ import android.content.res.ColorStateList
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import com.nhlstenden.appdev.features.rewards.dialogs.ThemeCustomizationDialog
 
 @AndroidEntryPoint
 class RewardsFragment : Fragment() {
@@ -110,6 +111,12 @@ class RewardsFragment : Fragment() {
                     rewardShopAdapter.updatePoints(state.points)
                     rewardShopAdapter.updateUnlockedRewards(state.unlockedRewardIds)
                 }
+                
+                // Show theme customization dialog if requested
+                if (state.showThemeDialog) {
+                    showThemeCustomizationDialog()
+                    viewModel.clearThemeDialog()
+                }
             }
         }
     }
@@ -186,6 +193,13 @@ class RewardsFragment : Fragment() {
         Toast.makeText(context, "Unlocked: ${reward.title}!", Toast.LENGTH_SHORT).show()
     }
 
-
+    private fun showThemeCustomizationDialog() {
+        val dialog = ThemeCustomizationDialog.newInstance()
+        dialog.setOnThemeAppliedListener { colorValue ->
+            // The ViewModel will handle the theme application
+            viewModel.applyCustomTheme(colorValue)
+        }
+        dialog.show(parentFragmentManager, "theme_customization_dialog")
+    }
 
 } 
