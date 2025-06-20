@@ -5,10 +5,10 @@ import com.nhlstenden.appdev.core.models.User
 import com.nhlstenden.appdev.features.courses.model.Course
 import com.nhlstenden.appdev.features.course.utils.CourseParser
 import com.nhlstenden.appdev.features.course.utils.TaskParser
+import com.nhlstenden.appdev.core.utils.JwtHandler
 import javax.inject.Inject
 import javax.inject.Singleton
 import android.util.Log
-import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.supabase.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -17,25 +17,13 @@ import org.json.JSONArray
 @Singleton
 class CoursesRepositoryImpl @Inject constructor(
     private val application: Application,
-    private val authRepository: AuthRepository
+    private val courseParser: CourseParser,
+    private val taskParser: TaskParser,
+    private val supabaseClient: SupabaseClient,
+    private val jwtHandler: JwtHandler
 ) : CoursesRepository {
-    val courseParser = CourseParser(application.applicationContext)
-    val taskParser = TaskParser(application.applicationContext)
-    val supabaseClient = SupabaseClient()
 
     private val TAG = "CoursesRepositoryImpl"
-
-    private suspend fun isJWTExpired(response: okhttp3.Response): Boolean {
-        if (response.code == 401) {
-            val body = response.body?.string()
-            if (body?.contains("JWT expired") == true) {
-                Log.w(TAG, "JWT expired detected, clearing session")
-                authRepository.handleJWTExpiration()
-                return true
-            }
-        }
-        return false
-    }
 
     private suspend fun getUserProgressSafely(userId: String, authToken: String): JSONArray? {
         return try {
@@ -57,8 +45,8 @@ class CoursesRepositoryImpl @Inject constructor(
                     null
                 }
             } else {
-                if (isJWTExpired(response)) {
-                    throw Exception("Session expired. Please login again.")
+                if (jwtHandler.handleJwtResponse(response)) {
+                    throw jwtHandler.createSessionExpiredException()
                 } else {
                     Log.e(TAG, "Failed to get user progress: ${response.code}")
                     null
