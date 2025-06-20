@@ -12,9 +12,9 @@ import androidx.fragment.app.Fragment
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.core.repositories.AuthRepository
 import com.nhlstenden.appdev.core.repositories.UserRepository
-import com.nhlstenden.appdev.features.casino.games.CoinFlipFragment
-import com.nhlstenden.appdev.features.casino.games.HorseRaceFragment
-import com.nhlstenden.appdev.features.casino.games.WheelOfFortuneFragment
+import com.nhlstenden.appdev.features.casino.fragments.CoinFlipFragment
+import com.nhlstenden.appdev.features.casino.fragments.HorseRaceFragment
+import com.nhlstenden.appdev.features.casino.fragments.WheelOfFortuneFragment
 import com.nhlstenden.appdev.features.casino.viewmodels.CasinoViewmodel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope

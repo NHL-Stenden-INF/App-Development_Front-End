@@ -1,16 +1,15 @@
-package com.nhlstenden.appdev.features.casino.games
+package com.nhlstenden.appdev.features.casino.fragments
 
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import com.nhlstenden.appdev.features.casino.interfaces.GameType
 import com.nhlstenden.appdev.features.casino.viewmodels.CasinoViewmodel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import kotlin.getValue
 
-abstract class BaseGameFragment : Fragment() {
+abstract class BaseGameFragment : Fragment(), GameType {
     protected val viewModel: CasinoViewmodel by viewModels({ requireActivity() })
 
     protected fun finishGame(points: Int) {

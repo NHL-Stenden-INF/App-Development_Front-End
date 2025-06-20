@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.casino.games
+package com.nhlstenden.appdev.features.casino.fragments
 
 import android.graphics.drawable.AnimationDrawable
 import android.os.Bundle

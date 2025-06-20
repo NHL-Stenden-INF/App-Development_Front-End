@@ -1,4 +1,4 @@
-package com.nhlstenden.appdev.features.casino.games
+package com.nhlstenden.appdev.features.casino.fragments
 
 import com.nhlstenden.appdev.R
 import android.os.Bundle
