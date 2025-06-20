@@ -20,7 +20,6 @@ class HorseRaceFragment(
     private lateinit var finishLine: ImageView
 
     lateinit var betterGuineaHorse: String
-    lateinit var winnerGuineaHorse: String
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -67,10 +66,9 @@ class HorseRaceFragment(
         guineaHorseHandlerList.forEach { guineaHorseHandler ->
             guineaHorseHandler.stop()
         }
-        winnerGuineaHorse = guineaHorseName
         Log.d("HorseRaceFragment", "The winner is: $guineaHorseName")
 
-        val rewardedPoints = calculateScore(viewModel.gamePoint.value!!)
+        val rewardedPoints = gameCallback.onGameFinished(viewModel.gamePoint.value!!, if (guineaHorseName == betterGuineaHorse) 1 else 0)
 
         return finishGame(rewardedPoints)
     }

@@ -49,7 +49,7 @@ class WheelOfFortuneFragment(
         override fun run() {
             var newRotation = maxRotations - currentRotation
             if (newRotation <= 5.0) {
-                val rewardedPoints = calculateScore(viewModel.gamePoint.value!!)
+                val rewardedPoints = gameCallback.onGameFinished(viewModel.gamePoint.value!!, currentRotation.toInt())
 
                 Log.d("WheelOfFortuneFragment", "Awarded points: $rewardedPoints")
 

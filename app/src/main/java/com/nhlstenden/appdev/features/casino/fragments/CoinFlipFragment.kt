@@ -58,7 +58,7 @@ class CoinFlipFragment(
 
                     Toast.makeText(context, "You've ${if (hasWonTheGame) "won" else "lost"} the game!", Toast.LENGTH_SHORT).show()
 
-                    val rewardedPoints: Int = calculateScore(viewModel.gamePoint.value!!)
+                    val rewardedPoints: Int = gameCallback.onGameFinished(viewModel.gamePoint.value!!, if (hasWonTheGame) 1 else 0)
                     return finishGame(rewardedPoints)
                 }
             }
