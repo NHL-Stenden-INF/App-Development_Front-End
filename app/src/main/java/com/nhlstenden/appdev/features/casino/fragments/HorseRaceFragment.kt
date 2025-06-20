@@ -10,6 +10,7 @@ import android.widget.ImageView
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.features.casino.interfaces.GameCallback
 import com.nhlstenden.appdev.features.casino.interfaces.RaceManager
+import com.nhlstenden.appdev.features.casino.models.GuineaHorseHandler
 
 
 class HorseRaceFragment(
