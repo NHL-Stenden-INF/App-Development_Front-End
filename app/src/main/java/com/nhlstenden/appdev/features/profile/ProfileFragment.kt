@@ -61,6 +61,8 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.content.Context
 import android.util.Log
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import androidx.viewpager2.widget.ViewPager2
 import com.nhlstenden.appdev.core.repositories.SettingsRepository
@@ -69,6 +71,10 @@ import com.nhlstenden.appdev.shared.components.CameraActivity
 import com.nhlstenden.appdev.utils.LevelCalculator
 import com.nhlstenden.appdev.utils.RewardChecker
 import com.nhlstenden.appdev.core.repositories.AchievementRepository
+import com.nhlstenden.appdev.supabase.SupabaseClient
+import com.nhlstenden.appdev.supabase.updateUserFriendMask
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
 class ProfileFragment : BaseFragment(), SensorEventListener {
@@ -91,7 +97,10 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
     
     @Inject
     lateinit var achievementRepository: AchievementRepository
-    
+
+    @Inject
+    lateinit var supabaseClient: SupabaseClient
+
     private val PROFILE_IMAGE_SIZE = 120
     private val MAX_BIO_LENGTH = 128
     private val MAX_NAME_LENGTH = 32
@@ -161,6 +170,58 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
 
         binding.root.findViewById<ImageView>(R.id.cameraOverlay).setOnClickListener {
             showImageSourceDialog()
+        }
+
+//        3 is the ID of the profile frames
+        lifecycleScope.launch {
+            val canChangeProfileMask = withContext(Dispatchers.IO) {
+                rewardChecker.isRewardUnlocked(3)
+            }
+            val profileMaskSelector = binding.profileMaskSelector
+            if (canChangeProfileMask) {
+                ArrayAdapter.createFromResource(
+                    requireContext(),
+                    R.array.mask_types,
+                    android.R.layout.simple_spinner_item
+                ).also { adapter ->
+                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                    profileMaskSelector.adapter = adapter
+                }
+
+                profileMaskSelector.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                    var isSelected = false
+
+                    override fun onItemSelected(
+                        parent: AdapterView<*>?,
+                        view: View?,
+                        position: Int,
+                        id: Long
+                    ) {
+                        if (!isSelected) {
+                            isSelected = true
+
+                            return
+                        }
+                        val selectedItem = parent?.getItemAtPosition(position).toString()
+                        Log.d("ProfileFragment", "Selected: $selectedItem")
+                        val user = authRepository.getCurrentUserSync()!!
+                        lifecycleScope.launch {
+                            val result = withContext(Dispatchers.IO) {
+                                supabaseClient.updateUserFriendMask(user.id, selectedItem, user.authToken)
+                            }
+                            result.onFailure { result ->
+                                Log.d("ProfileFragment", result.message.toString(), result)
+                            }
+                        }
+                    }
+
+                    override fun onNothingSelected(parent: AdapterView<*>?) {
+                        return
+                    }
+                }
+            } else {
+                profileMaskSelector.isEnabled = false
+            }
         }
     }
     

@@ -1,15 +1,25 @@
 package com.nhlstenden.appdev.features.friends.adapters
 
+import android.content.res.Resources
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.ImageView
+import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
 import com.nhlstenden.appdev.R
 import com.nhlstenden.appdev.databinding.ItemFriendBinding
 import com.nhlstenden.appdev.features.friends.models.Friend
-import java.io.File
+
 
 class FriendAdapter(
     private val onFriendClick: (Friend) -> Unit
@@ -44,33 +54,44 @@ class FriendAdapter(
             val profilePic = friend.profilePicture
             val invalidPics = listOf(null, "", "null")
             if (profilePic !in invalidPics) {
-                if (profilePic!!.startsWith("http")) {
-                    // Load from URL
+                try {
+                    val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
                     Glide.with(binding.friendProfilePicture.context)
-                        .load(profilePic as String)
+                        .asBitmap()
+                        .load(imageBytes as ByteArray)
                         .placeholder(R.drawable.ic_profile_placeholder)
-                        .error(R.drawable.ic_profile_placeholder)
-                        .circleCrop()
-                        .into(binding.friendProfilePicture)
-                } else {
-                    // Try to load as base64
-                    try {
-                        val imageBytes = android.util.Base64.decode(profilePic as String, android.util.Base64.DEFAULT)
-                        Glide.with(binding.friendProfilePicture.context)
-                            .load(imageBytes as ByteArray)
-                            .placeholder(R.drawable.ic_profile_placeholder)
-                            .error(R.drawable.ic_profile_placeholder)
-                            .circleCrop()
-                            .into(binding.friendProfilePicture)
-                    } catch (e: Exception) {
-                        binding.friendProfilePicture.setImageResource(R.drawable.ic_profile_placeholder)
-                    }
+                        .into(object : CustomTarget<Bitmap>() {
+                            override fun onResourceReady(
+                                resource: Bitmap,
+                                transition: Transition<in Bitmap>?
+                            ) {
+                                val drawable: Drawable = resource.toDrawable(binding.friendProfilePicture.context.resources)
+                                binding.friendProfilePicture.background = drawable
+                                binding.friendProfilePicture.setImageResource(getImageResource(friend.profileMask))
+                            }
+
+                            override fun onLoadCleared(placeholder: Drawable?) {
+                                binding.friendProfilePicture.background = placeholder
+                            }
+                        })
+                } catch (e: Exception) {
+                    binding.friendProfilePicture.setImageResource(R.drawable.ic_profile_placeholder)
                 }
             } else {
                 binding.friendProfilePicture.setImageResource(R.drawable.ic_profile_placeholder)
             }
             
             binding.root.setOnClickListener { onFriendClick(friend) }
+        }
+
+        fun getImageResource(maskId: String): Int {
+            return when(maskId) {
+                "circle" -> R.drawable.profile_mask_circle
+                "square" -> R.drawable.profile_mask_square
+                "cross" -> R.drawable.profile_mask_cross
+                "triangle" -> R.drawable.profile_mask_triangle
+                else -> R.drawable.profile_mask_circle
+            }
         }
     }
 
