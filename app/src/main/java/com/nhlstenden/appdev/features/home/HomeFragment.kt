@@ -53,6 +53,11 @@ import com.nhlstenden.appdev.supabase.SupabaseClient
 import com.nhlstenden.appdev.features.home.HomeViewModel
 import com.nhlstenden.appdev.features.home.HomeCourse
 import com.nhlstenden.appdev.features.courses.repositories.CoursesRepository
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
+import androidx.core.graphics.drawable.toDrawable
 
 class HomeCourseAdapter(private val courses: List<HomeCourse>, private val fragment: Fragment) : RecyclerView.Adapter<HomeCourseAdapter.ViewHolder>() {
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -136,6 +141,12 @@ class HomeFragment : Fragment() {
         observeDailyChallengeState(view)
 
         parentFragmentManager.setFragmentResultListener("profile_updated", viewLifecycleOwner) { _, bundle ->
+            if (bundle.getBoolean("updated", false)) {
+                profileViewModel.loadProfile()
+            }
+        }
+
+        parentFragmentManager.setFragmentResultListener("profile_mask_updated", viewLifecycleOwner) { _, bundle ->
             if (bundle.getBoolean("updated", false)) {
                 profileViewModel.loadProfile()
             }
@@ -276,33 +287,59 @@ class HomeFragment : Fragment() {
         val messageView = view.findViewById<TextView>(R.id.motivationalMessage) ?: return
         val imageView = view.findViewById<ImageView>(R.id.motivationalFriendImage)
         viewLifecycleOwner.lifecycleScope.launch {
-            homeViewModel.motivationalMessage.collect { (message, pic) ->
-                messageView.text = message
+            homeViewModel.motivationalMessage.collect { info ->
+                messageView.text = info.text
+                val pic = info.profilePicture
+                val mask = info.profileMask
                 val invalidPics = listOf<String?>(null, "", "null")
                 if (pic !in invalidPics && imageView != null) {
                     imageView.visibility = View.VISIBLE
+
+                    val applyDrawable: (android.graphics.drawable.Drawable?) -> Unit = { drawable ->
+                        imageView.background = drawable
+                        imageView.setImageResource(getImageResource(mask))
+                    }
+
                     if (pic!!.startsWith("http")) {
                         Glide.with(this@HomeFragment)
+                            .asBitmap()
                             .load(resolveProfilePictureUrl(pic))
                             .placeholder(R.drawable.ic_profile_placeholder)
                             .error(R.drawable.ic_profile_placeholder)
-                            .circleCrop()
-                            .into(imageView)
+                            .into(object : CustomTarget<Bitmap>() {
+                                override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                                    applyDrawable(resource.toDrawable(resources))
+                                }
+
+                                override fun onLoadCleared(placeholder: Drawable?) {
+                                    imageView.background = placeholder
+                                }
+                            })
                     } else {
                         try {
                             val bytes = android.util.Base64.decode(pic, android.util.Base64.DEFAULT)
                             Glide.with(this@HomeFragment)
+                                .asBitmap()
                                 .load(bytes)
                                 .placeholder(R.drawable.ic_profile_placeholder)
                                 .error(R.drawable.ic_profile_placeholder)
-                                .circleCrop()
-                                .into(imageView)
+                                .into(object : CustomTarget<Bitmap>() {
+                                    override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                                        applyDrawable(resource.toDrawable(resources))
+                                    }
+
+                                    override fun onLoadCleared(placeholder: Drawable?) {
+                                        imageView.background = placeholder
+                                    }
+                                })
                         } catch (e: Exception) {
                             imageView.setImageResource(R.drawable.ic_profile_placeholder)
+                            imageView.background = null
                         }
                     }
                 } else {
                     imageView?.setImageResource(R.drawable.ic_profile_placeholder)
+                    imageView?.background = null
                 }
             }
         }
@@ -408,6 +445,16 @@ class HomeFragment : Fragment() {
                     container.addView(dayLayout)
                 }
             }
+        }
+    }
+
+    private fun getImageResource(maskId: String): Int {
+        return when (maskId) {
+            "circle" -> R.drawable.profile_mask_circle
+            "square" -> R.drawable.profile_mask_square
+            "cross" -> R.drawable.profile_mask_cross
+            "triangle" -> R.drawable.profile_mask_triangle
+            else -> R.drawable.profile_mask_circle
         }
     }
 }

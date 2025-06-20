@@ -28,6 +28,11 @@ import android.widget.ImageView
 import androidx.viewpager2.widget.ViewPager2
 import android.widget.FrameLayout
 import javax.inject.Inject
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
+import androidx.core.graphics.drawable.toDrawable
 
 @AndroidEntryPoint
 class ProfileHeaderFragment : Fragment() {
@@ -64,7 +69,7 @@ class ProfileHeaderFragment : Fragment() {
         
         // Listen for profile updates from ProfileFragment
         setupProfileUpdateListener()
-        
+
         // Only load profile if not already loaded
         if (!isProfileLoaded) {
             Log.d("ProfileHeaderFragment", "Loading profile for the first time...")
@@ -92,7 +97,7 @@ class ProfileHeaderFragment : Fragment() {
             }
         }
     }
-    
+
     private fun navigateToProfile() {
         val profileFragment = ProfileFragment()
         
@@ -162,8 +167,8 @@ class ProfileHeaderFragment : Fragment() {
         val greetingText = getString(R.string.greeting_text, profile.displayName.takeIf { it.isNotBlank() } ?: "User")
         binding.greetingText.text = greetingText
         
-        // Load profile picture
-        loadProfilePicture(profile.profilePicture ?: "")
+        // Load profile picture with selected mask shape
+        loadProfilePicture(profile.profilePicture ?: "", profile.friendMask)
         
         // Update XP and level information
         val xp = profile.experience.toLong()
@@ -187,40 +192,67 @@ class ProfileHeaderFragment : Fragment() {
         Log.d("ProfileHeaderFragment", "Updated profile header - Level: $level, XP: $xp")
     }
     
-    private fun loadProfilePicture(profilePic: String) {
-        Log.d("ProfileHeaderFragment", "loadProfilePicture called with: ${profilePic.take(50)}...")
-        if (profilePic.isNotEmpty() && profilePic != "null") {
+    private fun loadProfilePicture(profilePic: String, friendMask: String) {
+        val invalidPics = listOf("", "null")
+
+        val onResourceReady: (android.graphics.drawable.Drawable?) -> Unit = { drawable ->
+            binding.profileImage.background = drawable
+            binding.profileImage.setImageResource(getImageResource(friendMask))
+        }
+
+        if (profilePic.isNotEmpty() && profilePic !in invalidPics) {
             if (profilePic.startsWith("http")) {
-                Log.d("ProfileHeaderFragment", "Loading profile picture from URL")
-                // Load from URL with cache invalidation
+                // Load from URL as bitmap into background
                 Glide.with(this)
+                    .asBitmap()
                     .load(profilePic)
-                    .skipMemoryCache(true)
                     .placeholder(R.drawable.zorotlpf)
                     .error(R.drawable.zorotlpf)
-                    .circleCrop()
-                    .into(binding.profileImage)
+                    .into(object : CustomTarget<Bitmap>() {
+                        override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                            onResourceReady(resource.toDrawable(resources))
+                        }
+
+                        override fun onLoadCleared(placeholder: Drawable?) {
+                            binding.profileImage.background = placeholder
+                        }
+                    })
             } else {
-                Log.d("ProfileHeaderFragment", "Loading profile picture from base64")
-                // Try to load as base64 with cache invalidation
                 try {
                     val imageBytes = android.util.Base64.decode(profilePic, android.util.Base64.DEFAULT)
-                    Log.d("ProfileHeaderFragment", "Successfully decoded base64 image, ${imageBytes.size} bytes")
                     Glide.with(this)
+                        .asBitmap()
                         .load(imageBytes)
-                        .skipMemoryCache(true)
                         .placeholder(R.drawable.zorotlpf)
                         .error(R.drawable.zorotlpf)
-                        .circleCrop()
-                        .into(binding.profileImage)
+                        .into(object : CustomTarget<Bitmap>() {
+                            override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                                onResourceReady(resource.toDrawable(resources))
+                            }
+
+                            override fun onLoadCleared(placeholder: Drawable?) {
+                                binding.profileImage.background = placeholder
+                            }
+                        })
                 } catch (e: Exception) {
-                    Log.e("ProfileHeaderFragment", "Error loading base64 image: ${e.message}")
-                    binding.profileImage.setImageResource(R.drawable.zorotlpf)
+                    Log.e("ProfileHeaderFragment", "Error loading base64 image: \\${e.message}")
+                    binding.profileImage.setImageResource(R.drawable.profile_mask_circle)
+                    binding.profileImage.background = resources.getDrawable(R.drawable.zorotlpf)
                 }
             }
         } else {
-            Log.d("ProfileHeaderFragment", "No profile picture to load, using default")
-            binding.profileImage.setImageResource(R.drawable.zorotlpf)
+            binding.profileImage.setImageResource(R.drawable.profile_mask_circle)
+            binding.profileImage.background = resources.getDrawable(R.drawable.zorotlpf)
+        }
+    }
+
+    private fun getImageResource(maskId: String): Int {
+        return when (maskId) {
+            "circle" -> R.drawable.profile_mask_circle
+            "square" -> R.drawable.profile_mask_square
+            "cross" -> R.drawable.profile_mask_cross
+            "triangle" -> R.drawable.profile_mask_triangle
+            else -> R.drawable.profile_mask_circle
         }
     }
 
@@ -320,10 +352,10 @@ class ProfileHeaderFragment : Fragment() {
     fun refreshProfile() {
         Log.d("ProfileHeaderFragment", "refreshProfile() called - triggering ProfileViewModel.loadProfile()")
         isProfileLoaded = false // Reset flag to allow reload
-        
+
         // Clear any potential image cache for the profile image
         Glide.get(requireContext()).clearMemory()
-        
+
         profileViewModel.loadProfile()
         isProfileLoaded = true
     }

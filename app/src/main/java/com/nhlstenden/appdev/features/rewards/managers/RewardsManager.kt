@@ -54,9 +54,11 @@ class RewardsManager @Inject constructor(
     fun loadRewards(): List<Reward> {
         val arrays = loadRewardArrays()
         
-        return (0 until arrays.size).map { index ->
+        val implementedIds = setOf(4, 11)
+        val list = (0 until arrays.size).map { index ->
             createReward(arrays, index)
         }
+        return list.sortedWith(compareByDescending<Reward> { implementedIds.contains(it.id) }.thenBy { it.id })
     }
     
     fun getReward(index: Int): Reward {

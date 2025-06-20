@@ -126,6 +126,8 @@ class ProfileRepositoryImpl @Inject constructor(
                 "User"
             }
             
+            val friendMask = profileJson.optString("friend_mask", "circle")
+
             val profile = Profile(
                 displayName = finalDisplayName,
                 email = email,
@@ -133,6 +135,7 @@ class ProfileRepositoryImpl @Inject constructor(
                 profilePicture = profileJson.optString("profile_picture", null),
                 level = level,
                 experience = xp.toInt(),
+                friendMask = friendMask,
                 unlockedRewardIds = unlockedRewardIds,
                 bellPeppers = bellPeppers
             )

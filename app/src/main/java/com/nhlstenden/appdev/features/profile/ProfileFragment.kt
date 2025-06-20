@@ -210,9 +210,21 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                             val result = withContext(Dispatchers.IO) {
                                 supabaseClient.updateUserFriendMask(user.id, selectedItem, user.authToken)
                             }
-                            result.onFailure { result ->
-                                Log.d("ProfileFragment", result.message.toString(), result)
-                            }
+                            result.fold(
+                                onSuccess = {
+                                    // Notify HomeFragment and others that mask changed
+                                    parentFragmentManager.setFragmentResult(
+                                        "profile_mask_updated",
+                                        android.os.Bundle().apply { putBoolean("updated", true) }
+                                    )
+
+                                    // Also refresh header immediately via activity
+                                    (activity as? com.nhlstenden.appdev.MainActivity)?.refreshProfileData()
+                                },
+                                onFailure = { error ->
+                                    Log.d("ProfileFragment", error.message.toString(), error)
+                                }
+                            )
                         }
                     }
 
