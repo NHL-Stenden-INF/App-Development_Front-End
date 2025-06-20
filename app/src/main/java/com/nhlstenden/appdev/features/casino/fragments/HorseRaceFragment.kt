@@ -8,10 +8,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import com.nhlstenden.appdev.R
+import com.nhlstenden.appdev.features.casino.interfaces.GameCallback
 import com.nhlstenden.appdev.features.casino.interfaces.RaceManager
 
 
-class HorseRaceFragment : BaseGameFragment(), RaceManager {
+class HorseRaceFragment(
+    gameCallback: GameCallback
+) : BaseGameFragment(gameCallback), RaceManager {
     var guineaHorseMap = HashMap<String, ImageView>(4)
     var guineaHorseHandlerList = ArrayList<GuineaHorseHandler>(4)
     private lateinit var finishLine: ImageView

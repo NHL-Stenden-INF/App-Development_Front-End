@@ -10,9 +10,12 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import com.nhlstenden.appdev.R
+import com.nhlstenden.appdev.features.casino.interfaces.GameCallback
 import kotlin.random.Random
 
-class WheelOfFortuneFragment : BaseGameFragment() {
+class WheelOfFortuneFragment(
+    gameCallback: GameCallback
+) : BaseGameFragment(gameCallback) {
     private lateinit var wheelOfFortune: ImageView
     private lateinit var spinButton: Button
     private val handler = Handler(Looper.getMainLooper())

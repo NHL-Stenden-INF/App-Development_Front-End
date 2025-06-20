@@ -10,7 +10,7 @@ class WheelOfFortuneGame(
     scoreCalculator: ScoreCalculator
 ) : BaseGame(scoreCalculator), GameCallback {
     override fun createFragment(): Fragment {
-        return WheelOfFortuneFragment()
+        return WheelOfFortuneFragment(this as GameCallback)
     }
 
     override fun getGameData(): GameData {

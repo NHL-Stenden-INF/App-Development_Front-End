@@ -9,11 +9,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.Toast
+import com.nhlstenden.appdev.features.casino.interfaces.GameCallback
 import dagger.hilt.android.AndroidEntryPoint
 import kotlin.random.Random
 
 @AndroidEntryPoint
-class CoinFlipFragment : BaseGameFragment() {
+class CoinFlipFragment(
+    gameCallback: GameCallback
+) : BaseGameFragment(gameCallback) {
     private lateinit var coinflipCoin: ImageButton
     private val frames = listOf(
         R.drawable.coin_head,

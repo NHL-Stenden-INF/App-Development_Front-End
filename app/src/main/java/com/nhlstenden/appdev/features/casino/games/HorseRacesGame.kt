@@ -10,7 +10,7 @@ class HorseRacesGame(
     scoreCalculator: ScoreCalculator
 ) : BaseGame(scoreCalculator), GameCallback {
     override fun createFragment(): Fragment {
-        return HorseRaceFragment()
+        return HorseRaceFragment(this as GameCallback)
     }
 
     override fun getGameData(): GameData {

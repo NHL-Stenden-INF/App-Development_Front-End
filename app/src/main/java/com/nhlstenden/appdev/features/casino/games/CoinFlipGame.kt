@@ -10,7 +10,7 @@ class CoinFlipGame(
     scoreCalculator: ScoreCalculator
 ) : BaseGame(scoreCalculator), GameCallback {
     override fun createFragment(): Fragment {
-        return CoinFlipFragment()
+        return CoinFlipFragment(this as GameCallback)
     }
 
     override fun getGameData(): GameData {
