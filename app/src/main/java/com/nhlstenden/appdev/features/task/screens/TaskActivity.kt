@@ -2,6 +2,7 @@ package com.nhlstenden.appdev.features.task.screens
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -185,6 +186,68 @@ class TaskActivity : AppCompatActivity() {
                                 )
 
                                 if (progressUpdated) {
+                                    // Update last task date and streak for streak tracking
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        val today = java.time.LocalDate.now()
+                                        
+                                        // Get current streak and last task date from database
+                                        val currentStreak = streakRepository.getCurrentStreak(
+                                            currentUser.id.toString(),
+                                            currentUser.authToken
+                                        )
+                                        val lastTaskDate = streakRepository.getLastTaskDate(
+                                            currentUser.id.toString(),
+                                            currentUser.authToken
+                                        )
+                                        
+                                        Log.d("TaskActivity", "Current streak from DB: $currentStreak")
+                                        Log.d("TaskActivity", "Last task date from DB: $lastTaskDate")
+                                        
+                                        // Calculate new streak
+                                        val newStreak = if (lastTaskDate == null) {
+                                            // First task ever
+                                            1
+                                        } else {
+                                            val daysBetween = java.time.temporal.ChronoUnit.DAYS.between(lastTaskDate, today)
+                                            when {
+                                                daysBetween == 0L -> {
+                                                    // Same day, keep current streak
+                                                    currentStreak
+                                                }
+                                                daysBetween == 1L -> {
+                                                    // Next day, increment streak
+                                                    currentStreak + 1
+                                                }
+                                                else -> {
+                                                    // More than one day has passed, reset to 1
+                                                    1
+                                                }
+                                            }
+                                        }
+                                        
+                                        Log.d("TaskActivity", "Calculated new streak: $newStreak (was $currentStreak)")
+                                        
+                                        // Update last task date
+                                        val lastTaskDateUpdated = streakRepository.updateLastTaskDate(
+                                            currentUser.id.toString(),
+                                            today,
+                                            currentUser.authToken
+                                        )
+                                        Log.d("TaskActivity", "Last task date update result: $lastTaskDateUpdated")
+                                        
+                                        // Update streak if it changed
+                                        if (newStreak != currentStreak) {
+                                            val streakUpdated = streakRepository.updateStreak(
+                                                currentUser.id.toString(),
+                                                newStreak,
+                                                currentUser.authToken
+                                            )
+                                            Log.d("TaskActivity", "Streak update result: $streakUpdated (from $currentStreak to $newStreak)")
+                                        } else {
+                                            Log.d("TaskActivity", "Streak unchanged, no update needed")
+                                        }
+                                    }
+                                    
                                     // Check for achievements after successful task completion
                                     achievementManager.checkAchievementsAfterTaskCompletion(
                                         currentUser.id.toString(),
