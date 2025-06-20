@@ -3,6 +3,7 @@ package com.nhlstenden.appdev.features.casino.games
 import android.os.Handler
 import android.os.Looper
 import android.widget.ImageView
+import com.nhlstenden.appdev.features.casino.interfaces.RaceManager
 import kotlin.random.Random
 
 class GuineaHorseHandler(

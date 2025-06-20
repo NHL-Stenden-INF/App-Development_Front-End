@@ -1,5 +1,7 @@
 package com.nhlstenden.appdev.features.casino.games
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -16,9 +18,12 @@ abstract class BaseGameFragment : Fragment() {
         viewModel.setIsGameDone(true)
         viewModel.setGamePoints(points)
 
-        runBlocking {
-            delay(1000)
-            activity?.finish()
+        val handler = Handler(Looper.getMainLooper())
+        val runnable = object: Runnable {
+            override fun run() {
+                activity?.finish()
+            }
         }
+        handler.postDelayed(runnable, 1000)
     }
 }

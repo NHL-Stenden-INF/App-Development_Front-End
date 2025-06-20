@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import com.nhlstenden.appdev.R
+import com.nhlstenden.appdev.features.casino.interfaces.RaceManager
 
 
 class HorseRaceFragment : BaseGameFragment(), RaceManager {
@@ -16,6 +17,7 @@ class HorseRaceFragment : BaseGameFragment(), RaceManager {
     private lateinit var finishLine: ImageView
 
     lateinit var betterGuineaHorse: String
+    lateinit var winnerGuineaHorse: String
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -42,18 +44,27 @@ class HorseRaceFragment : BaseGameFragment(), RaceManager {
             drawable.start()
 
             guineaHorse.setOnClickListener {
-                betterGuineaHorse = string
-                startRace()
                 guineaHorse.setOnClickListener(null)
+                betterGuineaHorse = string
+                startGame()
             }
 
             guineaHorseHandlerList.add(GuineaHorseHandler(guineaHorse, string, this as RaceManager))
         }
     }
 
-    fun startRace() {
+
+    override fun startGame() {
         guineaHorseHandlerList.forEach { guineaHorseHandler ->
             guineaHorseHandler.start()
+        }
+    }
+
+    override fun calculateScore(score: Int): Int {
+        return if (winnerGuineaHorse == betterGuineaHorse) {
+            (score * 3).toInt()
+        } else {
+            (score / 3).toInt()
         }
     }
 
@@ -61,13 +72,10 @@ class HorseRaceFragment : BaseGameFragment(), RaceManager {
         guineaHorseHandlerList.forEach { guineaHorseHandler ->
             guineaHorseHandler.stop()
         }
+        winnerGuineaHorse = guineaHorseName
         Log.d("HorseRaceFragment", "The winner is: $guineaHorseName")
 
-        val rewardedPoints = if (guineaHorseName == betterGuineaHorse) {
-            viewModel.gamePoint.value!! * 3
-        } else {
-            viewModel.gamePoint.value!! / 3
-        }
+        val rewardedPoints = calculateScore(viewModel.gamePoint.value!!)
 
         return finishGame(rewardedPoints)
     }

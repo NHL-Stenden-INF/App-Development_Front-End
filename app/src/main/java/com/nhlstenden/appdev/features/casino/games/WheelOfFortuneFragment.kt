@@ -32,17 +32,21 @@ class WheelOfFortuneFragment : BaseGameFragment() {
         spinButton.setOnClickListener {
             spinButton.setOnClickListener(null)
             spinButton.visibility = View.GONE
-            startAnimation()
+            startGame()
         }
 
         return view
+    }
+
+    override fun startGame() {
+        handler.post(frameRunnable)
     }
 
     private val frameRunnable = object : Runnable {
         override fun run() {
             var newRotation = maxRotations - currentRotation
             if (newRotation <= 5.0) {
-                val rewardedPoints: Int = (viewModel.gamePoint.value!! * calculateMultiplier(currentRotation)).toInt()
+                val rewardedPoints = calculateScore(viewModel.gamePoint.value!!)
 
                 Log.d("WheelOfFortuneFragment", "Awarded points: $rewardedPoints")
 
@@ -56,8 +60,8 @@ class WheelOfFortuneFragment : BaseGameFragment() {
         }
     }
 
-    private fun calculateMultiplier(rotation: Double): Double {
-        return when (rotation % 360) {
+    override fun calculateScore(score: Int): Int {
+        return (score * when (currentRotation % 360) {
             in 0.0..45.0 -> 5.0
             in 45.1..90.0 -> 1.0
             in 90.1..135.0 -> 2.0
@@ -67,10 +71,6 @@ class WheelOfFortuneFragment : BaseGameFragment() {
             in 270.1..315.0 -> 2.0
             in 315.1..360.0 -> 0.5
             else -> 1.0
-        }
-    }
-
-    private fun startAnimation() {
-        handler.post(frameRunnable)
+        }).toInt()
     }
 }
