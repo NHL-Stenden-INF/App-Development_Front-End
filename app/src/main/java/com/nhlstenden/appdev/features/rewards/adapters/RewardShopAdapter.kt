@@ -121,8 +121,8 @@ class RewardShopAdapter(
         
         private fun setupComingSoonSticker(reward: Reward) {
             // Show the "Soon" ribbon only for rewards we haven't implemented yet
-            // Currently implemented rewards: 4 (Profile Badges) and 11 (Course Lobby Music)
-            val implementedIds = setOf(4, 11)
+            // Currently implemented rewards: 2 (Theme Customization), 4 (Profile Badges), and 11 (Course Lobby Music)
+            val implementedIds = setOf(2, 4, 11)
             comingSoonSticker.visibility = if (implementedIds.contains(reward.id)) View.GONE else View.VISIBLE
         }
         

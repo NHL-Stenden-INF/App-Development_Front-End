@@ -29,11 +29,13 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import com.nhlstenden.appdev.core.theme.ThemeManager
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     
     @Inject lateinit var authRepository: AuthRepository
+    @Inject lateinit var themeManager: ThemeManager
     private lateinit var viewPager: ViewPager2
     private lateinit var bottomNavigation: BottomNavigationView
     private var userData: User? = null
@@ -52,6 +54,10 @@ class MainActivity : AppCompatActivity() {
         windowInsetsController.isAppearanceLightStatusBars = true
         windowInsetsController.isAppearanceLightNavigationBars = true
         setContentView(R.layout.activity_main)
+        
+        // Apply custom theme colors if available (after views are initialized)
+        applyCustomTheme()
+        
         // Disable system back gesture to control navigation
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -248,6 +254,11 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         
+        // Re-apply theme in case it was changed while app was in background
+        if (::bottomNavigation.isInitialized) {
+            applyCustomTheme()
+        }
+        
         // Check if we need to navigate to the Friends tab
         if (intent.getBooleanExtra("NAVIGATE_TO_FRIENDS", false)) {
             Log.d(TAG, "onResume: NAVIGATE_TO_FRIENDS flag found, navigating to Friends tab")
@@ -419,6 +430,26 @@ class MainActivity : AppCompatActivity() {
             if (fragment is HomeFragment) {
                 Log.d(TAG, "Found HomeFragment, refreshing...")
                 fragment.setupUI(fragment.requireView())
+            }
+        }
+    }
+
+    private fun applyCustomTheme() {
+        if (themeManager.hasCustomTheme()) {
+            val customColor = themeManager.getCustomThemeColor()
+            if (customColor != null) {
+                // Apply custom colors to the app
+                window.statusBarColor = themeManager.getPrimaryDarkColor()
+                window.navigationBarColor = themeManager.getPrimaryDarkColor()
+                
+                // Update bottom navigation colors
+                if (::bottomNavigation.isInitialized) {
+                    bottomNavigation.let { nav ->
+                        nav.setBackgroundColor(themeManager.getPrimaryColor())
+                    }
+                }
+                
+                Log.d(TAG, "Applied custom theme color: ${String.format("#%06X", (0xFFFFFF and customColor))}")
             }
         }
     }
