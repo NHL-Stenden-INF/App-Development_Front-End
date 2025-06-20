@@ -138,6 +138,19 @@ class TaskActivity : AppCompatActivity() {
         }
     }
 
+    override fun finish() {
+        Log.d("TaskActivity", "TaskActivity finishing - triggering profile refresh")
+        
+        // Always set result with profile refresh flag when TaskActivity finishes
+        // This ensures profile is refreshed whether task completed, failed, or user exited
+        val resultIntent = Intent().apply {
+            putExtra("REFRESH_PROFILE", true)
+        }
+        setResult(RESULT_OK, resultIntent)
+        
+        super.finish()
+    }
+
     private fun observeTaskState() {
         viewModel.taskState.observe(this) { state ->
             when (state) {
@@ -262,7 +275,6 @@ class TaskActivity : AppCompatActivity() {
                         }
                     }
                     Toast.makeText(this, "Task completed! You earned $pointsEarned points!", Toast.LENGTH_SHORT).show()
-                    setResult(RESULT_OK)
                     finish()
                 }
             }

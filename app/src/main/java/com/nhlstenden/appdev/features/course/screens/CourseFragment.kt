@@ -118,6 +118,13 @@ class CourseFragment : BaseFragment() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == TASK_COMPLETION_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            // Check if profile refresh is needed
+            val shouldRefreshProfile = data?.getBooleanExtra("REFRESH_PROFILE", false) ?: false
+            if (shouldRefreshProfile) {
+                Log.d("CourseFragment", "TaskActivity indicates profile refresh needed - refreshing profile header")
+                (requireActivity() as? MainActivity)?.refreshProfileData()
+            }
+            
             // Refresh the course progress
             val courseId = arguments?.getString("COURSE_ID") ?: return
             val currentUser = authRepository.getCurrentUserSync()

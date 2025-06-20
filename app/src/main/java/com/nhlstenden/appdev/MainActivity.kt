@@ -271,6 +271,11 @@ class MainActivity : AppCompatActivity() {
                 }, 500) // 500ms later as final check
             }, 100)
         }
+        
+        // Refresh profile header when returning to the app (fallback mechanism)
+        // This ensures bell pepper count is always up-to-date when user returns
+        Log.d(TAG, "onResume: Refreshing profile data as fallback mechanism")
+        refreshProfileData()
     }
 
     // Update method to more reliably refresh UI
