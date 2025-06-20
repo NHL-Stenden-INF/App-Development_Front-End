@@ -19,6 +19,7 @@ import com.nhlstenden.appdev.core.repositories.UserRepository
 import com.nhlstenden.appdev.utils.LevelCalculator
 import java.time.temporal.ChronoUnit
 import com.nhlstenden.appdev.features.home.StreakDay
+import com.nhlstenden.appdev.features.home.MotivationalMessage
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -35,8 +36,8 @@ class HomeViewModel @Inject constructor(
     private val _homeCourses = MutableStateFlow<List<HomeCourse>>(emptyList())
     val homeCourses: StateFlow<List<HomeCourse>> = _homeCourses
 
-    private val _motivationalMessage = MutableStateFlow<Pair<String, String?>>("" to null)
-    val motivationalMessage: StateFlow<Pair<String, String?>> = _motivationalMessage
+    private val _motivationalMessage = MutableStateFlow(MotivationalMessage(""))
+    val motivationalMessage: StateFlow<MotivationalMessage> = _motivationalMessage
 
     private val _dailyChallengeState = MutableStateFlow<DailyChallengeState>(DailyChallengeState.Loading)
     val dailyChallengeState: StateFlow<DailyChallengeState> = _dailyChallengeState
@@ -116,17 +117,17 @@ class HomeViewModel @Inject constructor(
             val friendsResult = friendsRepository.getAllFriends()
             if (friendsResult.isFailure) return@launch
             val friends = friendsResult.getOrNull()?.filter { it.username.isNotBlank() } ?: emptyList()
-            val candidateMessages = mutableListOf<Pair<String, String?>>()
+            val candidateMessages = mutableListOf<MotivationalMessage>()
             for (friend in friends) {
                 val friendName = friend.username
                 val friendDetails = friendsRepository.getFriendDetails(friend.id).getOrNull()
                 val friendPic = friend.profilePicture ?: friendDetails?.profilePicture
                 if (friend.level > userLevel) {
-                    candidateMessages.add("$friendName hit level ${friend.level}, can you level up and pass them?" to friendPic)
+                    candidateMessages.add(MotivationalMessage("$friendName hit level ${friend.level}, can you level up and pass them?", friendPic, friend.profileMask))
                 }
                 val friendStreak = try { streakRepository.getCurrentStreak(friend.id, currentUser.authToken) } catch (e: Exception) { 0 }
                 if (friendStreak > userStreak) {
-                    candidateMessages.add("$friendName is on a ${friendStreak}-day streak, think you can keep up?" to friendPic)
+                    candidateMessages.add(MotivationalMessage("$friendName is on a ${friendStreak}-day streak, think you can keep up?", friendPic, friend.profileMask))
                 }
                 val coursesOfInterest = listOf("sql", "css", "html")
                 if (coursesOfInterest.isNotEmpty()) {
@@ -136,26 +137,26 @@ class HomeViewModel @Inject constructor(
                         val userProgress = userCourseProgress[courseId] ?: 0
                         if (friendProgress > userProgress) {
                             val courseName = courseId.uppercase()
-                            candidateMessages.add("$friendName is ahead of you in $courseName, time to close the gap!" to friendPic)
+                            candidateMessages.add(MotivationalMessage("$friendName is ahead of you in $courseName, time to close the gap!", friendPic, friend.profileMask))
                         }
                     }
                 }
             }
-            val selection: Pair<String, String?>? = if (candidateMessages.isNotEmpty()) {
+            val selection: MotivationalMessage? = if (candidateMessages.isNotEmpty()) {
                 candidateMessages.random()
             } else {
-                val fallbackMessages = if (friends.isEmpty()) {
-                    listOf("Add some friends to start friendly competitions and boost your learning!")
+                val message = if (friends.isEmpty()) {
+                    "Add some friends to start friendly competitions and boost your learning!"
                 } else {
                     listOf(
                         "You're leading the pack! Can you keep your top spot?",
                         "You're the highest level among your friends—keep it up!",
                         "Your streak beats all your friends right now—don't slow down!"
-                    )
+                    ).random()
                 }
-                fallbackMessages.random() to null
+                MotivationalMessage(message)
             }
-            _motivationalMessage.value = selection ?: ("" to null)
+            _motivationalMessage.value = selection ?: MotivationalMessage("")
         }
     }
 
