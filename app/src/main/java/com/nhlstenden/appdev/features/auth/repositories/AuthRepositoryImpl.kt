@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
+import javax.crypto.AEADBadTagException
 import javax.inject.Inject
 import javax.inject.Singleton
 import java.util.Date
@@ -30,17 +31,74 @@ class AuthRepositoryImpl @Inject constructor(
     override fun getCurrentUser(): Flow<User?> = _currentUser.asStateFlow()
     
     private val sharedPreferences: SharedPreferences by lazy {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
+        createEncryptedSharedPreferences()
+    }
+    
+    private fun createEncryptedSharedPreferences(): SharedPreferences {
+        return try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+                
+            EncryptedSharedPreferences.create(
+                context,
+                "auth_prefs",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to create encrypted shared preferences, attempting recovery", e)
             
-        EncryptedSharedPreferences.create(
-            context,
-            "auth_prefs",
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+            // If creation fails due to corrupted data, clear the preferences and try again
+            when (e) {
+                is AEADBadTagException, 
+                is java.security.GeneralSecurityException -> {
+                    Log.i(TAG, "Encryption error detected, clearing corrupted data and recreating preferences")
+                    clearCorruptedEncryptedPreferences()
+                    createEncryptedSharedPreferencesAfterClearing()
+                }
+                else -> {
+                    Log.e(TAG, "Unexpected error creating encrypted shared preferences", e)
+                    throw e
+                }
+            }
+        }
+    }
+    
+    private fun clearCorruptedEncryptedPreferences() {
+        try {
+            // Clear the corrupted encrypted shared preferences file
+            val prefsFile = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+            prefsFile.edit().clear().apply()
+            
+            // Also try to delete the actual file if possible
+            val file = context.getFileStreamPath("auth_prefs.xml")
+            if (file.exists()) {
+                file.delete()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error clearing corrupted preferences", e)
+        }
+    }
+    
+    private fun createEncryptedSharedPreferencesAfterClearing(): SharedPreferences {
+        return try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+                
+            EncryptedSharedPreferences.create(
+                context,
+                "auth_prefs",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create encrypted shared preferences after clearing corrupted data", e)
+            throw e
+        }
     }
     
     init {
@@ -184,35 +242,53 @@ class AuthRepositoryImpl @Inject constructor(
     }
     
     private fun saveUserSession(user: User) {
-        sharedPreferences.edit()
-            .putString("user_id", user.id)
-            .putString("user_email", user.email)
-            .putString("user_username", user.username)
-            .putString("user_profile_picture", user.profilePicture)
-            .putString("auth_token", user.authToken)
-            .apply()
+        try {
+            sharedPreferences.edit()
+                .putString("user_id", user.id)
+                .putString("user_email", user.email)
+                .putString("user_username", user.username)
+                .putString("user_profile_picture", user.profilePicture)
+                .putString("auth_token", user.authToken)
+                .apply()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to save user session", e)
+            // Don't crash the app, authentication will still work for this session
+        }
     }
     
     private fun restoreUserSession() {
-        val userId = sharedPreferences.getString("user_id", null)
-        val email = sharedPreferences.getString("user_email", null)
-        val authToken = sharedPreferences.getString("auth_token", null)
-        
-        if (userId != null && email != null && authToken != null) {
-            val user = User(
-                id = userId,
-                email = email,
-                username = sharedPreferences.getString("user_username", "")!!,
-                profilePicture = sharedPreferences.getString("user_profile_picture", null),
-                authToken = authToken
-            )
-            _currentUser.value = user
-            Log.d(TAG, "User session restored: ${user.email}")
+        try {
+            val userId = sharedPreferences.getString("user_id", null)
+            val email = sharedPreferences.getString("user_email", null)
+            val authToken = sharedPreferences.getString("auth_token", null)
+            
+            if (userId != null && email != null && authToken != null) {
+                val user = User(
+                    id = userId,
+                    email = email,
+                    username = sharedPreferences.getString("user_username", "")!!,
+                    profilePicture = sharedPreferences.getString("user_profile_picture", null),
+                    authToken = authToken
+                )
+                _currentUser.value = user
+                Log.d(TAG, "User session restored: ${user.email}")
+            } else {
+                Log.d(TAG, "No saved user session found")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to restore user session, user will need to log in again", e)
+            // Don't crash the app, just leave currentUser as null
+            // The user will need to log in again
         }
     }
     
     private fun clearUserSession() {
-        sharedPreferences.edit().clear().apply()
+        try {
+            sharedPreferences.edit().clear().apply()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to clear user session", e)
+            // Don't crash the app, user will still be logged out in memory
+        }
     }
     
     private fun isTokenExpired(token: String): Boolean {

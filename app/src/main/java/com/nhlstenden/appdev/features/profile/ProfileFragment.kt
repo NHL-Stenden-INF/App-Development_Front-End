@@ -202,60 +202,44 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                 rewardChecker.isRewardUnlocked(4)
             }
             val profileMaskSelector = binding.profileMaskSelector
+            val profileMaskInputLayout = binding.root.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.profileMaskInputLayout)
+            
             if (canChangeProfileMask) {
-                ArrayAdapter.createFromResource(
-                    requireContext(),
-                    R.array.mask_types,
-                    android.R.layout.simple_spinner_item
-                ).also { adapter ->
-                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                    profileMaskSelector.adapter = adapter
-                }
+                val maskTypes = resources.getStringArray(R.array.mask_types)
+                val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, maskTypes)
+                profileMaskSelector.setAdapter(adapter)
 
-                profileMaskSelector.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                    var isSelected = false
-
-                    override fun onItemSelected(
-                        parent: AdapterView<*>?,
-                        view: View?,
-                        position: Int,
-                        id: Long
-                    ) {
-                        if (!isSelected) {
-                            isSelected = true
-
-                            return
+                profileMaskSelector.setOnItemClickListener { _, _, position, _ ->
+                    val selectedItem = maskTypes[position]
+                    Log.d("ProfileFragment", "Selected mask: $selectedItem")
+                    
+                    val user = authRepository.getCurrentUserSync()!!
+                    lifecycleScope.launch {
+                        val result = withContext(Dispatchers.IO) {
+                            supabaseClient.updateUserFriendMask(user.id, selectedItem, user.authToken)
                         }
-                        val selectedItem = parent?.getItemAtPosition(position).toString()
-                        Log.d("ProfileFragment", "Selected: $selectedItem")
-                        val user = authRepository.getCurrentUserSync()!!
-                        lifecycleScope.launch {
-                            val result = withContext(Dispatchers.IO) {
-                                supabaseClient.updateUserFriendMask(user.id, selectedItem, user.authToken)
+                        result.fold(
+                            onSuccess = {
+                                // Notify HomeFragment and others that mask changed
+                                parentFragmentManager.setFragmentResult(
+                                    "profile_mask_updated",
+                                    android.os.Bundle().apply { putBoolean("updated", true) }
+                                )
+
+                                // Also refresh header immediately via activity
+                                (activity as? com.nhlstenden.appdev.MainActivity)?.refreshProfileData()
+                                
+                                Toast.makeText(requireContext(), "Profile mask updated", Toast.LENGTH_SHORT).show()
+                            },
+                            onFailure = { error ->
+                                Log.e("ProfileFragment", "Failed to update profile mask", error)
+                                Toast.makeText(requireContext(), "Failed to update profile mask", Toast.LENGTH_SHORT).show()
                             }
-                            result.fold(
-                                onSuccess = {
-                                    // Notify HomeFragment and others that mask changed
-                                    parentFragmentManager.setFragmentResult(
-                                        "profile_mask_updated",
-                                        android.os.Bundle().apply { putBoolean("updated", true) }
-                                    )
-
-                                    // Also refresh header immediately via activity
-                                    (activity as? com.nhlstenden.appdev.MainActivity)?.refreshProfileData()
-                                },
-                                onFailure = { error ->
-                                    Log.d("ProfileFragment", error.message.toString(), error)
-                                }
-                            )
-                        }
-                    }
-
-                    override fun onNothingSelected(parent: AdapterView<*>?) {
-                        return
+                        )
                     }
                 }
             } else {
+                profileMaskInputLayout.isEnabled = false
                 profileMaskSelector.isEnabled = false
             }
         }
@@ -374,6 +358,14 @@ class ProfileFragment : BaseFragment(), SensorEventListener {
                     is ProfileState.Success -> {
                         binding.progressBar.visibility = View.GONE
                         binding.swipeRefreshLayout.isRefreshing = false
+
+                        // Set profile mask selector to current mask
+                        try {
+                            val currentMask = state.profile.friendMask
+                            binding.profileMaskSelector.setText(currentMask, false)
+                        } catch (e: Exception) {
+                            android.util.Log.w("ProfileFragment", "Failed to set profile mask selector", e)
+                        }
 
                         // Display profile image (URL or file path)
                         val profilePic = state.profile.profilePicture

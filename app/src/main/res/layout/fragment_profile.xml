@@ -213,10 +213,23 @@
                             android:text="Profile mask"
                             android:textSize="16sp" />
 
-                        <Spinner
-                            android:id="@+id/profileMaskSelector"
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/profileMaskInputLayout"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            app:endIconMode="dropdown_menu">
+
+                            <AutoCompleteTextView
+                                android:id="@+id/profileMaskSelector"
+                                android:layout_width="120dp"
+                                android:layout_height="wrap_content"
+                                android:inputType="none"
+                                android:focusable="false"
+                                android:textSize="14sp" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
 
                     <LinearLayout
